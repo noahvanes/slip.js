@@ -1,8 +1,3 @@
-// TODO: better constructors for AG's
-// TODO: more error detection
-// TODO: allow commenting
-// TODO: quote
-
 function Pair(a,d) {
 
 	this.car = a;
@@ -39,29 +34,29 @@ function makeSymbol(s) {
 	return makeSymbol(s);
 }
 
-function SchemeReader(str) {
+/********************************/
 
-	var program = str;
-	var position = 0;
-	var hold = 0;
+function SchemeReader() {
 
-	function isWhiteSpace(c) {
+	var program, position, hold;
 
-		switch(c) {
+	function setup(str) {
+		program = str;
+		position = 0;
+	}
 
-			case ' ':
-			case '\t':
-			case '\n':
+	function isTerminator(c) {
+
+		switch (c) {
+			case ' ': case '':
+			case '\n': case '\t':
+			case '\'': case '\"':
+			case ')': case ')':
+			case ';': case '.':
 				return true;
 			default:
 				return false;
 		}
-	}
-
-	function isValid(c) {
-
-		//TODO: inline in one big switch?
-		return !(isWhiteSpace(c) && c != '\"');
 	}
 
 	function isNumber(c) {
@@ -71,20 +66,36 @@ function SchemeReader(str) {
 
 	function skipWhiteSpace() {
 
-		while(isWhiteSpace(program.charAt(position))) {
-			++position;
+		while(true) {
+
+			switch (program.charAt(position)) {
+
+				case '\n':
+				case ' ': 
+				case '\t': 
+					++position;
+					break;
+				case ';': 
+					var current;
+					while((current = program.charAt(++position)) != '\n'
+					    	&& current != '');
+					break;
+				default:
+					return;
+			}
 		}
 	}
 
 	function skip() {
 
+		skipWhiteSpace();
 		++position;
 	}
 
 	function peek() { 
 
 		skipWhiteSpace();
-		return program.charAt(position); 
+		return program.charAt(position);
 	}
 
 	function read() {
@@ -93,17 +104,22 @@ function SchemeReader(str) {
 		return program.charAt(position++);
 	}
 
-	function readWord() {
+	function readSymbol() {
 
-		skipWhiteSpace();
-		hold = position; 								//remember start position
-		while(isValid(program.charAt(++position))); 	//skip until end of word
-		return program.substring(hold, position);
+		hold = position; 									//remember start position
+		while(!isTerminator(program.charAt(++position))); 	//skip until end of word
+		return makeSymbol(program.substring(hold, position));
+	}
+
+	function readString() {
+
+		hold = position
+		while(program.charAt(++position) != '\"');
+		return program.substring(hold, position++);
 	}
 
 	function readNumber() {
 
-		skipWhiteSpace();
 		hold = position;
 
 		//step 1: check for sign
@@ -123,39 +139,39 @@ function SchemeReader(str) {
 	}
 
 	return { 
+		setup: setup,
 		skip: skip,
 		peek: peek,
 		read: read,
-		readWord: readWord,
+		readSymbol: readSymbol,
+		readString: readString,
 		readNumber: readNumber
 	}
 }
 
-
 function SchemeParser(program) {
 
-	var reader = SchemeReader(program);
-	var character;
+	var reader = SchemeReader();
+	var character, fun;
 
 	function parse() {
 
 		character = reader.peek();
+		
+		switch (character) {
 
-		switch(character) {
-
-			case '(': 
-				return parseLBR();
-			case '#': 
-				return parseSHR();
-			case '-': case '+': case '0':
-			case '1': case '2': case '3': 
-			case '4': case '5': case '6': 
+			case '(': return parseLBR();
+			case '#': return parseSHR();
+			case '\'': return parseQUO();
+			case '\"': 
+				return reader.readString();
+			case '+': case '-': case '0':
+			case '1': case '2': case '3':
+			case '4': case '5': case '6':
 			case '7': case '8': case '9':
-				return parseNBR();
-			case '\"':
-				return parseSTR();
+				return reader.readNumber();
 			default:
-				return parseVAR();
+				return reader.readSymbol();
 		}
 	}
 
@@ -164,7 +180,7 @@ function SchemeParser(program) {
 		var elm = [];
 
 		reader.skip(); 	// skip left bracket
-		while (reader.peek() != ')') { elm.push(parse()); }
+		while (reader.peek() != ')') { elm.push(parse()) };
 		reader.skip(); 	// skip right bracket
 
 		return buildList(elm);
@@ -175,46 +191,35 @@ function SchemeParser(program) {
 		reader.skip(); 	// skip #
 		character = reader.read();
 
-		if (character == 't' || character == 'f') {
-			return new Boolean(character == 't');
+		switch(character) {
+
+			case 't': 
+				return new Boolean(true);
+			case 'f':
+			 	return new Boolean(false);
+			case '(':
+				var elm = [];
+				while(reader.peek() != ')') { 
+					elm.push(parse()); 
+				}
+				reader.skip(); // skip right bracket
+				return elm;
 		}
-
-		if(character == '(') {
-
-			var elm = [];
-			while(reader.peek() != ')') { elm.push(parse()); }
-			reader.skip(); // skip right bracket
-
-			return elm;
-		}
 	}
 
-	function parseNBR() {
+	function parseQUO() {
 
-		return reader.readNumber();
-
+		reader.skip(); // skip '
+		var pair = new Pair(parse(), null);
+		pair = new Pair('quote', pair);
+		
+		return pair;
 	}
 
-	function parseSTR() {
-
-		reader.skip(); 	// skip opening "
-		var result = reader.readWord();
-		reader.skip();	// skip closing "
-
-		return result;
-
-	}
-
-	function parseVAR() {
-
-		return makeSymbol(reader.readWord());
-	}
-
-	return { parse: parse };
-
+	return { parse: parse, 
+		     setup: reader.setup };
 }
 
-var p = SchemeParser("(define x -2.56)");
+var p = SchemeParser();
+p.setup("(define (fac n) (if (= n 0) 1 (* n (fac (- n 1)))))");
 var x = p.parse();
-var test = x.cdr.cdr.car;
-print(test);
