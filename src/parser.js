@@ -51,7 +51,7 @@ function SchemeReader() {
 			case ' ': case '':
 			case '\n': case '\t':
 			case '\'': case '\"':
-			case ')': case ')':
+			case ')': case '(':
 			case ';': case '.':
 				return true;
 			default:
