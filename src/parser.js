@@ -220,6 +220,5 @@ function SchemeParser(program) {
 		     setup: reader.setup };
 }
 
-var p = SchemeParser();
-p.setup("(define (fac n) (if (= n 0) 1 (* n (fac (- n 1)))))");
-var x = p.parse();
+exports.makeParser = SchemeParser;
+exports.Pair = Pair;
