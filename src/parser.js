@@ -16,23 +16,26 @@ function buildList(arr) {
 	return currentPair;
 }
 
-function makeSymbol(s) {
+function makeSymbolPool() {
 
 	var symbolTable = {}
-	var symbolCount = -1;
+	var symbolCount = 0;
 
-	makeSymbol = function(nam) {
+	function lookup(nam) {
 
 		var id = symbolTable[nam];
 		if (id == undefined) {
-			symbolTable[nam] == ++symbolCount;
-			id = symbolCount;
+			symbolTable[nam] = symbolCount;
+			id = symbolCount++;
 		}
 
-		return { txt: nam, id: id }
+		return { txt: nam, id: id };
 	}
-	return makeSymbol(s);
+
+	return lookup;
 }
+
+var toSymbol = makeSymbolPool();
 
 /********************************/
 
@@ -108,7 +111,7 @@ function SchemeReader() {
 
 		hold = position; 									//remember start position
 		while(!isTerminator(program.charAt(++position))); 	//skip until end of word
-		return makeSymbol(program.substring(hold, position));
+		return toSymbol(program.substring(hold, position));
 	}
 
 	function readString() {
@@ -126,7 +129,10 @@ function SchemeReader() {
 		switch(program.charAt(position)) {
 			case '+':
 			case '-':
-				++position;
+				if(!isNumber(program.charAt(++position))) {
+					position = position - 1; //oops, go back
+					return readSymbol();
+				}
 		}
 		//step 2: parse number in front of .
 		while(isNumber(program.charAt(++position)));
@@ -153,6 +159,8 @@ function SchemeParser(program) {
 
 	var reader = SchemeReader();
 	var character, fun;
+
+	var __QUO_SYM__ = toSymbol('quote');
 
 	function parse() {
 
@@ -194,9 +202,9 @@ function SchemeParser(program) {
 		switch(character) {
 
 			case 't': 
-				return new Boolean(true);
+				return true;
 			case 'f':
-			 	return new Boolean(false);
+			 	return false;
 			case '(':
 				var elm = [];
 				while(reader.peek() != ')') { 
@@ -211,7 +219,7 @@ function SchemeParser(program) {
 
 		reader.skip(); // skip '
 		var pair = new Pair(parse(), null);
-		pair = new Pair('quote', pair);
+		pair = new Pair(__QUO_SYM__, pair);
 		
 		return pair;
 	}
@@ -220,5 +228,9 @@ function SchemeParser(program) {
 		     setup: reader.setup };
 }
 
+/* EXPORTS */
+
 exports.makeParser = SchemeParser;
+exports.buildList = buildList;
+exports.toSymbol = toSymbol;
 exports.Pair = Pair;
