@@ -1,43 +1,12 @@
-function Pair(a,d) {
+/* IMPORT UTILS */
 
-	this.car = a;
-	this.cdr = d;
-}
+var utils = require('./utils.js');
 
-function buildList(arr) { 
+var toSymbol = utils.toSymbol;
+var buildList = utils.buildList;
+var Pair = utils.Pair;
 
-	var i = arr.length;
-	var currentPair = null;
-
-	while (i-- != 0) { 
-		currentPair = new Pair(arr[i], currentPair);
-	}
-	
-	return currentPair;
-}
-
-function makeSymbolPool() {
-
-	var symbolTable = {}
-	var symbolCount = 0;
-
-	function lookup(nam) {
-
-		var id = symbolTable[nam];
-		if (id == undefined) {
-			symbolTable[nam] = symbolCount;
-			id = symbolCount++;
-		}
-
-		return { txt: nam, id: id };
-	}
-
-	return lookup;
-}
-
-var toSymbol = makeSymbolPool();
-
-/********************************/
+/* SCHEME READER */
 
 function SchemeReader() {
 
@@ -155,6 +124,8 @@ function SchemeReader() {
 	}
 }
 
+/* SCHEME PARSER */ 
+
 function SchemeParser(program) {
 
 	var reader = SchemeReader();
@@ -228,9 +199,6 @@ function SchemeParser(program) {
 		     setup: reader.setup };
 }
 
-/* EXPORTS */
+/* EXPORT PARSER */
 
 exports.makeParser = SchemeParser;
-exports.buildList = buildList;
-exports.toSymbol = toSymbol;
-exports.Pair = Pair;

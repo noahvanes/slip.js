@@ -1,100 +1,23 @@
 
-/* IMPORTS */
+/* IMPORTS FROM UTILS.JS */
 
-var parser = require('./parser.js');
-var Pair = parser.Pair;
-var toSymbol = parser.toSymbol;
-var buildList = parser.buildList;
-var Parser = parser.makeParser();
+var utils = require('./utils.js');
 
-/* UTILS */
+var Pair = utils.Pair;
+var assoc = utils.assoc;
+var length = utils.length;
+var reverseLst = utils.reverseLst;
+var buildList = utils.buildList;
+var toArray = utils.toArray;
+var isSymbol = utils.isSymbol;
+var toSymbol = utils.toSymbol;
+var error = utils.error;
 
-function assoc(item, lst) {
+/* IMPORT PARSER */
 
-	while (lst != null) {
-		if(lst.car.car == item) {
-			return lst.car;
-		}
-		lst = lst.cdr;
-	}
+var parser = require('./parser.js').makeParser();
 
-	return false;
-}
-
-function length(lst) {
-
-	var len = 0;
-	while(lst != null) {
-		lst = lst.cdr;
-		++len;
-	}
-
-	return len;
-}
-
-function reverseLst(lst) {
-
-	var current = null;
-	while(lst != null) {
-		current = new Pair(lst.car, current);
-		lst = lst.cdr;
-	}
-	return current;
-}
-
-function toArray(lst) {
-
-	var res = [];
-	while(lst != null) {
-		res.push(lst.car);
-		lst = lst.cdr;
-	}
-	return res;
-}
-
-function isSymbol(x) {
-
-	return (x.txt != undefined && x.id != undefined);
-}
-
-function makeProcedure(par, seq, env) {
-
-	return function() {
-
-		stk.save(regs.KON);
-		stk.save(regs.ENV);
-		stk.save(regs.FRM);
-		regs.PAR = par;
-		regs.SEQ = seq;
-		regs.ENV = env;
-		regs.FRM = null;
-		return bind;
-	}
-}
-
-/* KEYWOARD SYMBOLS */
-
-function buildKeywords() {
-
-	var len = arguments.length;
-	var res = {};
-	var cur;
-
-	while(len--) {
-		cur = arguments[len];
-		res[cur] = toSymbol(cur);
-	}
-
-	return res;
-}
-
-/* TRAMPOLINE (for TCO) */
-
-function startTrampoline(fun) {
-	while(fun = fun());
-}
-
-/* VM DESIGN */
+/* VM ARCHITECTURE */
 
 var __STACK_SIZ__ = 1024;
 
@@ -128,6 +51,11 @@ var stk = {
 stk.save = function(el) { this.arr[this.sp++] = el; },
 stk.restore = function() { return this.arr[--this.sp]; }
 
+// trampoline for TCO
+function startTrampoline(fun) {
+	while(fun = fun());
+}
+
 /* ERRORS */
 
 function error(msg, reg) {
@@ -137,6 +65,41 @@ function error(msg, reg) {
 	regs.FRM = regs.GLB;
 	return false;
 }
+
+/* MAKE PROCEDURE */
+
+function makeProcedure(par, seq, env) {
+
+	return function() {
+
+		stk.save(regs.KON);
+		stk.save(regs.ENV);
+		stk.save(regs.FRM);
+		regs.PAR = par;
+		regs.SEQ = seq;
+		regs.ENV = env;
+		regs.FRM = null;
+		return bind;
+	}
+}
+
+/* KEYWOARD SYMBOLS */
+
+function buildKeywords() {
+
+	var len = arguments.length;
+	var res = {};
+	var cur;
+
+	while(len--) {
+		cur = arguments[len];
+		res[cur] = toSymbol(cur);
+	}
+
+	return res;
+}
+
+var keywords = buildKeywords('begin', 'define', 'eval', 'if', 'lambda', 'quote', 'set!');
 
 /* CLONING */
 
@@ -761,45 +724,22 @@ function div() {
 	return regs.KON;  
 }
 
-function equ() {
+function equ(x,y) { return (x == y); }
+function sma(x,y) { return (x < y); }
+function lrg(x,y) { return (x > y); }
+function sme(x,y) { return (x <= y); } 
+function lre(x,y) { return (x >= y); } 
+function cons(a,d) { return new Pair(a,d); }
+function car(p) { return p.car; }
+function cdr(p) { return p.cdr; }
 
-	regs.VAL = regs.ARG.car;
-	regs.ARG = regs.ARG.cdr.car;
-	regs.VAL = (regs.VAL == regs.ARG);
-	return regs.KON;
-}
+var natives = buildList([['+', add], ['-', sub], ['*', mul], ['/', div], ['=', makeNative(equ)], 
+						['<', makeNative(sma)], ['>', makeNative(lrg)], ['<=', makeNative(sme)],
+						['>=', makeNative(lre)], ['cons', makeNative(cons)], ['car', makeNative(car)],
+						['cdr', makeNative(cdr)]]);
 
-function sma() {
 
-	regs.VAL = regs.ARG.car;
-	regs.ARG = regs.ARG.cdr.car;
-	regs.VAL = (regs.VAL < regs.ARG);
-	return regs.KON;
-}
-
-function lrg() {
-
-	regs.VAL = regs.ARG.car;
-	regs.ARG = regs.ARG.cdr.car;
-	regs.VAL = (regs.VAL > regs.ARG);
-	return regs.KON;
-}
-
-function sme() {
-
-	regs.VAL = regs.ARG.car;
-	regs.ARG = regs.ARG.cdr.car;
-	regs.VAL = (regs.VAL <= regs.ARG);
-	return regs.KON;
-}
-
-function lre() {
-
-	regs.VAL = regs.ARG.car;
-	regs.ARG = regs.ARG.cdr.car;
-	regs.VAL = (regs.VAL >= regs.ARG);
-	return regs.KON;
-}
+/* INIT */ 
 
 function initNatives() {
 
@@ -818,38 +758,23 @@ function initNatives() {
 	}
 }
 
-/* INIT */
-
-regs.KON = function() { 
-	return false;
-}
-
-var natives = buildList([['+', add], ['-', sub], ['*', mul], ['/', div],
-						 ['=', equ], ['<', sma], ['>', lrg], ['<=', sme], ['>=', lre]]);
-						 //['cons', cons], ['car', car], ['cdr', cdr];
-var keywords = buildKeywords('begin', 'define', 'eval', 'if', 'lambda', 'quote', 'set!');
 regs.LST = natives;
 startTrampoline(initNatives);
 
-/* TESTING */
+regs.KON = function() { 
+	return false; 
+}
 
-function test(prog) {
-	Parser.setup(prog);
-	regs.EXP = Parser.parse();
+/* MAIN */
+
+function test(str) {
+
+	parser.setup(str);
+	regs.GLB = regs.FRM;
+	regs.EXP = parser.parse();
 	startTrampoline(eval);
 	console.log(regs.VAL);
 }
 
-test("(begin (define (fib n) (if (< n 2) 1 (+ (fib (- n 1)) (fib (- n 2))))) (fib 9))");
-
-
-
-function toStrOut(x) {
-	if (x instanceof Pair) {
-		var carStr = toStrOut(x.car);
-		var cdrStr = toStrOut(x.cdr);
-		return "(" + carStr + (x.cdr instanceof Pair ? " " : " . ") + cdrStr + ")";
-	} else {
-		return x;
-	}
-}
+test("(define (fac n) (if (< n 1) 0 (* n (fac (- n 1)))))");
+test("(begin (define q (fac 10)) q)")
