@@ -4,6 +4,7 @@ var utils = require('./utils.js');
 
 var toSymbol = utils.toSymbol;
 var buildList = utils.buildList;
+var buildListWithCdr = utils.buildListWithCdr;
 var Pair = utils.Pair;
 
 /* SCHEME READER */
@@ -25,6 +26,7 @@ function SchemeReader() {
 			case '\'': case '\"':
 			case ')': case '(':
 			case ';': case '.':
+			case '\r':
 				return true;
 			default:
 				return false;
@@ -42,15 +44,14 @@ function SchemeReader() {
 
 			switch (program.charAt(position)) {
 
-				case '\n':
-				case ' ': 
-				case '\t': 
+				case '\n': case '\r': 
+				case '\t': case ' ':
 					++position;
 					break;
 				case ';': 
 					var current;
 					while((current = program.charAt(++position)) != '\n'
-					    	&& current != '');
+					    	&& current != '\r' && current != '');
 					break;
 				default:
 					return;
@@ -87,7 +88,7 @@ function SchemeReader() {
 
 		hold = position
 		while(program.charAt(++position) != '\"');
-		return program.substring(hold, position++);
+		return program.substring(hold + 1, position++);
 	}
 
 	function readNumber() {
@@ -159,7 +160,15 @@ function SchemeParser(program) {
 		var elm = [];
 
 		reader.skip(); 	// skip left bracket
-		while (reader.peek() != ')') { elm.push(parse()) };
+		while ((character = reader.peek()) != ')') { 
+			if(character == '.') {
+				reader.skip(); // skip period
+				var lst = buildListWithCdr(elm, parse());
+				reader.skip();
+				return lst;
+			}
+			elm.push(parse());
+		};
 		reader.skip(); 	// skip right bracket
 
 		return buildList(elm);
@@ -200,5 +209,4 @@ function SchemeParser(program) {
 }
 
 /* EXPORT PARSER */
-
-exports.makeParser = SchemeParser;
+exports.makeParser = SchemeParser; 

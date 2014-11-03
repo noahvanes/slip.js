@@ -4,22 +4,26 @@
 var utils = require('./utils.js');
 
 var Pair = utils.Pair;
-var assoc = utils.assoc;
+var Symbol = utils.Symbol;
 var length = utils.length;
 var reverseLst = utils.reverseLst;
 var buildList = utils.buildList;
 var toArray = utils.toArray;
 var isSymbol = utils.isSymbol;
 var toSymbol = utils.toSymbol;
-var error = utils.error;
 
 /* IMPORT PARSER */
 
 var parser = require('./parser.js').makeParser();
 
+/* IMPORT IO */
+
+var IO = require('./IO.js');
+
 /* VM ARCHITECTURE */
 
 var __STACK_SIZ__ = 1024;
+var __HEAP_SIZ__ = 1024;
 
 var regs = {
 	ADR: null,
@@ -38,19 +42,19 @@ var regs = {
 	PRC: null,
 	SEQ: null,
 	STK: null,
+	STP: 0,
 	STO: null,
 	TOP: 0,
 	VAL: null
 }
 
+regs.STK = new Array(__STACK_SIZ__);
+regs.STO = new Array(__HEAP_SIZ__);
+
 var stk = {
-	arr: new Array(__STACK_SIZ__),
-	sp: 0,
+	save: function(el) { regs.STK[regs.STP++] = el; },
+	restore: function() { return regs.STK[--regs.STP]; }
 }
-
-stk.save = function(el) { this.arr[this.sp++] = el; },
-stk.restore = function() { return this.arr[--this.sp]; }
-
 // trampoline for TCO
 function startTrampoline(fun) {
 	while(fun = fun());
@@ -59,10 +63,25 @@ function startTrampoline(fun) {
 /* ERRORS */
 
 function error(msg, reg) {
-	console.log(msg);
+	IO.printOut(msg);
 	regs.VAL = reg;
 	regs.ENV = null;
 	regs.FRM = regs.GLB;
+	regs.KON = c_REP;
+	return c_REP;
+}
+
+/* ASSOC */
+
+function assoc(item, lst) {
+
+	while (lst != null) {
+		if(equ(lst.car.car, item)) {
+			return lst.car;
+		}
+		lst = lst.cdr;
+	}
+
 	return false;
 }
 
@@ -99,7 +118,7 @@ function buildKeywords() {
 	return res;
 }
 
-var keywords = buildKeywords('begin', 'define', 'eval', 'if', 'lambda', 'quote', 'set!');
+var keywords = buildKeywords('begin', 'define', 'if', 'lambda', 'quote', 'let', 'set!');
 
 /* CLONING */
 
@@ -193,7 +212,7 @@ function eval() {
 		return evalCompound;
 	}
 
-	if (isSymbol(regs.EXP)) {
+	if (regs.EXP instanceof Symbol) {
 		return evalVariable;
 	}
 
@@ -208,8 +227,7 @@ function evalVariable() {
 	regs.BND = assoc(regs.EXP, regs.FRM);
 	if (regs.BND) {
 		regs.ADR = regs.BND.cdr;
-		regs.BND = assoc(regs.ADR, regs.STO);
-		regs.VAL = regs.BND.cdr;
+		regs.VAL = regs.STO[regs.ADR];
 		return regs.KON;
 	}
 
@@ -231,8 +249,7 @@ function lookup() {
 		regs.FRM = stk.restore();
 		regs.ENV = stk.restore();
 		regs.ADR = regs.BND.cdr;
-		regs.BND = assoc(regs.ADR, regs.STO);
-		regs.VAL = regs.BND.cdr;
+		regs.VAL = regs.STO[regs.ADR];
 		return regs.KON;
 	}
 
@@ -256,10 +273,10 @@ function evalCompound() {
 
 		case keywords.begin.id: return evalBegin;
 		case keywords.define.id: return evalDefine;
-		case keywords.eval.id: return evalEval;
 		case keywords.if.id: return evalIf;
 		case keywords.lambda.id: return evalLambda;
 		case keywords.quote.id: return evalQuote;
+		case keywords.let.id: return evalLet;
 		case keywords['set!'].id: return evalSet;
 		default: return evalApplication;
 	}
@@ -301,8 +318,7 @@ function evalDefine() {
 			regs.VAL = makeProcedure(regs.PAR, regs.SEQ, regs.ENV);
 			regs.ENV = regs.ENV.cdr;
 			regs.ADR = regs.BND.cdr;
-			regs.BND = new Pair(regs.ADR, regs.VAL);
-			regs.STO = new Pair(regs.BND, regs.STO);
+			regs.STO[regs.ADR] = regs.VAL;
 			return regs.KON;
 		}
 		regs.BND = new Pair(regs.PAT, regs.TOP);
@@ -310,8 +326,7 @@ function evalDefine() {
 		regs.ENV = new Pair(regs.FRM, regs.ENV);
 		regs.VAL = makeProcedure(regs.PAR, regs.SEQ, regs.ENV);
 		regs.ENV = regs.ENV.cdr;
-		regs.BND = new Pair(regs.TOP++, regs.VAL);
-		regs.STO = new Pair(regs.BND, regs.STO);
+		regs.STO[regs.TOP++] = regs.VAL;
 		return regs.KON;
 	}
 
@@ -326,14 +341,13 @@ function c_define() {
 
 	if(regs.BND) {
 		regs.ADR = regs.BND.cdr;
-		regs.BND = new Pair(regs.ADR, regs.VAL);
+		regs.STO[regs.ADR] = regs.VAL;
 	} else {
 		regs.BND = new Pair(regs.PAT, regs.TOP);
 		regs.FRM = new Pair(regs.BND, regs.FRM);
-		regs.BND = new Pair(regs.TOP++, regs.VAL);
+		regs.STO[regs.TOP++] = regs.VAL;
 	}
 
-	regs.STO = new Pair(regs.BND, regs.STO);
 	return regs.KON; 
 }
 
@@ -371,8 +385,7 @@ function c_set() {
 
 	regs.ADR = stk.restore();
 	regs.KON = stk.restore();
-	regs.BND = new Pair(regs.ADR, regs.VAL);
-	regs.STO = new Pair(regs.BND, regs.STO);
+	regs.STO[regs.ADR] = regs.VAL;
 	return regs.KON;
 }
 
@@ -504,27 +517,6 @@ function c2_if() {
 	return eval;
 }
 
-/* EVAL EVAL */
-
-function evalEval() {
-
-	if (regs.LEN == 1) {
-		regs.EXP = regs.LST.car;
-		stk.save(regs.KON);
-		regs.KON = c_eval;
-		return eval;
-	}
-
-	return error("Exactly one argument required for eval: ", regs.LST);
-}
-
-function c_eval() {
-
-	regs.EXP = regs.VAL;
-	regs.KON = stk.restore();
-	return eval;
-}
-
 /* EVAL LAMBDA */
 
 function evalLambda() {
@@ -607,6 +599,83 @@ function c3_Application() {
 	return apply;
 }
 
+/* LET */
+
+function evalLet() {
+
+	if (regs.LEN < 2) {
+		return error('Let reguires at least 2 arguments: ', regs.LST);
+	}
+
+	regs.SEQ = regs.LST.cdr;
+	regs.LST = regs.LST.car;
+	stk.save(regs.KON);
+	stk.save(regs.ENV);
+	stk.save(regs.FRM);
+
+	if (regs.LST == null) {
+		regs.ENV = new Pair(regs.FRM, regs.ENV);
+		regs.FRM = null;
+		regs.KON = c1_let;
+		return sequence;
+	}
+
+	regs.BND = regs.LST.car;
+	regs.LST = regs.LST.cdr;
+	regs.PAT = regs.BND.car;
+	regs.EXP = regs.BND.cdr.car;
+	if (!isSymbol(regs.PAT)) {
+		return error("Invalid variable binding: ", regs.PAT);
+	}
+	regs.PAT = regs.PAT.txt;
+	regs.KON = c2_let;
+
+	stk.save(regs.SEQ);
+	stk.save(regs.LST);
+	stk.save(regs.PAT);
+	return eval;
+}
+
+function c1_let() {
+
+	regs.FRM = stk.restore();
+	regs.ENV = stk.restore();
+	regs.KON = stk.restore();
+	return regs.KON;
+}
+
+function c2_let() {
+
+	//TODO: add stack-peek
+	regs.PAT = stk.restore();
+	regs.LST = stk.restore();
+
+	regs.ENV = new Pair(regs.FRM, regs.ENV);
+	regs.BND = new Pair(regs.PAT, regs.TOP);
+	regs.FRM = new Pair(regs.BND, null);
+	regs.STO[regs.TOP++] = regs.VAL;
+
+	if (regs.LST == null) {
+		regs.SEQ = stk.restore();
+		regs.KON = c1_let;
+		return sequence;
+	}
+
+	regs.BND = regs.LST.car;
+	regs.LST = regs.LST.cdr;
+	regs.PAT = regs.BND.car;
+	regs.EXP = regs.BND.cdr.car;
+	if (!isSymbol(regs.PAT)) {
+		return error("Invalid variable binding: ", regs.PAT);
+	}
+	regs.PAT = regs.PAT.txt;
+	regs.KON = c2_let;
+
+	stk.save(regs.LST);
+	stk.save(regs.PAT);
+	return eval;
+}
+
 /* APPLY & BIND */
 
 function apply() {
@@ -645,8 +714,7 @@ function bind() {
 		regs.BND = new Pair(regs.PAT, regs.TOP);
 		regs.FRM = new Pair(regs.BND, regs.FRM);
 		regs.VAL = regs.ARG.car;
-		regs.BND = new Pair(regs.TOP++, regs.VAL);
-		regs.STO = new Pair(regs.BND, regs.STO);
+		regs.STO[regs.TOP++] = regs.VAL;
 		regs.ARG = regs.ARG.cdr;
 		regs.PAR = regs.PAR.cdr;
 		return bind;
@@ -655,11 +723,10 @@ function bind() {
 	// variable arguments
 	if(isSymbol(regs.PAR)) {
 
-		regs.PAT = regs.PAT.txt;
+		regs.PAR = regs.PAR.txt;
 		regs.BND = new Pair(regs.PAR, regs.TOP);
 		regs.FRM = new Pair(regs.BND, regs.FRM);
-		regs.BND = new Pair(regs.TOP++, regs.ARG);
-		regs.STO = new Pair(regs.BND, regs.STO);
+		regs.STO[regs.TOP++] = regs.ARG;
 		regs.KON = c_bind;
 		return sequence;
 	}
@@ -724,6 +791,128 @@ function div() {
 	return regs.KON;  
 }
 
+// simple map, only for unary functions
+function map() {
+
+	regs.PRC = regs.ARG.car;
+	regs.ARG = regs.ARG.cdr.car;
+
+	if (regs.ARG == null) {
+		regs.VAL = null;
+		return regs.KON;
+	}
+
+	stk.save(regs.KON);
+
+	if (regs.ARG.cdr == null) {
+		regs.KON = c1_map;
+	} else {
+		regs.KON = c2_map;
+		stk.save(regs.PRC);
+		stk.save(regs.ARG.cdr);
+	}
+
+	stk.save(null);
+	regs.ARG = regs.ARG.car;
+	regs.ARG = new Pair(regs.ARG, null);
+	return apply;
+}
+
+function c1_map() {
+
+	regs.LST = stk.restore();
+	regs.VAL = new Pair(regs.VAL, regs.LST);
+	regs.VAL = reverseLst(regs.VAL);
+	regs.KON = stk.restore();
+	return regs.KON;
+}
+
+function c2_map() {
+
+	regs.LST = stk.restore();
+	regs.ARG = stk.restore();
+	regs.PRC = stk.restore();
+
+	if (regs.ARG.cdr == null) {
+		regs.KON = c1_map;
+	} else {
+		regs.KON = c2_map;
+		stk.save(regs.PRC);
+		stk.save(regs.ARG.cdr);
+	}
+
+	regs.LST = new Pair(regs.VAL, regs.LST);
+	stk.save(regs.LST);
+	regs.ARG = regs.ARG.car;
+	regs.ARG = new Pair(regs.ARG, null);
+	return apply;
+}
+
+function makeVector() {
+
+	regs.IDX = regs.ARG.car;
+	if (regs.ARG.cdr == null) {
+		regs.ARG = 0;
+	} else {
+		regs.ARG = regs.ARG.cdr.car;
+	}
+
+	regs.VAL = new Array(regs.IDX);
+	while (regs.IDX) {
+		regs.VAL[--regs.IDX] = regs.ARG;
+	}
+	return regs.KON;
+}
+
+function list() {
+
+	regs.VAL = regs.ARG;
+	return regs.KON;
+}
+
+function display() {
+
+	IO.write(printStr(regs.ARG.car));
+	regs.VAL = null;
+	return regs.KON;
+}
+
+function newline() {
+
+	IO.write('\n');
+	regs.VAL = null;
+	return regs.KON;
+}
+
+function schemeApply() {
+
+	regs.PRC = regs.ARG.car;
+	regs.ARG = regs.ARG.cdr.car;
+	return apply;
+}
+
+function schemeRead() {
+
+	IO.write(':: ');
+	parser.setup(IO.read());
+	regs.VAL = parser.parse();
+	return regs.KON;
+}
+
+function schemeEval() {
+
+	regs.EXP = regs.ARG.car;
+	return eval;
+}
+
+function schemeLoad() {
+
+	regs.ARG = regs.ARG.car;
+	parser.setup(IO.load(regs.ARG));
+	regs.EXP = parser.parse();
+	return eval;
+}
+
 function equ(x,y) { return (x == y); }
 function sma(x,y) { return (x < y); }
 function lrg(x,y) { return (x > y); }
@@ -732,16 +921,48 @@ function lre(x,y) { return (x >= y); }
 function cons(a,d) { return new Pair(a,d); }
 function car(p) { return p.car; }
 function cdr(p) { return p.cdr; }
+function isNull(x) { return (x == null); }
+function isPair(x) { return (x instanceof Pair); }
+function vref(v, i) { return v[i]; }
+function vset(v, i, e) { return v[i] = e; }
+function scar(p, v) { return (p.car = v); }
+function scdr(p, v) { return (p.cdr = v); }
+function equ(a, b) { 
 
-var natives = buildList([['+', add], ['-', sub], ['*', mul], ['/', div], ['=', makeNative(equ)], 
-						['<', makeNative(sma)], ['>', makeNative(lrg)], ['<=', makeNative(sme)],
-						['>=', makeNative(lre)], ['cons', makeNative(cons)], ['car', makeNative(car)],
-						['cdr', makeNative(cdr)]]);
+	if (a instanceof Pair) {
+		return (equ(a.car, b.car) && equ(a.cdr,b.cdr));
+	}
 
+	if (a instanceof Array) {
+		for(var idx = 0; idx < a.length; ++idx) {
+			if(!equ(a[idx], b[idx])) {
+				return false;
+			}
+		}
+		return a.length == b.length;
+	}
+
+	if (a instanceof Symbol) {
+		return (a.id == b.id);
+	}
+
+	return a == b;
+}
+
+var initialBindings = buildList([['+', add], ['-', sub], ['*', mul], ['/', div], ['=', makeNative(equ)], 
+								['<', makeNative(sma)], ['>', makeNative(lrg)], ['<=', makeNative(sme)],
+								['>=', makeNative(lre)], ['cons', makeNative(cons)], ['car', makeNative(car)],
+								['cdr', makeNative(cdr)], ['nil', null], ['null?', makeNative(isNull)],
+								['symbol?', makeNative(isSymbol)], ['pair?', makeNative(isPair)], ['apply', schemeApply],
+								['map', map], ['make-vector', makeVector], ['vector-ref', makeNative(vref)],
+								['vector-set!', makeNative(vset)], ['list', list], ['set-car!', makeNative(scar)],
+								['set-cdr!', makeNative(scdr)], ['display', display], ['equal?', makeNative(equ)],
+								['read', schemeRead], ['assoc', makeNative(assoc)], ['load', schemeLoad],
+								['newline', newline], ['eval', schemeEval]]);
 
 /* INIT */ 
 
-function initNatives() {
+function initBindings() {
 
 	if (regs.LST == null) {
 		return false;
@@ -752,29 +973,61 @@ function initNatives() {
 		regs.VAL = regs.BND[1];
 		regs.BND = new Pair(regs.PAT, regs.TOP);
 		regs.FRM = new Pair(regs.BND, regs.FRM);
-		regs.BND = new Pair(regs.TOP++, regs.VAL);
-		regs.STO = new Pair(regs.BND, regs.STO);
-		return initNatives;
+		regs.STO[regs.TOP++] = regs.VAL;
+		return initBindings;
 	}
-}
-
-regs.LST = natives;
-startTrampoline(initNatives);
-
-regs.KON = function() { 
-	return false; 
 }
 
 /* MAIN */
 
-function test(str) {
+function c_REP() {
 
-	parser.setup(str);
-	regs.GLB = regs.FRM;
+	IO.printOut(printStr(regs.VAL));
+	IO.write('> ');
+	parser.setup(IO.read());
 	regs.EXP = parser.parse();
-	startTrampoline(eval);
-	console.log(regs.VAL);
+	regs.GLB = regs.FRM;
+	return eval;
 }
 
-test("(define (fac n) (if (< n 1) 0 (* n (fac (- n 1)))))");
-test("(begin (define q (fac 10)) q)")
+regs.LST = initialBindings;
+startTrampoline(initBindings);
+regs.VAL = 'Welcome to JScheme:'
+regs.KON = c_REP;
+startTrampoline(c_REP);
+
+/* EXTRA: ~ TEMPORARY PRINTER */
+
+function printStr(x) {
+
+	if (x instanceof Symbol) {
+		return x.txt;
+	}
+
+	if (x instanceof Function) {
+		return '#<procedure>';
+	}
+
+	if (x instanceof Pair) {
+
+		var str = '(' + printStr(x.car);
+		var cdrStr = printStr(x.cdr);
+		if(x.cdr instanceof Pair) { // prettier!
+			cdrStr = cdrStr.substring(1, cdrStr.length - 1);
+			str += ' ';
+		} else if (x.cdr == null) {
+			cdrStr = '';
+		} else {
+			str += ' . ';
+		}
+		str += cdrStr;
+		str += ')';
+		return str;
+	}
+
+	if (x == null) {
+		return '()';
+	}
+
+	return x.toString();
+}

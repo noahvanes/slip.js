@@ -2,18 +2,6 @@
   - mainly auxiliary functions that are native in R5RS 
 */
 
-function assoc(item, lst) {
-
-	while (lst != null) {
-		if(lst.car.car == item) {
-			return lst.car;
-		}
-		lst = lst.cdr;
-	}
-
-	return false;
-}
-
 function length(lst) {
 
 	var len = 0;
@@ -35,16 +23,21 @@ function reverseLst(lst) {
 	return current;
 }
 
-function buildList(arr) { 
+function buildListWithCdr(arr, cdr) { 
 
 	var i = arr.length;
-	var currentPair = null;
+	var currentPair = cdr;
 
 	while (i-- != 0) { 
 		currentPair = new Pair(arr[i], currentPair);
 	}
 	
 	return currentPair;
+}
+
+function buildList(arr) {
+
+	return buildListWithCdr(arr, null);
 }
 
 function toArray(lst) {
@@ -63,6 +56,11 @@ function Pair(a,d) {
 	this.cdr = d;
 }
 
+function Symbol(nam, id) {
+	this.txt = nam;
+	this.id = id;
+}
+
 function makeSymbolPool() {
 
 	var symbolTable = {}
@@ -76,7 +74,7 @@ function makeSymbolPool() {
 			id = symbolCount++;
 		}
 
-		return { txt: nam, id: id };
+		return new Symbol(nam, id);
 	}
 
 	return lookup;
@@ -86,14 +84,15 @@ var toSymbol = makeSymbolPool();
 
 function isSymbol(x) {
 
-	return (x.txt != undefined && x.id != undefined);
+	return (x instanceof Symbol);
 }
 
-exports.assoc = assoc;
 exports.length = length;
 exports.reverseLst = reverseLst;
 exports.buildList = buildList;
+exports.buildListWithCdr = buildListWithCdr;
 exports.toArray = toArray;
 exports.toSymbol = toSymbol;
 exports.isSymbol = isSymbol;
+exports.Symbol = Symbol;
 exports.Pair = Pair;
