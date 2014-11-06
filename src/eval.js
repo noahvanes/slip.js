@@ -102,7 +102,7 @@ function makeProcedure(par, seq, env) {
 	}
 }
 
-/* KEYWOARD SYMBOLS */
+/* KEYWORD SYMBOLS */
 
 function buildKeywords() {
 
@@ -118,7 +118,7 @@ function buildKeywords() {
 	return res;
 }
 
-var keywords = buildKeywords('begin', 'define', 'if', 'lambda', 'quote', 'let', 'set!');
+var keywords = buildKeywords('begin', 'define', 'if', 'lambda', 'or', 'and', 'quote', 'let', 'set!');
 
 /* CLONING */
 
@@ -276,6 +276,8 @@ function evalCompound() {
 		case keywords.if.id: return evalIf;
 		case keywords.lambda.id: return evalLambda;
 		case keywords.quote.id: return evalQuote;
+		case keywords.or.id: return evalOr;
+		case keywords.and.id: return evalAnd;
 		case keywords.let.id: return evalLet;
 		case keywords['set!'].id: return evalSet;
 		default: return evalApplication;
@@ -599,7 +601,7 @@ function c3_Application() {
 	return apply;
 }
 
-/* LET */
+/* EVAL LET */
 
 function evalLet() {
 
@@ -673,6 +675,91 @@ function c2_let() {
 
 	stk.save(regs.LST);
 	stk.save(regs.PAT);
+	return eval;
+}
+
+/* EVAL OR */
+
+function evalOr() {
+
+	if (regs.LST == null) {
+		regs.VAL = false;
+		return regs.KON;
+	}
+
+	regs.EXP = regs.LST.car;
+	regs.LST = regs.LST.cdr;
+
+	if (regs.LST != null) {
+		stk.save(regs.KON);
+		stk.save(regs.LST);
+		regs.KON = c_or;
+	}
+
+	return eval;
+}
+
+function c_or() {
+
+	regs.LST = stk.restore();
+
+	if (regs.VAL != false) {
+		regs.VAL = true;
+		regs.KON = stk.restore();
+		return regs.KON;
+	}
+
+	regs.EXP = regs.LST.car;
+	regs.LST = regs.LST.cdr;
+
+	if (regs.LST == null) {
+		regs.KON = stk.restore();
+	} else {
+		stk.save(regs.LST);
+	}
+
+	return eval;
+}
+
+/* EVAL AND */
+
+function evalAnd() {
+
+	if (regs.LST == null) {
+		regs.VAL = true;
+		return regs.KON;
+	}
+
+	regs.EXP = regs.LST.car;
+	regs.LST = regs.LST.cdr;
+
+	if (regs.LST != null) {
+		stk.save(regs.KON);
+		stk.save(regs.LST);
+		regs.KON = c_and;
+	}
+
+	return eval;
+}
+
+function c_and() {
+
+	regs.LST = stk.restore();
+
+	if (regs.VAL == false) {
+		regs.KON = stk.restore();
+		return regs.KON;
+	}
+
+	regs.EXP = regs.LST.car;
+	regs.LST = regs.LST.cdr;
+
+	if (regs.LST == null) {
+		regs.KON = stk.restore();
+	} else {
+		stk.save(regs.LST);
+	}
+
 	return eval;
 }
 
@@ -884,6 +971,13 @@ function newline() {
 	return regs.KON;
 }
 
+function not() {
+
+	regs.ARG = regs.ARG.car;
+	regs.VAL = (regs.ARG == false);
+	return regs.KON;
+}
+
 function schemeApply() {
 
 	regs.PRC = regs.ARG.car;
@@ -927,6 +1021,7 @@ function vref(v, i) { return v[i]; }
 function vset(v, i, e) { return v[i] = e; }
 function scar(p, v) { return (p.car = v); }
 function scdr(p, v) { return (p.cdr = v); }
+
 function equ(a, b) { 
 
 	if (a instanceof Pair) {
@@ -958,7 +1053,7 @@ var initialBindings = buildList([['+', add], ['-', sub], ['*', mul], ['/', div],
 								['vector-set!', makeNative(vset)], ['list', list], ['set-car!', makeNative(scar)],
 								['set-cdr!', makeNative(scdr)], ['display', display], ['equal?', makeNative(equ)],
 								['read', schemeRead], ['assoc', makeNative(assoc)], ['load', schemeLoad],
-								['newline', newline], ['eval', schemeEval]]);
+								['newline', newline], ['eval', schemeEval], ['not', not]]);
 
 /* INIT */ 
 
