@@ -1,7 +1,23 @@
-/* ---- IMPORTS ---- */
+/* ---- MEMORY MANAGEMENT ---- */
 
-var VM = require('./vm.js');
-var regs = VM.regs;
+var __MEM__;
+var __MEM_TOP__;
+var __MEM_SIZ__;
+
+function memoryInit(size) {
+
+	__MEM_SIZ__ = size;
+	__MEM__ = new Array(__MEM_SIZ__);
+	__MEM_TOP__ = 0;
+}
+
+function available() {
+	return (__MEM_SIZ__ - __MEM_TOP__);
+}
+
+function collectGarbage() {
+	//NYI
+}
 
 /* ---- CELLS ---- */
 
@@ -33,39 +49,31 @@ function immediateVal(exp) {
 
 function makeChunk(raw, tag, siz) {
 
-	var adr = regs.TOP;			//allocate memory
-	regs.TOP += siz + 1;		//move top pointer
-	regs.STO[adr] = makeHeader(siz, tag, raw);
+	var adr = __MEM_TOP__;		//allocate memory
+	__MEM_TOP__ += siz + 1;		//move top pointer
+	__MEM__[adr] = makeHeader(siz, tag, raw);
 	return makePointer(adr);	//return pointer	
 }
 
 function chunkSet(ptr, idx, val) {
-	regs.STO[ptr.ofs + idx] = val; 
+	__MEM__[ptr.ofs + idx] = val; 
 }
 
 function chunkGet(ptr, idx) {
-	return regs.STO[ptr.ofs + idx];
+	return __MEM__[ptr.ofs + idx];
 }
 
 function chunkTag(ptr) {
-	return regs.STO[ptr.ofs].tag;
+	return __MEM__[ptr.ofs].tag;
 }
 
 function chunkSize(ptr) {
-	return regs.STO[ptr.ofs].siz;
-}
-
-/* ---- GARBAGE COLLECTION ---- */
-
-function available() {
-	return (regs.STO.length - regs.TOP);
-}
-
-function collectGarbage() {
-	//NYI
+	return __MEM__[ptr.ofs].siz;
 }
 
 /* ---- EXPORTS ----- */
+memoryInit();
+
 exports.makeImmediate = makeImmediate;
 exports.isImmediate = isImmediate;
 exports.immediateVal = immediateVal;
@@ -75,4 +83,5 @@ exports.chunkGet = chunkGet;
 exports.chunkTag = chunkTag;
 exports.chunkSize = chunkSize;
 exports.available = available;
+exports.memoryInit = memoryInit;
 exports.collectGarbage = collectGarbage;

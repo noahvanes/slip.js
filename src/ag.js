@@ -114,7 +114,7 @@ const isNull = check(__NULL_TAG__);
 const __NUMBER_TAG__ = 5;
 
 function makeNumber(nbr) {
-	makeImmediate(nbr);
+	return mem.makeImmediate(nbr);
 }
 
 function numberVal(exp) {
@@ -243,11 +243,11 @@ function makeVector(siz, exp) {
 }
 
 function vectorRef(vct, idx) {
-	return mem.chunkGet(vct, idx + 1);
+	return mem.chunkGet(vct, idx);
 }
 
 function vectorSet(vct, idx, val) {
-	mem.chunkSet(vct, idx + 1, val);
+	mem.chunkSet(vct, idx, val);
 }
 
 function vectorLength(vct) {
@@ -255,6 +255,307 @@ function vectorLength(vct) {
 }
 
 const isVector = check(__VECTOR_TAG__);
+const __EMPTY_VEC__ = makeVector(0);
+
+/* ---- BEGIN ---- */
+
+const __BEGIN_RAW__ = 0;
+const __BEGIN_TAG__ = 13;
+const __BEGIN_SIZ__ = 1;
+
+const __BEGIN_SEQ__ = 1;
+
+function makeBegin(seq) {
+
+	var beg = mem.makeChunk(__BEGIN_RAW__,
+							__BEGIN_TAG__,
+							__BEGIN_SIZ__);
+
+	mem.chunkSet(beg, __BEGIN_SEQ__, seq);
+	return beg;
+}
+
+function beginSequence(beg) {
+	return mem.chunkGet(beg, __BEGIN_SEQ__);
+}
+
+const isBegin = check(__BEGIN_TAG__);
+
+/* ---- IFS ---- */
+
+const __IFS_RAW__ = 0;
+const __IFS_TAG__ = 14;
+const __IFS_SIZ__ = 2;
+
+const __IFS_PRE__ = 1;
+const __IFS_CON__ = 2;
+
+function makeIfs(pred, conseq) {
+
+	var ifs = mem.makeChunk(__IFS_RAW__,
+							__IFS_TAG__,
+							__IFS_SIZ__);
+
+	mem.chunkSet(ifs, __IFS_PRE__, pred);
+	mem.chunkSet(ifs, __IFS_CON__, conseq);
+	return ifs;
+}
+
+function ifsPredicate(ifs) {
+	return mem.chunkGet(ifs, __IFS_PRE__);
+}
+
+function ifsConsequence(ifs) {
+	return mem.chunkGet(ifs, __IFS_CON__);
+}
+
+const isIfs = check(__IFS_TAG__);
+
+/* ---- IFF ---- */
+
+const __IFF_RAW__ = 0;
+const __IFF_TAG__ = 15;
+const __IFF_SIZ__ = 3;
+
+const __IFF_PRE__ = 1;
+const __IFF_CON__ = 2;
+const __IFF_ALT__ = 3;
+
+function makeIff(pred, conseq, alter) {
+
+	var iff = mem.makeChunk(__IFF_RAW__,
+							__IFF_TAG__,
+							__IFF_SIZ__);
+
+	mem.chunkSet(iff, __IFF_PRE__, pred);
+	mem.chunkSet(iff, __IFF_CON__, conseq);
+	mem.chunkSet(iff, __IFF_ALT__, alter);
+	return iff;
+}
+
+function iffPredicate(iff) {
+	return mem.chunkGet(iff, __IFF_PRE__);
+}
+
+function iffConsequence(iff) {
+	return mem.chunkGet(iff, __IFF_CON__);
+}
+
+function iffAlternative(iff) {
+	return mem.chunkGet(iff, __IFF_ALT__);
+}
+
+const isIff = check(__IFF_TAG__);
+
+/* ---- QUO ---- */
+
+const __QUO_RAW__ = 0;
+const __QUO_TAG__ = 16;
+const __QUO_SIZ__ = 1;
+
+const __QUO_EXP__ = 1;
+
+function makeQuo(exp) {
+	
+	var quo = mem.makeChunk(__QUO_RAW__,
+							__QUO_TAG__,
+							__QUO_SIZ__);
+
+	mem.chunkSet(quo, __QUO_EXP__, exp);
+	return quo;
+}
+
+function quoExpression(quo) {
+	return mem.chunkGet(quo, __QUO_EXP__);
+}
+
+const isQuo = check(__QUO_TAG__);
+
+/* ---- LAMBDA ---- */
+
+const __LAMBDA_RAW__ = 0;
+const __LAMBDA_TAG__ = 17;
+const __LAMBDA_SIZ__ = 2;
+
+const __LAMBDA_ARG__ = 1;
+const __LAMBDA_BDY__ = 2;
+
+function makeLambda(arg, bdy) {
+
+	var lmb = mem.makeChunk(__LAMBDA_RAW__,
+							__LAMBDA_TAG__,
+							__LAMBDA_BDY__);
+
+	mem.chunkSet(lmb, __LAMBDA_ARG__, arg);
+	mem.chunkSet(lmb, __LAMBDA_BDY__, bdy);
+	return lmb;
+}
+
+function lambdaArg(lmb) {
+	return mem.chunkGet(lmb, __LAMBDA_ARG__);
+}
+
+function lambdaBdy(lmb) {
+	return mem.chunkGet(lmb, __LAMBDA_BDY__);
+}
+
+const isLambda = check(__LAMBDA_TAG__);
+
+/* ---- DEFINE VARIABLE ---- */
+
+const __DFV_RAW__ = 0;
+const __DFV_TAG__ = 18;
+const __DFV_SIZ__ = 2;
+
+const __DFV_VAR__ = 1;
+const __DFV_VAL__ = 2;
+
+function makeDfv(vrb, val) {
+
+	var dfv = mem.makeChunk(__DFV_RAW__,
+							__DFV_TAG__,
+							__DFV_SIZ__);
+
+	mem.chunkSet(dfv, __DFV_VAR__, vrb);
+	mem.chunkSet(dfv, __DFV_VAL__, val);
+	return dfv;
+}
+
+function dfvVariable(dfv) {
+	return mem.chunkGet(dfv, __DFV_VAR__);
+}
+
+function dfvValue(dfv) {
+	return mem.chunkGet(dfv, __DFV_VAL__);
+}
+
+const isDfv = check(__DFV_TAG__);
+
+/* ---- DEFINE FUNCTION ---- */
+
+const __DFF_RAW__ = 0;
+const __DFF_TAG__ = 19;
+const __DFF_SIZ__ = 3;
+
+const __DFF_VAR__ = 1;
+const __DFF_ARG__ = 2;
+const __DFF_BDY__ = 3;
+
+function makeDff(vrb, arg, bdy) {
+
+	var dff = mem.makeChunk(__DFF_RAW__,
+							__DFF_TAG__,
+							__DFF_SIZ__);
+
+	mem.chunkSet(dff, __DFF_VAR__, vrb);
+	mem.chunkSet(dff, __DFF_ARG__, arg);
+	mem.chunkSet(dff, __DFF_BDY__, bdy);
+	return dff;
+}
+
+function dffVariable(dff) {
+	return mem.chunkGet(dff, __DFF_VAR__);
+}
+
+function dffArguments(dff) {
+	return mem.chunkGet(dff, __DFF_ARG__);
+}
+
+function dffBody(dff) {
+	return mem.chunkGet(dff, __DFF_BDY__);
+}
+
+const isDff = check(__DFF_TAG__);
+
+/* ---- LET ---- */
+
+const __LET_RAW__ = 0;
+const __LET_TAG__ = 20;
+const __LET_SIZ__ = 2;
+
+const __LET_BND__ = 1;
+const __LET_BDY__ = 2;
+
+function makeLet(bnd, bdy) {
+
+	var let = mem.makeChunk(__LET_RAW__,
+							__LET_TAG__,
+							__LET_SIZ__);
+
+	mem.chunkSet(let, __LET_BND__, bnd);
+	mem.chunkSet(let, __LET_BDY__, bdy);
+	return let;
+}
+
+function letBindings(let) {
+	return mem.chunkGet(let, __LET_BND__);
+}
+
+function letBody(let) {
+	return mem.chunkGet(let, __LET_BDY__);
+}
+
+const isLet = check(__LET_TAG__);
+
+/* ---- SET ---- */
+
+const __SET_RAW__ = 0;
+const __SET_TAG__ = 21;
+const __SET_SIZ__ = 2;
+
+const __SET_VAR__ = 1;
+const __SET_VAL__ = 2;
+
+function makeSet(vrb, val) {
+
+	var set = mem.makeChunk(__SET_RAW__,
+							__SET_TAG__,
+							__SET_SIZ__);
+
+	mem.chunkSet(set, __SET_VAR__, vrb);
+	mem.chunkSet(set, __SET_VAL__, val);
+	return set;
+}
+
+function setVariable(set) {
+	return mem.chunkGet(set, __SET_VAR__);
+}
+
+function setValue(set) {
+	return mem.chunkGet(set, __SET_VAL__);
+}
+
+const isSet = check(__SET_TAG__);
+
+/* ---- APPLICATION ---- */
+
+const __APPLICATION_RAW__ = 0;
+const __APPLICATION_TAG__ = 22;
+const __APPLICATION_SIZ__ = 2;
+
+const __APPLICATION_OPR__ = 1;
+const __APPLICATION_OPD__ = 2;
+
+function makeApplication(opr, opd) {
+
+	var apl = mem.makeChunk(__APPLICATION_RAW__,
+							__APPLICATION_TAG__,
+							__APPLICATION_SIZ__);
+
+	mem.chunkSet(apl, __APPLICATION_OPR__, opr);
+	mem.chunkSet(apl, __APPLICATION_OPD__, opd);
+	return apl;
+}
+
+function aplOperator(apl) {
+	return mem.chunkGet(apl, __APPLICATION_OPR__);
+}
+
+function aplOperands(apl) {
+	return mem.chunkGet(apl, __APPLICATION_OPD__);
+}
+
+const isApplication = check(__APPLICATION_TAG__);
 
 /*================*/
 /* ---- RAWS ---- */
@@ -314,6 +615,33 @@ function doubleVal(dbl) {
 
 const isDouble = check(__DOUBLE_TAG__);
 
+/* ---- SYMBOLS ---- */
+
+// for now, we just use javascript strings ...
+// ... later we'll have to encode everything in chunks
+
+const __SYMBOL_RAW__ = 1;
+const __SYMBOL_TAG__ = 12;
+const __SYMBOL_SIZ__ = 1;
+
+const __SYMBOL_TXT__ = 1;
+
+function makeSymbol(txt) {
+
+	var sym = mem.makeChunk(__SYMBOL_RAW__,
+							__SYMBOL_TAG__,
+							__SYMBOL_SIZ__);
+
+	mem.chunkSet(sym, __SYMBOL_TXT__, txt);
+	return sym;
+}
+
+function symbolText(sym) {
+	return mem.chunkGet(sym, __SYMBOL_TXT__);
+}
+
+const isSymbol = check(__SYMBOL_TAG__);
+
 /* ---- EXPORTS ---- */
 
 /* TAG */
@@ -366,6 +694,7 @@ exports.isVector = isVector;
 exports.vectorRef = vectorRef;
 exports.vectorSet = vectorSet;
 exports.vectorLength = vectorLength;
+exports.__EMPTY_VEC__ = __EMPTY_VEC__;
 /* STRING */
 exports.__STRING_TAG__ = __STRING_TAG__;
 exports.isString = isString;
@@ -381,3 +710,68 @@ exports.__NATIVE_TAG__ = __NATIVE_TAG__;
 exports.isNative = isNative;
 exports.makeNative = makeNative;
 exports.nativePtr = nativePtr;
+/* SYMBOL */
+exports.__SYMBOL_TAG__ = __SYMBOL_TAG__;
+exports.isSymbol = isSymbol;
+exports.makeSymbol = makeSymbol;
+exports.symbolText = symbolText;
+/* BEGIN */
+exports.__BEGIN_TAG__ = __BEGIN_TAG__;
+exports.isBegin = isBegin;
+exports.makeBegin = makeBegin;
+exports.beginSequence = beginSequence;
+/* IFS */
+exports.__IFS_TAG__ = __IFS_TAG__;
+exports.isIfs = isIfs;
+exports.makeIfs = makeIfs;
+exports.ifsPredicate = ifsPredicate;
+exports.ifsConsequence = ifsConsequence;
+/* IFF */
+exports.__IFF_TAG__ = __IFF_TAG__;
+exports.isIff = isIff;
+exports.makeIff = makeIff;
+exports.iffPredicate = iffPredicate;
+exports.iffConsequence = iffConsequence;
+exports.iffAlternative = iffAlternative;
+/* QUOTE */
+exports.__QUO_TAG__ = __QUO_TAG__;
+exports.isQuo = isQuo;
+exports.makeQuo = makeQuo;
+exports.quoExpression = quoExpression;
+/* LAMBDA */
+exports.__LAMBDA_TAG__ = __LAMBDA_TAG__;
+exports.isLambda = isLambda;
+exports.makeLambda = makeLambda;
+exports.lambdaArg = lambdaArg;
+exports.lambdaBdy = lambdaBdy;
+/* LET */
+exports.__LET_TAG__ = __LET_TAG__;
+exports.makeLet = makeLet;
+exports.isLet = isLet;
+exports.letBindings = letBindings;
+exports.letBody = letBody;
+/* DFV */
+exports.__DFV_TAG__ = __DFV_TAG__;
+exports.makeDfv = makeDfv;
+exports.isDfv = isDfv;
+exports.dfvVariable = dfvVariable;
+exports.dfvValue = dfvValue;
+/* DFF */
+exports.__DFF_TAG__ = __DFF_TAG__;
+exports.makeDff = makeDff;
+exports.isDff = isDff;
+exports.dffVariable = dffVariable;
+exports.dffBody = dffBody;
+exports.dffArguments = dffArguments;
+/* SET */
+exports.__SET_TAG__ = __SET_TAG__;
+exports.makeSet = makeSet;
+exports.isSet = isSet;
+exports.setVariable = setVariable;
+exports.setValue = setValue;
+/* APL */
+exports.__APPLICATION_TAG__ = __APPLICATION_TAG__;
+exports.makeApplication = makeApplication;
+exports.isApplication = isApplication;
+exports.aplOperator = aplOperator;
+exports.aplOperands = aplOperands;

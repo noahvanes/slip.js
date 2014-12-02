@@ -1,11 +1,8 @@
 /* IMPORT UTILS */
 
 var utils = require('./utils.js');
-
-var toSymbol = utils.toSymbol;
-var buildList = utils.buildList;
-var buildListWithCdr = utils.buildListWithCdr;
-var Pair = utils.Pair;
+var symbols = require('./pool.js');
+var ag = require('./ag.js');
 
 /* SCHEME READER */
 
@@ -132,7 +129,8 @@ function SchemeParser(program) {
 	var reader = SchemeReader();
 	var character, fun;
 
-	var __QUO_SYM__ = toSymbol('quote');
+	const __QUO_SYM__ = symbols.enterPool('quote');
+	const __VCT_SYM__ = symbols.enterPool('vector');
 
 	function parse() {
 
@@ -140,8 +138,12 @@ function SchemeParser(program) {
 		
 		switch (character) {
 
-			case '(': return parseLBR();
-			case '#': return parseSHR();
+			case '(': 
+				reader.skip();
+				return parseLBR();
+			case '#': 
+				reader.skip();
+				return parseSHR();
 			case '\'': return parseQUO();
 			case '\"': 
 				return reader.readString();
@@ -155,7 +157,34 @@ function SchemeParser(program) {
 		}
 	}
 
+	function parseList() {
+
+		character = reader.peek();
+
+		if (character === ')') {
+			reader.skip();
+			return ag.__NULL__;
+		}
+
+		if (character === '.') {
+			reader.skip();
+			return parse();
+		}
+
+		return ag.makePair(parse(), parseList());
+	}
+
 	function parseLBR() {
+
+		reader.skip(); //skip left bracket
+
+		if ((character = reader.peek()) === ')') {
+			reader.skip(); 		// skip right bracket
+			return ag.__NULL__;	// return empty list
+		}
+
+		return ag.makePair(parse(), parseList());
+	}
 
 		var elm = [];
 

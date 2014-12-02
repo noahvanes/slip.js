@@ -22,9 +22,6 @@ var IO = require('./IO.js');
 
 /* VM ARCHITECTURE */
 
-var __STACK_SIZ__ = 1024;
-var __HEAP_SIZ__ = 1024;
-
 var regs = {
 	ADR: null,
 	ARG: null,
@@ -1090,39 +1087,3 @@ startTrampoline(initBindings);
 regs.VAL = 'Welcome to JScheme:'
 regs.KON = c_REP;
 startTrampoline(c_REP);
-
-/* EXTRA: ~ TEMPORARY PRINTER */
-
-function printStr(x) {
-
-	if (x instanceof Symbol) {
-		return x.txt;
-	}
-
-	if (x instanceof Function) {
-		return '#<procedure>';
-	}
-
-	if (x instanceof Pair) {
-
-		var str = '(' + printStr(x.car);
-		var cdrStr = printStr(x.cdr);
-		if(x.cdr instanceof Pair) { // prettier!
-			cdrStr = cdrStr.substring(1, cdrStr.length - 1);
-			str += ' ';
-		} else if (x.cdr == null) {
-			cdrStr = '';
-		} else {
-			str += ' . ';
-		}
-		str += cdrStr;
-		str += ')';
-		return str;
-	}
-
-	if (x == null) {
-		return '()';
-	}
-
-	return x.toString();
-}
