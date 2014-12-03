@@ -62,6 +62,19 @@ function check(expectedTag) {
 	}
 }
 
+function eq(a, b) {
+
+	if (mem.isImmediate(a) && mem.isImmediate(b)) {
+		return (mem.immediateVal(a) === mem.immediateVal(b))	
+	}
+
+	if (!mem.isImmediate(a) && !mem.isImmediate(b)) {
+		return mem.chunkEq(a, b);
+	}
+
+	return false;
+}
+
 /*======================*/
 /* ---- IMMEDIATES ---- */
 /*======================*/
@@ -646,6 +659,8 @@ const isSymbol = check(__SYMBOL_TAG__);
 
 /* TAG */
 exports.tag = tag;
+/* EQ */
+exports.eq = eq;
 /* TRUE */
 exports.__TRUE__ = __TRUE__;
 exports.__TRUE_TAG__ = __TRUE_TAG__;

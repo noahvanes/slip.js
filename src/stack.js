@@ -42,7 +42,7 @@ function zap() {
 	--__STK_TOP__;
 }
 
-exports.push = push;
-exports.pop = pop;
+exports.save = push;
+exports.restore = pop;
 exports.peek = peek;
 exports.zap = zap;

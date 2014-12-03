@@ -71,6 +71,10 @@ function chunkSize(ptr) {
 	return __MEM__[ptr.ofs].siz;
 }
 
+function chunkEq(a, b) {
+	return (a.ofs === b.ofs);
+}
+
 /* ---- EXPORTS ----- */
 memoryInit();
 
@@ -82,6 +86,7 @@ exports.chunkSet = chunkSet;
 exports.chunkGet = chunkGet;
 exports.chunkTag = chunkTag;
 exports.chunkSize = chunkSize;
+exports.chunkEq = chunkEq;
 exports.available = available;
 exports.memoryInit = memoryInit;
 exports.collectGarbage = collectGarbage;

@@ -1,3 +1,7 @@
+// TODO parseVector
+// TODO use stack/trampoline?
+// TODO parseApplication/lambda as vector
+
 /* IMPORT UTILS */
 
 const ag = require('./ag.js');
@@ -125,7 +129,7 @@ function SchemeReader() {
 
 /* SCHEME PARSER */ 
 
-function SchemeParser(program) {
+function SchemeParser() {
 
 	var reader = SchemeReader();
 	var character, exp;
@@ -137,8 +141,6 @@ function SchemeParser(program) {
 	const __LAM_SYM__ = symbols.insertPool('lambda');
 	const __SET_SYM__ = symbols.insertPool('set!');
 	const __IFF_SYM__ = symbols.insertPool('if');
-
-	/* --- READING --- */
 
 	function read() {
 	
@@ -427,6 +429,8 @@ function SchemeParser(program) {
 		return new Error('expected )');
 	}
 
+	var parseSHR = readSHR;
+
 	function parseQUO() {
 
 		reader.skip(); // skip '
@@ -441,6 +445,7 @@ function SchemeParser(program) {
 /* EXPORT PARSER */
 exports.makeParser = SchemeParser; 
 
+/* TESTING */
 var printer = require('./printer.js');
 var parser = SchemeParser();
 exports.test = function(str) {

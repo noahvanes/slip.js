@@ -3,7 +3,7 @@ var ag = require('./ag.js');
 
 /* ALTERNATIVE */
 
-const __POOL__ = {};
+const __POOL__ = Object.create(null);
 
 var __POOL_TOP__ = 1;
 var __POOL_SIZ__ = 64;
