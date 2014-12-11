@@ -1,58 +1,29 @@
-
-/* IMPORTS */
+/* --- IMPORTS --- */
 
 const ag = require('./ag.js');
-const parser = require('./parser.js').makeParser();
-const IO = require('./IO.js');
-const symbols = require('./pool.js');
 const stk = require('./stack.js');
-const printer = require('./printer.js');
+const exec = require('./exec.js');
+const natives = require('./natives.js');
 
+const regs = exec.regs;
 const car = ag.pairCar;
 const cdr = ag.pairCdr;
 const ref = ag.vectorRef;
 const set = ag.vectorSet;
+const native = natives.native;
 
-/* VM ARCHITECTURE */
-const init = ag.__NULL__;
+/* --- FOR TESTING --- */
 
-var regs = {
-	ARG: init,
-	BND: init,
-	DCT: init,
-	ENV: init,
-	EXP: init,
-	FRM: init,
-	GLB: init,
-	IDX: init,
-	KON: init,
-	LEN: init,
-	LST: init,
-	PAR: init,
-	PAT: init,
-	PRC: init,
-	SEQ: init,
-	TAG: init,
-	VAL: init
+//const print = require('./printer.js').printExp;
+
+/* --- ERRORS --- */
+
+var error;
+function setErr(handler) {
+	error = handler;
 }
 
-/* Trampoline for TCO */
-function startTrampoline(fun) {
-	while(fun = fun());
-}
-
-/* ERRORS */
-
-function error(msg, reg) {
-	IO.printOut(msg);
-	regs.VAL = reg;
-	regs.ENV = ag.__NULL__;
-	regs.FRM = regs.GLB;
-	regs.KON = c_REP;
-	return c_REP;
-}
-
-/* ---- EVAL ---- */
+/* --- EVAL --- */
 
 function eval() {
 
@@ -75,8 +46,8 @@ function eval() {
 			return evalSelf;
 		case ag.__SYMBOL_TAG__: 
 			return evalVariable;
-		case ag.__BEGIN_TAG__:
-		 	return evalBegin;
+		case ag.__SEQUENCE_TAG__:
+		 	return evalSequence;
 		case ag.__IFS_TAG__: 
 			return evalIfs;
 		case ag.__IFF_TAG__: 
@@ -102,7 +73,7 @@ function eval() {
 	}
 }
 
-/* EVAL SELF EVALUATING */
+/* --- EVAL SELF EVALUATING --- */
 
 function evalSelf() {
 
@@ -110,7 +81,7 @@ function evalSelf() {
 	return regs.KON;
 }
 
-/* EVAL VARIABLES */
+/* --- EVAL VARIABLES --- */
 
 function evalVariable() {
 
@@ -128,16 +99,14 @@ function evalVariable() {
 	}
 
 	if (ag.isNull(regs.ENV)) {
-		return error("Undefined local variable", regs.EXP);
+		regs.TXT = 'undefined local variable';
+		return error;
 	}
 
 	/* SEARCH IN NON-LOCAL SCOPE */
 	regs.LST = regs.ENV;
-
 	do {
-
 		regs.DCT = car(regs.LST);
-
 		while(ag.isPair(regs.DCT)) {
 			regs.BND = car(regs.DCT);
 			regs.PAT = car(regs.BND);
@@ -147,13 +116,14 @@ function evalVariable() {
 			}
 			regs.DCT = cdr(regs.DCT);
 		}
-		regs.LST = regs.LST.cdr;
+		regs.LST = cdr(regs.LST);
 	} while (ag.isPair(regs.LST));
 
-	return error("Undefined non-local variable: ", regs.EXP);
+	regs.TXT = 'undefined non-local variable';
+	return error;
 }
 
-/* EVAL DEFINE */
+/* --- EVAL DEFINE --- */
 
 function evalDfv() {
 
@@ -189,7 +159,7 @@ function c_define() {
 	return regs.KON;
 }
 
-/* EVAL ASSIGNMENT */
+/* --- EVAL ASSIGNMENT --- */
 
 function evalSet() {
 
@@ -210,14 +180,13 @@ function evalSet() {
 	}
 
 	if (ag.isNull(regs.ENV)) {
-		return error("Undefined local variable", regs.EXP);
+		regs.TXT = 'Undefined local variable';
+		return error;
 	}
 
 	/* SEARCH IN NON-LOCAL SCOPE */
 	regs.LST = regs.ENV;
-
 	do {
-
 		regs.DCT = car(regs.LST);
 		while(ag.isPair(regs.DCT)) {
 			regs.BND = car(regs.DCT);
@@ -229,11 +198,11 @@ function evalSet() {
 			}
 			regs.DCT = cdr(regs.DCT);
 		}
-		regs.LST = regs.LST.cdr;
-
+		regs.LST = cdr(regs.LST);
 	} while (ag.isPair(regs.LST));
 
-	return error("Undefined non-local variable: ", regs.EXP);
+	regs.TXT = 'Undefined non-local variable'
+	return error;
 }
 
 function c_set() {
@@ -244,7 +213,7 @@ function c_set() {
 	return regs.KON;
 }
 
-/* EVAL QUOTING */
+/* --- EVAL QUOTING --- */
 
 function evalQuote() {
 
@@ -252,30 +221,15 @@ function evalQuote() {
 	return regs.KON;
 }
 
-/* EVAL BEGIN */
+/* --- EVAL SEQUENCE --- */
 
-function evalBegin() {
-
-	regs.SEQ = ag.beginSequence(regs.EXP);
-	return sequence;
-}
-
-/* EVAL SEQUENCE */
-
-//note: sequences always have length > 0;
-function sequence() {
-
-	regs.LEN = ag.vectorLength(regs.SEQ);
-	regs.EXP = ref(regs.SEQ, 1);
-
-	if (regs.LEN === 1) {
-		return eval;
-	}
+function evalSequence() {
 
 	stk.save(regs.KON);
-	stk.save(regs.SEQ);
+	stk.save(regs.EXP);
 	stk.save(1);
 
+	regs.EXP = ag.sequenceAt(regs.EXP, 1);
 	regs.KON = c_sequence;
 	return eval;
 }
@@ -284,8 +238,8 @@ function c_sequence() {
 
 	regs.IDX = stk.restore();
 	regs.SEQ = stk.peek();
-	regs.LEN = ag.vectorLength(regs.SEQ);
-	regs.EXP = ref(regs.SEQ, ++regs.IDX);
+	regs.LEN = ag.sequenceLength(regs.SEQ);
+	regs.EXP = ag.sequenceAt(regs.SEQ, ++regs.IDX);
 
 	if (regs.IDX === regs.LEN) {
 		stk.zap(); //skip sequence vector
@@ -297,36 +251,37 @@ function c_sequence() {
 	return eval;
 }
 
-/* EVAL IFS */
+/* --- EVAL IFS/IFF --- */
 
 function evalIfs() {
 
+	stk.save(regs.KON);
 	stk.save(ag.ifsConsequence(regs.EXP));
 	regs.EXP = ag.ifsPredicate(regs.EXP);
-	stk.save(regs.KON);
 	regs.KON = c_ifs;
 	return eval;
 }
 
 function c_ifs() {
 
-	regs.KON = stk.restore();
 	regs.EXP = stk.restore();
 
-	if(ag.isTrue(regs.VAL)) {
+	if(!ag.isFalse(regs.VAL)) {
+		regs.ENV = ag.makePair(regs.FRM, regs.ENV);
+		regs.FRM = ag.__NULL__;
+		regs.KON = c_if;
 		return eval;
 	}
+
 	regs.VAL = ag.__VOID__;
+	regs.KON = stk.restore();
 	return regs.KON;
 }
 
-/* EVAL IFF */
-
 function evalIff() {
 
-	stk.save(regs.EXP);
 	stk.save(regs.KON);
-
+	stk.save(regs.EXP);
 	regs.EXP = ag.iffPredicate(regs.EXP);
 	regs.KON = c_iff;
 	return eval;
@@ -334,108 +289,100 @@ function evalIff() {
 
 function c_iff() {
 
-	regs.KON = stk.restore();
 	regs.EXP = stk.restore();
+	regs.ENV = ag.makePair(regs.FRM, regs.ENV);
+	regs.FRM = ag.__NULL__;
+	regs.KON = c_if;
 
-	if (ag.isTrue(regs.VAL)) {
-		regs.EXP = ag.iffConsequence(regs.EXP);
-	} else {
+	if (ag.isFalse(regs.VAL))
 		regs.EXP = ag.iffAlternative(regs.EXP);
-	}
+	else
+		regs.EXP = ag.iffConsequence(regs.EXP);
 
 	return eval;
 }
 
-/* EVAL LAMBDA */
+function c_if() {
+
+	regs.FRM = car(regs.ENV);
+	regs.ENV = cdr(regs.ENV);
+	regs.KON = stk.restore();
+	return regs.KON;
+}
+
+/* --- EVAL LAMBDA --- */
 
 function evalLambda() {
 
 	regs.PAR = ag.lambdaArg(regs.EXP);
 	regs.SEQ = ag.lambdaBdy(regs.EXP);
-	regs.ENV = ag.makePair(regs.FRM, regs.ENV);
-	regs.VAL = ag.makeProcedure(regs.PAR, regs.SEQ, regs.ENV);
-	regs.ENV = cdr(regs.ENV);
+	regs.DCT = ag.makePair(regs.FRM, regs.ENV);
+	regs.VAL = ag.makeProcedure(regs.PAR, regs.SEQ, regs.DCT);
 	return regs.KON;
 }
 
-/* EVAL APPLICATION */
+/* --- EVAL APPLICATION --- */
 
 function evalApplication() {
 
 	stk.save(regs.KON);
 	stk.save(ag.aplOperands(regs.EXP));
 	regs.EXP = ag.aplOperator(regs.EXP);
-	regs.KON = c1_Application;
+	regs.KON = c1_application;
 	return eval;
 }
 
-function c1_Application() {
+function c1_application() {
 
-	regs.PAR = stk.restore();
-	regs.ARG = ag.__NULL__;
+	regs.ARG = stk.peek();
+	regs.LEN = ag.vectorLength(regs.ARG);
 
-	if (ag.isNull(regs.PAR)) {
+	if (regs.LEN === 0) {
+		stk.zap();
+		regs.ARG = ag.__NULL__;
 		regs.PRC = regs.VAL;
-		regs.KON = stk.restore();
+		regs.LEN = 0;
 		return apply;
 	}
 
-	stk.save(regs.VAL);
-	stk.save(regs.ARG);
-	regs.EXP = car(regs.PAR);
-	regs.PAR = cdr(regs.PAR);
+	stk.poke(regs.VAL);
+	regs.EXP = ag.vectorRef(regs.ARG, 1);
+	stk.save(1);
 
-	if (ag.isNull(regs.PAR)) { // last argument
-		regs.KON = c3_Application;
+	if (regs.LEN === 1) {
+		regs.KON = c3_application;
 	} else {
-		regs.KON = c2_Application;
-		stk.save(regs.PAR);
+		regs.KON = c2_application;
+		stk.save(regs.ARG);
 	}
 
 	return eval;
 }
 
-function c2_Application() {
+function c2_application() {
 
-	regs.PAR = stk.restore();
 	regs.ARG = stk.restore();
-	regs.ARG = ag.makePair(regs.VAL, regs.ARG);
-	stk.save(regs.ARG);
+	regs.IDX = stk.peek();
+	stk.poke(regs.VAL);
+	stk.save(++regs.IDX);
 
-	regs.EXP = car(regs.PAR);
-	regs.PAR = cdr(regs.PAR);
-	
-	if (ag.isNull(regs.PAR)) { // last argument
-		regs.KON = c3_Application;
-	} else {
-		regs.KON = c2_Application;
-		stk.save(regs.PAR);
-	}
+	regs.EXP = ag.vectorRef(regs.ARG, regs.IDX);
+	if (regs.IDX === ag.vectorLength(regs.ARG))
+		regs.KON = c3_application;
+	else
+		stk.save(regs.ARG);
 
 	return eval;
 }
 
-function c3_Application() {
-	
-	regs.ARG = stk.restore();
-	regs.ARG = ag.makePair(regs.VAL, regs.ARG);
-	regs.ARG = reverseLst(regs.ARG);
+function c3_application() {
+
+	regs.LEN = regs.IDX = stk.restore();
+	regs.ARG = ag.makePair(regs.VAL, ag.__NULL__);
+	while (--regs.IDX) 
+		regs.ARG = ag.makePair(stk.restore(), regs.ARG);
 	regs.PRC = stk.restore();
-	regs.KON = stk.restore();
 	return apply;
-}
-
-function reverseLst(lst) {
-
-	var newList = ag.__NULL__;
-	var current = lst;
-
-	while(ag.isPair(current)) {
-		newList = ag.makePair(car(current), newList);
-		current = cdr(current);
-	}
-
-	return newList;
 }
 
 /* EVAL LET 
@@ -454,7 +401,7 @@ function evalLet() {
 	stk.save(regs.ENV);
 	stk.save(regs.FRM);
 
-	if (regs.LST == null) {
+	if (regs.LST === null) {
 		regs.ENV = new Pair(regs.FRM, regs.ENV);
 		regs.FRM = null;
 		regs.KON = c1_let;
@@ -520,6 +467,7 @@ function c2_let() {
 */
 
 /* APPLY & BIND */
+/* expects continuation on stack */
 
 function apply() {
 
@@ -527,11 +475,10 @@ function apply() {
 
 	if (regs.TAG === ag.__PROCEDURE_TAG__) {
 		
-		stk.save(regs.KON);
 		stk.save(regs.ENV);
 		stk.save(regs.FRM);
 
-		regs.SEQ = ag.procedureBdy(regs.PRC);
+		regs.EXP = ag.procedureBdy(regs.PRC);
 		regs.PAR = ag.procedurePar(regs.PRC);
 		regs.ENV = ag.procedureEnv(regs.PRC);
 		regs.FRM = ag.__NULL__;
@@ -541,10 +488,11 @@ function apply() {
 
 	if (regs.TAG === ag.__NATIVE_TAG__) {
 
-		return nativeTab[ag.nativePtr(regs.PRC)];
+		return native;
 	}
 
-	return error("Expected procedure to apply: ", regs.PRC);
+	regs.TXT = 'Expected procedure to apply';
+	return error;
 }
 
 function bind() {
@@ -552,19 +500,20 @@ function bind() {
 	if (ag.isNull(regs.PAR)) {
 		if(ag.isNull(regs.ARG)) {
 			regs.KON = c_bind;
-			return sequence;
+			return eval;
 		}
-		return error("Excess arguments: ", regs.ARG);
+		regs.TXT = 'excess arguments';
+		return error;
 	}
 
 	if (ag.isPair(regs.PAR)) {
 		
 		if(ag.isNull(regs.ARG)) {
-			return error("Not enough arguments: ", regs.ARG);
+			regs.TXT = 'insufficient arguments';
+			return error;
 		}
 
-		regs.PAT = car(regs.PAR); // parameter symbol
-		regs.BND = ag.makePair(regs.PAT, car(regs.ARG));
+		regs.BND = ag.makePair(car(regs.PAR), car(regs.ARG));
 		regs.FRM = ag.makePair(regs.BND, regs.FRM);
 		regs.ARG = cdr(regs.ARG);
 		regs.PAR = cdr(regs.PAR);
@@ -576,11 +525,12 @@ function bind() {
 		regs.BND = ag.makePair(regs.PAR, regs.ARG);
 		regs.FRM = ag.makePair(regs.BND, regs.FRM);
 		regs.KON = c_bind;
-		return sequence;
+		return eval;
 	}
 
-	return error("Invalid parameter pattern: ", regs.PAT);
-}
+	regs.TXT = "Invalid parameter pattern";
+	return error;
+} 
 
 function c_bind() {
 
@@ -590,67 +540,6 @@ function c_bind() {
 	return regs.KON;
 }
 
-/* NATIVES */
-
-//FIX NATIVES
-//FIX READER/COMPILER
-//WRITE ROADMAP
-
-function add() {
-
-	regs.VAL = 0;
-	while(ag.isPair(regs.ARG)) {
-		regs.VAL += ag.numberVal(car(regs.ARG));
-		regs.ARG = cdr(regs.ARG);
-	}
-	regs.VAL = ag.makeNumber(regs.VAL);
-	return regs.KON;
-}
-
-nativeTab = [add];
-regs.BND = ag.makePair(symbols.enterPool('+'), ag.makeNative(0));
-regs.FRM = ag.makePair(regs.BND, regs.FRM);
-
-function sub() {
-
-	regs.VAL = car(regs.ARG);
-	while((regs.ARG = regs.ARG.cdr) != null) {
-		regs.VAL -= regs.ARG.car;
-	}
-	return regs.KON;
-}
-
-function mul() {
-
-	regs.VAL = 1;
-	while(regs.ARG != null) {
-		regs.VAL *= regs.ARG.car;
-		regs.ARG = regs.ARG.cdr;
-	}
-	return regs.KON;
-}
-
-function div() {
-
-	regs.VAL = regs.ARG.car;
-	while((regs.ARG = regs.ARG.cdr) != null) {
-		regs.VAL /= regs.ARG.car;
-	}
-	return regs.KON;  
-}
-
-/* MAIN */
-
-function c_REP() {
-
-	IO.printOut(printer.printExp(regs.VAL));
-	IO.write('> ');
-	parser.setup(IO.read());
-	regs.EXP = parser.parse();
-	regs.GLB = regs.FRM;
-	return eval;
-}
-
-regs.VAL = ag.makeString('Welcome to JScheme:');
-regs.KON = c_REP;
-startTrampoline(c_REP);
+/* EXPORTS */
+exports.eval = eval;
+exports.setErr = setErr; 

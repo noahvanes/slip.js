@@ -270,29 +270,32 @@ function vectorLength(vct) {
 const isVector = check(__VECTOR_TAG__);
 const __EMPTY_VEC__ = makeVector(0);
 
-/* ---- BEGIN ---- */
+/* ---- SEQUENCE ---- */
 
-const __BEGIN_RAW__ = 0;
-const __BEGIN_TAG__ = 13;
-const __BEGIN_SIZ__ = 1;
+const __SEQUENCE_RAW__ = 0;
+const __SEQUENCE_TAG__ = 13;
 
-const __BEGIN_SEQ__ = 1;
+function makeSequence(siz) {
 
-function makeBegin(seq) {
-
-	var beg = mem.makeChunk(__BEGIN_RAW__,
-							__BEGIN_TAG__,
-							__BEGIN_SIZ__);
-
-	mem.chunkSet(beg, __BEGIN_SEQ__, seq);
-	return beg;
+	var seq = mem.makeChunk(__SEQUENCE_RAW__,
+							__SEQUENCE_TAG__,
+							siz);
+	return seq;
 }
 
-function beginSequence(beg) {
-	return mem.chunkGet(beg, __BEGIN_SEQ__);
+function sequenceAt(seq, idx) {
+	return mem.chunkGet(seq, idx);
 }
 
-const isBegin = check(__BEGIN_TAG__);
+function sequenceSet(seq, idx, val) {
+	mem.chunkSet(seq, idx, val);
+}
+
+function sequenceLength(seq) {
+	return mem.chunkSize(seq);
+}
+
+const isSequence = check(__SEQUENCE_TAG__);
 
 /* ---- IFS ---- */
 
@@ -731,10 +734,12 @@ exports.isSymbol = isSymbol;
 exports.makeSymbol = makeSymbol;
 exports.symbolText = symbolText;
 /* BEGIN */
-exports.__BEGIN_TAG__ = __BEGIN_TAG__;
-exports.isBegin = isBegin;
-exports.makeBegin = makeBegin;
-exports.beginSequence = beginSequence;
+exports.__SEQUENCE_TAG__ = __SEQUENCE_TAG__;
+exports.makeSequence = makeSequence;
+exports.isSequence = isSequence;
+exports.sequenceSet = sequenceSet;
+exports.sequenceAt = sequenceAt;
+exports.sequenceLength =sequenceLength;
 /* IFS */
 exports.__IFS_TAG__ = __IFS_TAG__;
 exports.isIfs = isIfs;

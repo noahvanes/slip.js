@@ -20,8 +20,8 @@ function printExp(exp) {
 		case ag.__NATIVE_TAG__: return '<native procedure>';
 		case ag.__SYMBOL_TAG__: return ag.symbolText(exp);
 		/* ALSO PRINT OTHER ABSTRACT GRAMMAR ITEMS */
-		case ag.__BEGIN_TAG__: 
-			return '(<begin> ' + printSequence(ag.beginSequence(exp)) + ')';
+		case ag.__SEQUENCE_TAG__:
+			return '(<sequence> ' + printSequence(exp) + ')';
 		case ag.__IFS_TAG__: 
 			return '(<if> ' + printExp(ag.ifsPredicate(exp)) + ' ' 
 							+ printExp(ag.ifsConsequence(exp)) + ')';
@@ -56,7 +56,18 @@ function printExp(exp) {
 }
 
 // TODO: make these prettier
-var printSequence = printExp;
+var printSequence = function(exp) {
+
+	var str = '', idx = 1;
+	var len = ag.sequenceLength(exp);
+
+	while (idx < len)
+		str += printExp(ag.sequenceAt(exp, idx++)) + ' ';
+	
+	str += printExp(ag.sequenceAt(exp, idx));
+	return str;
+}
+
 var printBindings = printExp;
 
 function printPair(exp) {
@@ -80,7 +91,11 @@ function printPair(exp) {
 function printVector(exp) {
 
 	var len = ag.vectorLength(exp);
-	var str = "#("
+	
+	if (len === 0)
+		return "#()";
+
+	var str = "#(";
 	for(var idx = 1; idx < len; ++idx) {
 		str += printExp(ag.vectorRef(exp, idx)) + ' ';
 	}
