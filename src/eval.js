@@ -12,10 +12,6 @@ const ref = ag.vectorRef;
 const set = ag.vectorSet;
 const native = natives.native;
 
-/* --- FOR TESTING --- */
-
-//const print = require('./printer.js').printExp;
-
 /* --- ERRORS --- */
 
 var error;
@@ -69,7 +65,8 @@ function eval() {
 		case ag.__APPLICATION_TAG__: 
 			return evalApplication;
 		default: 
-			return error("Invalid expression", regs.EXP);
+			regs.TXT = 'Invalid expression';
+			return error;
 	}
 }
 
@@ -541,5 +538,7 @@ function c_bind() {
 }
 
 /* EXPORTS */
-exports.eval = eval;
+
 exports.setErr = setErr; 
+exports.eval = eval;
+exports.apply = apply;

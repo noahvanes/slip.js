@@ -1,5 +1,6 @@
 /* --- IMPORTS --- */
 
+const memory = require('./mem.js');
 const stk = require('./stack.js');
 const evaluator = require('./eval.js');
 const reader = require('./reader.js');

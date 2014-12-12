@@ -1,62 +1,55 @@
-/* LEFTSTACK/RIGHTSTACK? */
+/* NATIVE JS STACK */
 
+/* 
+  NOTES:
+	- maybe define with array instead of using push
+	- other stack in scheme memory is also available
+*/
 
-const ag = require('./ag.js');
-
-/* STACK */
+/* for now, this looks more performant than writing a full implementation with arrays yourself... */
 
 var __STK_SIZ__ = 32;
-var __STK_VEC__ = ag.makeVector(__STK_SIZ__);
-var __STK_TOP__ = 1;
-var __STK_MUL__ = 2;
+var __STK_TOP__ = __STK_SIZ__;
+var __STK__ = new Array(__STK_SIZ__);
 
-/* STK PUSH */
+function push(el) {
 
-/* --- FOR TESTING --- */
+	if (!__STK_TOP__) {
 
-const printer = require('./printer.js');
-
-function push(exp) {
-
-
-	if (__STK_TOP__ > __STK_SIZ__) {
-
-		var idx, elm, newStack;
-		__STK_SIZ__ *= __STK_MUL__;
-		newStack = ag.makeVector(__STK_SIZ__);
-		for(idx = 1; idx < __STK_TOP__; ++idx) {
-			elm = ag.vectorRef(__STK_VEC__, idx);
-			ag.vectorSet(newStack, idx, elm);
-		}
-		__STK_VEC__ = newStack;
+		var old = __STK__;
+		__STK_TOP__ = __STK_SIZ__;
+		var idx = __STK_SIZ__ *= 2;
+		__STK__ = new Array(__STK_SIZ__);
+		while (idx-- > __STK_TOP__)
+			__STK__[idx] = old[idx-__STK_TOP__];
 	}
 
-	ag.vectorSet(__STK_VEC__, __STK_TOP__++, exp);
+	__STK__[--__STK_TOP__] = el;
 }
 
 function pop() {
-	return ag.vectorRef(__STK_VEC__, --__STK_TOP__);
+	return __STK__[__STK_TOP__++];
 }
 
 function peek() {
-	return ag.vectorRef(__STK_VEC__, __STK_TOP__-1);
+	return __STK__[__STK_TOP__];
 }
 
-function poke(exp) {
-	ag.vectorSet(__STK_VEC__, __STK_TOP__-1, exp);
+function poke(el) {
+	__STK__[__STK_TOP__] = el;
 }
 
 function zap() {
-	--__STK_TOP__;
+	++__STK_TOP__;
 }
 
 function empty() {
-	__STK_TOP__ = 1;
+	__STK_TOP__ = __STK_SIZ__;
 }
 
 exports.save = push;
 exports.restore = pop;
+exports.zap = zap;
 exports.peek = peek;
 exports.poke = poke;
 exports.empty = empty;
-exports.zap = zap;

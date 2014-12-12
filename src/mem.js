@@ -1,18 +1,20 @@
 /* ---- MEMORY MANAGEMENT ---- */
 
 var __MEM__;
-var __MEM_TOP__;
 var __MEM_SIZ__;
+var __MEM_TOP__;
+var __STK_TOP__;
 
 function memoryInit(size) {
 
 	__MEM_SIZ__ = size;
 	__MEM__ = new Array(__MEM_SIZ__);
 	__MEM_TOP__ = 0;
+	__STK_TOP__ = size;
 }
 
 function available() {
-	return (__MEM_SIZ__ - __MEM_TOP__);
+	return (__STK_TOP__ - __MEM_TOP__);
 }
 
 function collectGarbage() {
@@ -45,7 +47,7 @@ function immediateVal(exp) {
 	return exp.val;
 }
 
-/* ---- POINTERS/CHUNKS ---- */
+/* ---- MEMORY CHUNKS ---- */
 
 function makeChunk(raw, tag, siz) {
 
@@ -75,12 +77,37 @@ function chunkEq(a, b) {
 	return (a.ofs === b.ofs);
 }
 
+/* ---- MEMORY STACK ---- */
+
+function push(el) {
+	__MEM__[--__STK_TOP__] = el;
+}
+
+function peek() {
+	return __MEM__[__STK_TOP__];
+}
+
+function pop() {
+	return __MEM__[__STK_TOP__++];
+}
+
+function poke(el) {
+	__MEM__[__STK_TOP__] = el;
+}
+
+function zap() {
+	++__STK_TOP__;
+}
+
 /* ---- EXPORTS ----- */
+
 memoryInit();
 
+/* IMMEDATES */
 exports.makeImmediate = makeImmediate;
 exports.isImmediate = isImmediate;
 exports.immediateVal = immediateVal;
+/* CHUNKS/POINTERS */
 exports.makeChunk = makeChunk;
 exports.chunkSet = chunkSet;
 exports.chunkGet = chunkGet;
@@ -90,3 +117,9 @@ exports.chunkEq = chunkEq;
 exports.available = available;
 exports.memoryInit = memoryInit;
 exports.collectGarbage = collectGarbage;
+/* STACK */
+exports.push = push;
+exports.peek = peek;
+exports.poke = poke;
+exports.pop = pop;
+exports.zap = zap;

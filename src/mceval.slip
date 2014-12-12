@@ -104,13 +104,13 @@
             (define operator (car expression))
             (define operands (cdr expression))
             (apply
-              (if (equal? operator 'begin) evaluate-begin
-                (if (equal? operator 'define) evaluate-define
-                  (if (equal? operator 'eval) evaluate-eval
-                    (if (equal? operator 'if) evaluate-if
-                      (if (equal? operator 'lambda) evaluate-lambda
-                        (if (equal? operator 'quote) evaluate-quote
-                          (if (equal? operator 'set!) evaluate-set!
+              (if (eq? operator 'begin) evaluate-begin
+                (if (eq? operator 'define) evaluate-define
+                  (if (eq? operator 'eval) evaluate-eval
+                    (if (eq? operator 'if) evaluate-if
+                      (if (eq? operator 'lambda) evaluate-lambda
+                        (if (eq? operator 'quote) evaluate-quote
+                          (if (eq? operator 'set!) evaluate-set!
                             (evaluate-application operator)))))))) operands))
           expression)))
 
