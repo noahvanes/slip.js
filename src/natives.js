@@ -339,22 +339,6 @@ function list() {
 
 /* --- COMPARISONS --- */
 
-const __EQ_PTR__ = 8;
-
-function eq() {
-
-	if (regs.LEN != 2) {
-		regs.TXT = 'invalid parameter count';
-		return error;
-	}
-
-	regs.VAL = (ag.eq(car(regs.ARG), car(cdr(regs.ARG))) ?
-				 ag.__TRUE__ : ag.__FALSE__);
-
-	regs.KON = stk.restore();
-	return regs.KON;
-}
-
 const __NBR_EQ_PTR__ = 9;
 
 function nbr_eq() {
@@ -836,6 +820,58 @@ function vector() {
 
 	regs.KON = stk.restore();
 	return regs.KON;
+}
+
+/* --- EQUALITY --- */
+
+const __EQ_PTR__ = 8;
+
+function eq() {
+
+	if (regs.LEN != 2) {
+		regs.TXT = 'invalid parameter count';
+		return error;
+	}
+
+	regs.VAL = (ag.eq(car(regs.ARG), car(cdr(regs.ARG))) ?
+				 ag.__TRUE__ : ag.__FALSE__);
+
+	regs.KON = stk.restore();
+	return regs.KON;
+}
+
+function equal() {
+
+	if (regs.LEN != 2) {
+		regs.TXT = 'invalid parameter count';
+		return error;
+	}
+
+	regs.EXP = car(regs.ARG);
+	regs.ARG = car(cdr(regs.ARG));
+	regs.KON = stk.restore();
+	return c_equal;
+}
+
+function c_equal() {
+
+	regs.TAG = ag.tag(regs.ARG);
+	if (regs.TAG !== ag.tag(regs.EXP)) {
+		regs.KON = stk.restore();
+		regs.VAL = ag.__FALSE__;
+		return regs.KON;
+	}
+
+	switch (regs.TAG) {
+
+		case ag.__PAIR_TAG__:
+			stk.save(regs.cdr(regs.EXP));
+			stk.save(regs.cdr(regs.ARG));
+			regs.EXP = car(regs.EXP);
+			regs.ARG = car(regs.ARG);
+			regs.KON = undefined; //TODO
+			return c_equal;
+	}
 }
 
 /* --- TYPE CHECKS --- */
