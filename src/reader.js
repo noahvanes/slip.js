@@ -1,21 +1,29 @@
 /* IMPORT UTILS */
 
 const ag = require('./ag.js');
+const mem = require('./mem.js');
 const symbols = require('./pool.js');
-const stk = require('./stack');
-const exec = require('./exec.js');
-const regs = exec.regs;
+const vm = require('./main.js');
+const stk = vm.stk;
+const regs = vm.regs;
+const error = vm.error;
+const claim = vm.claim;
+const claimSiz = vm.claimSiz;
 
 /* SCHEME READER */
 
-const __QUO_SYM__ = symbols.enterPool('quote');
+var __QUO_SYM__;
+
+function loadSymbols() {
+	 __QUO_SYM__ = symbols.enterPool('quote');
+}
 
 function SchemeReader() {
 
 	var program, position, hold;
 
-	function load() {
-		program = regs.TXT;
+	function load(str) {
+		program = str;
 		position = 0;
 	}
 
@@ -83,7 +91,8 @@ function SchemeReader() {
 
 	function readString() {
 
-		hold = position
+		claim();
+		hold = position;
 		while(program.charAt(++position) != '\"');
 		return ag.makeString(program.substring(hold+1, position++));
 	}
@@ -106,6 +115,7 @@ function SchemeReader() {
 		//step 3: parse number after .
 		if(program.charAt(position) == '.') {
 			while(isNumber(program.charAt(++position)));
+			claim();
 			return ag.makeDouble(parseFloat(program.substring(hold, position)));
 		}
 
@@ -124,13 +134,6 @@ function SchemeReader() {
 }
 
 const reader = SchemeReader();
-
-/* --- ERROR --- */
-
-var error;
-function setErr(handler) {
-	error = handler;
-}
 
 /* --- READ --- */
 
@@ -176,6 +179,8 @@ function readLBR() {
 
 function c1_LBR() {
 
+	claim();
+
 	if (reader.peek() === ')') {
 		reader.skip();
 		regs.VAL = ag.makePair(regs.VAL, ag.__NULL__);
@@ -183,12 +188,12 @@ function c1_LBR() {
 	}
 
 	regs.IDX = stk.peek();
-	stk.poke(regs.VAL);
-	stk.save(++regs.IDX);
+	stk.poke(++regs.IDX);
+	mem.push(regs.VAL);
 
 	if (reader.peek() === '.') {
-		regs.KON = c2_LBR;
 		reader.skip();
+		regs.KON = c2_LBR;
 	} 
 
 	return read;
@@ -209,8 +214,7 @@ function c3_LBR() {
 
 	regs.IDX = stk.restore();
 	while(regs.IDX--)
-		regs.VAL = ag.makePair(stk.restore(), regs.VAL);
-
+		regs.VAL = ag.makePair(mem.pop(), regs.VAL);
 	regs.KON = stk.restore();
 	return regs.KON;
 }
@@ -227,6 +231,7 @@ function readQUO() {
 
 function c_QUO() {
 
+	claim();
 	regs.VAL = ag.makePair(regs.VAL, ag.__NULL__);
 	regs.VAL = ag.makePair(__QUO_SYM__, regs.VAL);
 	regs.KON = stk.restore();
@@ -264,7 +269,7 @@ function readSHR() {
 			}
 			stk.save(regs.KON);
 			regs.KON = c_vector;
-			stk.save(0);
+			stk.save(1);
 			return read;
 	}
 }
@@ -273,34 +278,28 @@ function c_vector() {
 
 	if (reader.peek() === ')') {
 		reader.skip();
-		regs.IDX = stk.restore();
-		regs.EXP = ag.makeVector(regs.IDX + 1);
-		ag.vectorSet(regs.EXP, regs.IDX + 1, regs.VAL);
-		while (regs.IDX)
-			ag.vectorSet(regs.EXP, regs.IDX--, stk.restore());
+		regs.LEN = stk.restore();
+		claimSiz(regs.LEN);
+		regs.EXP = ag.makeVector(regs.LEN);
+		ag.vectorSet(regs.EXP, regs.LEN, regs.VAL);
+		while (--regs.LEN) 
+			ag.vectorSet(regs.EXP, regs.LEN, mem.pop());
 		regs.VAL = regs.EXP;
 		regs.KON = stk.restore();
 		return regs.KON;
 	}
 
+	claim();
 	regs.IDX = stk.peek();
-	stk.poke(regs.VAL);
-	stk.save(++regs.IDX);
+	stk.poke(++regs.IDX);
+	mem.push(regs.VAL);
 	return read;
 }
 
-exports.read = read;
-exports.load = reader.load;
-exports.setErr = setErr;
+/* EXPORTS */
 
-
-/* --- TESTING --- 
-const printer = require('./printer.js');
-exports.test = function(str) {
-	regs.TXT = str;
-	reader.load();
-	regs.KON = false;
-	exec.run(read);
-	console.log(printer.printExp(regs.VAL));
+exports.read = function() {
+	reader.load(regs.TXT);
+	return read;
 }
-*/
+exports.loadSymbols = loadSymbols;

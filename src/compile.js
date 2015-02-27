@@ -14,30 +14,42 @@
 
 /* --- IMPORTS --- */
 
-const ag = require('./ag.js');
 const symbols = require('./pool.js');
-const stk = require('./stack');
-const exec = require('./exec.js');
-const regs = exec.regs;
+const mem = require('./mem.js');
+const vm = require('./main.js');
+const ag = require('./ag.js');
+const claimSiz = vm.claimSiz;
+const claim = vm.claim;
+const error = vm.error;
+const regs = vm.regs;
+const stk = vm.stk;
 
-var error;
-function setErr(handler) {
-	error = handler;
+/* --- CONSTANT SYMBOLS --- */
+
+var __QUO_SYM__;
+var __BEG_SYM__;
+var __LET_SYM__;
+var __DEF_SYM__;
+var __LAM_SYM__;
+var __SET_SYM__;
+var __IFF_SYM__;
+var __VEC_SYM__;
+
+function loadSymbols() {
+
+	__QUO_SYM__ = symbols.enterPool('quote');
+	__BEG_SYM__ = symbols.enterPool('begin');
+	__LET_SYM__ = symbols.enterPool('let');
+	__DEF_SYM__ = symbols.enterPool('define');
+	__LAM_SYM__ = symbols.enterPool('lambda');
+	__SET_SYM__ = symbols.enterPool('set!');
+	__IFF_SYM__ = symbols.enterPool('if');
+	__VEC_SYM__ = symbols.enterPool('vector');
 }
-
-/* --- CONSTANTS --- */
-
-const __QUO_SYM__ = symbols.enterPool('quote');
-const __BEG_SYM__ = symbols.enterPool('begin');
-const __LET_SYM__ = symbols.enterPool('let');
-const __DEF_SYM__ = symbols.enterPool('define');
-const __LAM_SYM__ = symbols.enterPool('lambda');
-const __SET_SYM__ = symbols.enterPool('set!');
-const __IFF_SYM__ = symbols.enterPool('if');
-const __VEC_SYM__ = symbols.enterPool('vector');
 
 const car = ag.pairCar;
 const cdr = ag.pairCdr;
+
 
 /* --- COMPILE --- */
 
@@ -86,9 +98,10 @@ function compileSequence() {
 	regs.LST = cdr(regs.LST);
 
 	if (!ag.isNull(regs.LST)) {
+		claim();
 		stk.save(regs.KON);
-		stk.save(0);
-		stk.save(regs.LST);
+		mem.push(regs.LST);
+		stk.save(1);
 		regs.KON = c1_sequence;
 	}
 
@@ -97,10 +110,10 @@ function compileSequence() {
 
 function c1_sequence() {
 
-	regs.LST = stk.restore();
+	regs.LST = mem.peek();
 	regs.LEN = stk.peek();
-	stk.poke(regs.VAL);
-	stk.save(++regs.LEN);
+	mem.poke(regs.VAL);
+	stk.poke(++regs.LEN);
 
 	if (!ag.isPair(regs.LST)) {
 		regs.TXT = 'invalid sequence';
@@ -113,8 +126,9 @@ function c1_sequence() {
 	if (ag.isNull(regs.LST)) {
 		regs.KON = c2_sequence;
 	} else {
-		stk.save(regs.LST);
-	}
+		claim();
+ 		mem.push(regs.LST);
+ 	}
 
 	return compile;
 }
@@ -122,11 +136,12 @@ function c1_sequence() {
 function c2_sequence() {
 
 	regs.LEN = stk.restore();
-	regs.EXP = ag.makeSequence(regs.LEN + 1);
-	ag.sequenceSet(regs.EXP, regs.LEN + 1, regs.VAL);
+	claimSiz(regs.LEN);
+	regs.EXP = ag.makeSequence(regs.LEN);
+	ag.sequenceSet(regs.EXP, regs.LEN, regs.VAL);
 	do 	// fill sequence with compiled expressions
-		ag.sequenceSet(regs.EXP, regs.LEN, stk.restore());
-	while (--regs.LEN);
+		ag.sequenceSet(regs.EXP, --regs.LEN, mem.pop());
+	while (regs.LEN > 1);
 
 	regs.VAL = regs.EXP;
 	regs.KON = stk.restore();
@@ -144,6 +159,7 @@ function compileQuote() {
 
 	regs.EXP = car(regs.LST);
 	if (ag.isNull(cdr(regs.LST))) {
+		claim();
 		regs.VAL = ag.makeQuo(regs.EXP);
 		return regs.KON;
 	} else {
@@ -169,18 +185,19 @@ function compileIf() {
 		return error;
 	}
 
+	claim();
 	stk.save(regs.KON);
+	mem.push(regs.LST);
 	regs.KON = c1_if;
-	stk.save(regs.LST);
 	return compile;
 }
 
 function c1_if() {
 
-	regs.LST = stk.peek();
+	regs.LST = mem.peek();
 	regs.EXP = car(regs.LST);
 	regs.LST = cdr(regs.LST);
-	stk.poke(regs.VAL);
+	mem.poke(regs.VAL);
 
 	if (ag.isNull(regs.LST)) {
 		regs.KON = c2_if;
@@ -188,7 +205,8 @@ function c1_if() {
 	}
 
 	if (ag.isPair(regs.LST)) {
-		stk.save(regs.LST);
+		claim();
+		mem.push(regs.LST);
 		regs.KON = c3_if;
 		return compile;
 	}
@@ -199,7 +217,8 @@ function c1_if() {
 
 function c2_if() {
 
-	regs.EXP = stk.restore();
+	claim();
+	regs.EXP = mem.pop();
 	regs.VAL = ag.makeIfs(regs.EXP, regs.VAL);
 	regs.KON = stk.restore();
 	return regs.KON;
@@ -207,10 +226,10 @@ function c2_if() {
 
 function c3_if() {
 
-	regs.LST = stk.peek();
+	regs.LST = mem.peek();
 	regs.EXP = car(regs.LST);
 	regs.LST = cdr(regs.LST);
-	stk.poke(regs.VAL);
+	mem.poke(regs.VAL);
 
 	if (!ag.isNull(regs.LST)) {
 		regs.TXT = 'if statement too long';
@@ -223,8 +242,9 @@ function c3_if() {
 
 function c4_if() {
 
-	regs.EXP = stk.restore();
-	regs.VAL = ag.makeIff(stk.restore(), regs.EXP, regs.VAL);
+	claim();
+	regs.EXP = mem.pop();
+	regs.VAL = ag.makeIff(mem.pop(), regs.EXP, regs.VAL);
 	regs.KON = stk.restore();
 	return regs.KON;
 }
@@ -266,6 +286,8 @@ function compileParameters() {
 
 function compileDefine() {
 
+	claim();
+
 	if (!ag.isPair(regs.LST)) {
 		regs.TXT = 'invalid definition';
 		return error;
@@ -292,8 +314,8 @@ function compileDefine() {
 				return error;
 			}
 
+			mem.push(regs.PAT);
 			stk.save(regs.KON);
-			stk.save(regs.PAT);
 			regs.KON = c1_define;
 			return compile;
 
@@ -307,9 +329,9 @@ function compileDefine() {
 				return error;
 			}
 
+			mem.push(regs.PAT);
+			mem.push(regs.PAR);
 			stk.save(regs.KON);
-			stk.save(regs.PAT);
-			stk.save(regs.PAR);
 			regs.KON = c2_define;
 			return compileSequence;
 
@@ -322,7 +344,8 @@ function compileDefine() {
 
 function c1_define() {
 
-	regs.PAT = stk.restore();
+	claim();
+	regs.PAT = mem.pop();
 	regs.KON = stk.restore();
 	regs.VAL = ag.makeDfv(regs.PAT, regs.VAL);
 	return regs.KON;
@@ -330,8 +353,9 @@ function c1_define() {
 
 function c2_define() {
 
-	regs.PAR = stk.restore();
-	regs.PAT = stk.restore();
+	claim();
+	regs.PAR = mem.pop();
+	regs.PAT = mem.pop();
 	regs.KON = stk.restore();
 	regs.VAL = ag.makeDff(regs.PAT, regs.PAR, regs.VAL);
 	return regs.KON;
@@ -340,6 +364,8 @@ function c2_define() {
 /* --- COMPILE SET! --- */
 
 function compileSet() {
+
+	claim();
 
 	if (!ag.isPair(regs.LST)) {
 		regs.TXT = 'invalid assignment variable';
@@ -358,21 +384,22 @@ function compileSet() {
 	regs.LST = cdr(regs.LST);
 
 	if (!ag.isNull(regs.LST)) {
-		regs.TXT = 'assignment requires only one argument';
+		regs.TXT = 'invalid assignment syntax';
 		return error;
 	}
 
+	mem.push(regs.PAT);
 	stk.save(regs.KON);
-	stk.save(regs.PAT);
 	regs.KON = c_set;
 	return compile;
 }
 
 function c_set() {
 
-	regs.PAT = stk.restore();
-	regs.KON = stk.restore();
+	claim();
+	regs.PAT = mem.pop();
 	regs.VAL = ag.makeSet(regs.PAT, regs.VAL);
+	regs.KON = stk.restore();
 	return regs.KON;
 }
 
@@ -385,20 +412,22 @@ function compileLambda() {
 		return error;
 	}
 
+	claim();
 	regs.PAR = car(regs.LST);
 	regs.LST = cdr(regs.LST);
 
+	mem.push(regs.PAR);
 	stk.save(regs.KON);
-	stk.save(regs.PAR);
 	regs.KON = c_lambda;
 	return compileSequence;
 }
 
 function c_lambda() {
 
-	regs.PAR = stk.restore();
-	regs.KON = stk.restore();
+	claim();
+	regs.PAR = mem.pop();
 	regs.VAL = ag.makeLambda(regs.PAR, regs.VAL);
+	regs.KON = stk.restore();
 	return regs.KON;
 }
 
@@ -406,13 +435,14 @@ function c_lambda() {
 
 function compileApplication() {
 
+	claim();
 	stk.save(regs.KON);
 
 	if (ag.isNull(regs.LST)) {
 		regs.KON = c1_application;
 	} else {
 		stk.save(0);
-		stk.save(regs.LST);
+		mem.push(regs.LST);
 		regs.KON = c2_application;
 	}
 
@@ -421,6 +451,7 @@ function compileApplication() {
 
 function c1_application() {
 
+	claim();
 	regs.VAL = ag.makeApplication(regs.VAL, ag.__EMPTY_VEC__);
 	regs.KON = stk.restore();
 	return regs.KON;
@@ -428,10 +459,10 @@ function c1_application() {
 
 function c2_application() {
 
-	regs.ARG = stk.restore();
+	regs.ARG = mem.peek();
 	regs.LEN = stk.peek();
-	stk.poke(regs.VAL);
-	stk.save(++regs.LEN);
+	mem.poke(regs.VAL);
+	stk.poke(++regs.LEN);
 
 	if (!ag.isPair(regs.ARG)) {
 		regs.TXT = 'invalid application argument';
@@ -441,10 +472,11 @@ function c2_application() {
 	regs.EXP = car(regs.ARG);
 	regs.ARG = cdr(regs.ARG);
 
-	if (ag.isNull(regs.ARG)) {
+	if (ag.isNull(regs.ARG))
 		regs.KON = c3_application;
-	} else {
-		stk.save(regs.ARG);
+	else {
+		claim();
+		mem.push(regs.ARG);
 	}
 
 	return compile;
@@ -452,13 +484,13 @@ function c2_application() {
 
 function c3_application() {
 
-	regs.IDX = stk.restore();
-	regs.EXP = ag.makeVector(regs.IDX);
-	ag.vectorSet(regs.EXP, regs.IDX, regs.VAL);
-	while(--regs.IDX)
-		ag.vectorSet(regs.EXP, regs.IDX, stk.restore());
-	regs.VAL = ag.makeApplication(stk.restore(), regs.EXP);
-	
+	regs.LEN = stk.restore();
+	claimSiz(regs.LEN);
+	regs.EXP = ag.makeVector(regs.LEN);
+	ag.vectorSet(regs.EXP, regs.LEN, regs.VAL);
+	while(--regs.LEN) 
+		ag.vectorSet(regs.EXP, regs.LEN, mem.pop());
+	regs.VAL = ag.makeApplication(mem.pop(), regs.EXP);
 	regs.KON = stk.restore();
 	return regs.KON;
 }
@@ -468,6 +500,7 @@ function c3_application() {
 function compileVector() {
 
 	regs.LEN = ag.vectorLength(regs.EXP);
+	vm.claimSiz(regs.LEN);
 
 	if (regs.LEN === 0) { 
 		regs.VAL = ag.__EMPTY_VEC__;
@@ -475,13 +508,13 @@ function compileVector() {
 	}
 
 	stk.save(regs.KON);
-	stk.save(ag.makeVector(regs.LEN));
+	mem.push(ag.makeVector(regs.LEN));
 	
 	if (regs.LEN === 1) {
 		regs.KON = c2_vector;
 	} else {
 		regs.KON = c1_vector;
-		stk.save(regs.EXP);
+		mem.push(regs.EXP);
 		stk.save(1);
 	}
 
@@ -491,17 +524,18 @@ function compileVector() {
 
 function c1_vector() {
 
-	regs.IDX = stk.restore();
-	regs.EXP = stk.restore();
-	regs.PAR = stk.peek();
+	regs.IDX = stk.peek();
+	regs.EXP = mem.pop();
+	regs.PAR = mem.peek();
 	ag.vectorSet(regs.PAR, regs.IDX++, regs.VAL);
 	regs.LEN = ag.vectorLength(regs.PAR);
 
 	if (regs.LEN === regs.IDX) {
 		regs.KON = c2_vector;
+		stk.zap();
 	} else {
-		stk.save(regs.EXP);
-		stk.save(regs.IDX);
+		mem.push(regs.EXP);
+		stk.poke(regs.IDX);
 	}
 
 	regs.EXP = ag.vectorRef(regs.EXP, regs.IDX);
@@ -510,7 +544,8 @@ function c1_vector() {
 
 function c2_vector() {
 
-	regs.EXP = stk.restore();
+	claim();
+	regs.EXP = mem.pop();
 	regs.LEN = ag.vectorLength(regs.EXP);
 	ag.vectorSet(regs.EXP, regs.LEN, regs.VAL);
 	regs.VAL = ag.makeApplication(__VEC_SYM__, regs.EXP);
@@ -519,18 +554,4 @@ function c2_vector() {
 }
 
 exports.compile = compile;
-exports.setErr = setErr;
-
-/* --- TESTING ---
-const reader = require('./reader.js');
-const printer = require('./printer.js');
-exports.test = function(str) {
-	regs.TXT = str;
-	reader.load();
-	regs.KON = false;
-	exec.run(reader.read);
-	regs.EXP = regs.VAL;
-	exec.run(compile);
-	console.log(printer.printExp(regs.VAL));
-}
-*/
+exports.loadSymbols = loadSymbols;

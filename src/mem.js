@@ -220,10 +220,16 @@ function zap() {
 	++__STK_TOP__;
 }
 
+function emptyStk() {
+	__STK_TOP__ = __MEM_SIZ__ - 1;
+}
+
 /* ---- EXPORTS ----- */
 
-memoryInit();
-
+/* MEMORY */
+exports.available = available;
+exports.memoryInit = memoryInit;
+exports.collectGarbage = collectGarbage;
 /* IMMEDATES */
 exports.makeImmediate = makeImmediate;
 exports.isImmediate = isImmediate;
@@ -235,14 +241,16 @@ exports.chunkGet = chunkGet;
 exports.chunkTag = chunkTag;
 exports.chunkSize = chunkSize;
 exports.chunkEq = chunkEq;
-exports.available = available;
-exports.memoryInit = memoryInit;
-exports.collectGarbage = collectGarbage;
 /* STACK */
 exports.push = push;
 exports.peek = peek;
 exports.poke = poke;
 exports.pop = pop;
 exports.zap = zap;
+exports.emptyStk = emptyStk;
 /* DEBUG */
-exports.memprint = function() { console.log(__MEM__) }
+exports.stkforeach = function(f) {
+	for(var i = __STK_TOP__+1; i < __MEM_SIZ__; ++i)
+		f(__MEM__[i]);
+}
+exports.memprint = function() { console.log(__MEM__);}

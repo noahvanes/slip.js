@@ -1,13 +1,20 @@
+/* IMPORTS */
+
+var main = require('./main.js');
+
 var fs = require('fs');
 var rl = require('readline-sync');
+
+
+/* CONFIGURATION */
+
+const __MEM_SIZ__ = 10000;
+
+
+/* READ EXPRESSION */
+
 var readline = rl.prompt;
-
-//configure prompt 
 rl.setPrompt('');
-
-function load(path) {
-	return fs.readFileSync(path, 'utf-8');
-}
 
 function readExpression() {
 
@@ -23,10 +30,6 @@ function readExpression() {
 	} while (brackets > 0);
 
 	return str;
-}
-
-function write(str) {
-	process.stdout.write(str);
 }
 
 function scanBrackets(txt) {
@@ -48,7 +51,29 @@ function scanBrackets(txt) {
 	return count;
 }
 
-exports.printOut = console.log;
-exports.read = readExpression;
-exports.load = load;
-exports.write = write;
+
+/* WRITE TEXT */
+
+function print(str) {
+	process.stdout.write(str);
+}
+
+const printline = console.log;
+
+
+/* LOAD FILE */ 
+
+function load(path) {
+	return fs.readFileSync(path, 'utf-8');
+}
+
+
+/* QUIT PROCESS */
+
+function quit() {
+	process.exit(1);
+}
+
+
+/* START REPL */
+main.initREPL(print, printline, readExpression, load, quit, __MEM_SIZ__);

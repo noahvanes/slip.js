@@ -4,30 +4,29 @@
 //DONE: compiler + mem immediates + stack 1 + ...
 
 const ag = require('./ag.js');
-const IO = require('./IO.js');
+const vm = require('./main.js');
+const mem = require('./mem.js');
 const symbols = require('./pool.js');
-const stk = require('./stack.js');
 const printer = require('./printer.js');
-const exec = require('./exec.js');
 const reader = require('./reader.js');
 const compiler = require('./compile.js'); 
+const evaluator = require('./eval.js');
 
-const regs = exec.regs;
+const regs = vm.regs;
+const stk = vm.stk;
+const error = vm.error;
+const config = vm.config;
+const claim = vm.claim;
+const claimSiz = vm.claimSiz;
+
 const car = ag.pairCar;
 const cdr = ag.pairCdr;
-
-/* --- ERRORS --- */
-
-var error;
-function setErr(handler) {
-	error = handler;
-}
 
 /* --- NATIVE --- */
 
 function native() {
 
-	regs.ADR = ag.nativePtr(regs.PRC);
+	regs.ADR = ag.nativePtr(regs.VAL);
 	/* DISPATCH */
 	switch (regs.ADR) {
 		/* ARITHMETIC */
@@ -70,6 +69,9 @@ function native() {
 		case __IS_NULL_PTR__: return isNull;
 		case __IS_SYMBOL_PTR__: return isSymbol;
 		case __IS_VECTOR_PTR__: return isVector;
+		/* MEMORY */
+		case __AVAIL_PTR__: return available;
+		case __COLLECT_PTR__: return collect;
 	}
 }
 
@@ -239,6 +241,7 @@ function mcons() {
 		return error;
 	}
 
+	claim();
 	regs.VAL = ag.makePair(car(regs.ARG), car(cdr(regs.ARG)));
 	regs.KON = stk.restore();
 	return regs.KON;
@@ -517,7 +520,7 @@ function map() {
 	}
 
 	regs.LEN = 1;
-	regs.PRC = car(regs.ARG);
+	regs.VAL = car(regs.ARG);
 	regs.LST = car(cdr(regs.ARG));
 
 	if (ag.isNull(regs.LST)) {
@@ -526,6 +529,7 @@ function map() {
 		return regs.KON;
 	}
 
+	vm.claim();
 	regs.ARG = ag.makePair(car(regs.LST), ag.__NULL__);
 	regs.LST = cdr(regs.LST);
 	stk.save(0);
@@ -533,32 +537,36 @@ function map() {
 	if (ag.isNull(regs.LST)) {
 		stk.save(c1_map);
 	} else {
-		stk.save(regs.PRC);
-		stk.save(regs.LST);
+		mem.push(regs.VAL);
+		mem.push(regs.LST);
 		stk.save(c2_map);
 	}
 
-	return apply;
+	return evaluator.apply;
 }
 
 function c1_map() {
 
 	regs.LEN = stk.restore();
+	claimSiz(3*regs.LEN);
 	regs.VAL = ag.makePair(regs.VAL, ag.__NULL__);
-	while (regs.LEN--)
-		regs.VAL = ag.makePair(stk.restore(), regs.VAL);
+	while(regs.LEN--)
+			regs.VAL = ag.makePair(mem.pop(), regs.VAL);
 	regs.KON = stk.restore();
 	return regs.KON;
 }
 
 function c2_map() {
 
-	regs.LST = stk.restore();
-	regs.PRC = stk.restore();
-	regs.LEN = stk.peek();
-	stk.poke(regs.VAL);
-	stk.save(regs.LEN + 1);
+	regs.LST = mem.pop();
+	regs.EXP = mem.peek();
+	mem.poke(regs.VAL);
 
+	regs.LEN = stk.peek();
+	stk.poke(++regs.LEN);
+
+	claim();
+	regs.VAL = regs.EXP; //regs.PRC
 	regs.ARG = ag.makePair(car(regs.LST), ag.__NULL__);
 	regs.LST = cdr(regs.LST);
 	regs.LEN = 1;
@@ -566,12 +574,12 @@ function c2_map() {
 	if (ag.isNull(regs.LST)) {
 		stk.save(c1_map);
 	} else {
-		stk.save(regs.PRC);
-		stk.save(regs.LST);
+		mem.push(regs.VAL);
+		mem.push(regs.LST);
 		stk.save(c2_map);
 	}
 
-	return apply;
+	return evaluator.apply;
 }
 
 /* --- META --- */
@@ -594,7 +602,7 @@ function c_eval() {
 
 	regs.EXP = regs.VAL;
 	regs.KON = stk.restore();
-	return eval;
+	return evaluator.eval;
 }
 
 const __APPLY_PTR__ = 16;
@@ -606,7 +614,7 @@ function _apply() {
 		return error;
 	}
 
-	regs.PRC = car(regs.ARG);
+	regs.VAL = car(regs.ARG);
 	regs.ARG = car(cdr(regs.ARG));
 	regs.LST = regs.ARG;
 	// check + calculate list length
@@ -616,16 +624,15 @@ function _apply() {
 		regs.TXT = 'second argument must be a list';
 		return error;
 	}
-	return apply;
+	return evaluator.apply;
 }
 
 const __READ_PTR__ = 18;
 
 function read() {
 
-	IO.write(":: ");
-	regs.TXT = IO.read();
-	reader.load();
+	config.print(":: ");
+	regs.TXT = config.read();
 	regs.KON = stk.restore();
 	return reader.read;
 }
@@ -646,8 +653,7 @@ function load() {
 	}
 
 	regs.TXT = ag.stringText(regs.ARG);
-	regs.TXT = IO.load(regs.TXT);
-	reader.load();
+	regs.TXT = config.load(regs.TXT);
 	regs.KON = c1_load;
 	return reader.read;
 }
@@ -663,7 +669,7 @@ function c2_load() {
 
 	regs.EXP = regs.VAL;
 	regs.KON = stk.restore();
-	return eval;
+	return evaluator.eval;
 }
 
 /* --- DISPLAYS --- */
@@ -677,7 +683,7 @@ function display() {
 		return error;
 	}
 	regs.TXT = printer.printExp(car(regs.ARG));
-	IO.printOut(regs.TXT);
+	config.printline(regs.TXT);
 	regs.VAL = ag.__VOID__;
 	regs.KON = stk.restore();
 	return regs.KON;
@@ -687,7 +693,7 @@ const __NEWLINE_PTR__ = 26;
 
 function newline() {
 
-	IO.printOut('');
+	config.printline('');
 	regs.VAL = ag.__VOID__;
 	regs.KON = stk.restore();
 	return regs.KON;
@@ -718,6 +724,7 @@ function makeVector() {
 		return error;
 	}
 
+	claimSiz(regs.LEN);
 	if (ag.isNull(regs.LST)) {
 		regs.VAL = ag.makeVector(regs.LEN);
 	} else {
@@ -802,7 +809,8 @@ function vectorLength() {
 		return error;
 	}
 
-	regs.VAL = ag.makeNumber(ag.vectorLength(regs.ARG));
+	regs.LEN = ag.vectorLength(regs.ARG);
+	regs.VAL = ag.makeNumber(regs.LEN);
 	regs.KON = stk.restore();
 	return regs.KON;
 }
@@ -812,6 +820,7 @@ const __VECTOR_PTR__ = 31;
 function vector() {
 
 	regs.IDX = 0;
+	claimSiz(regs.LEN);
 	regs.VAL = ag.makeVector(regs.LEN);
 	while (regs.IDX < regs.LEN) {
 		ag.vectorSet(regs.VAL, ++regs.IDX, car(regs.ARG));
@@ -853,6 +862,7 @@ function equal() {
 	return c_equal;
 }
 
+//TODO: complete
 function c_equal() {
 
 	regs.TAG = ag.tag(regs.ARG);
@@ -902,23 +912,46 @@ const isSymbol = makeTypeCheck(ag.__SYMBOL_TAG__);
 const __IS_VECTOR_PTR__ = 32;
 const isVector = makeTypeCheck(ag.__VECTOR_TAG__);
 
+/* --- MEMORY --- */
+
+const __COLLECT_PTR__ = 33;
+
+function collect() {
+
+	regs.NBR = mem.available();
+	
+	claim();
+	if(regs.NBR === mem.available())
+		vm.reclaim();
+
+	regs.NBR = mem.available();
+	regs.VAL = ag.makeNumber(regs.NBR);
+	regs.KON = stk.restore();
+	return regs.KON;
+}
+
+const __AVAIL_PTR__ = 34;
+
+function available() {
+
+	regs.VAL = ag.makeNumber(mem.available());
+	regs.KON = stk.restore();
+	return regs.KON;
+}
+
 /* --- INITIALISATION --- */
 
 function init() {
 
-	function loadOperations() {
-		var evaluator = require('./eval.js');
-		apply = evaluator.apply;
-		eval = evaluator.eval;
-	}
-
 	function addNative(nam, ptr) {
-		regs.PRC = ag.makeNative(ptr);
+		regs.VAL = ag.makeNative(ptr);
 		regs.PAT = symbols.enterPool(nam);
-		regs.BND = ag.makePair(regs.PAT, regs.PRC);
+		regs.BND = ag.makePair(regs.PAT, regs.VAL);
 		regs.FRM = ag.makePair(regs.BND, regs.FRM);
 	}
 
+	addNative('collect', __COLLECT_PTR__);
+	addNative('available', __AVAIL_PTR__);
 	addNative('load', __LOAD_PTR__);
 	addNative('eq?', __EQ_PTR__);
 	addNative('map', __MAP_PTR__);
@@ -952,11 +985,9 @@ function init() {
 	addNative('-', __SUB_PTR__);
 	addNative('*', __MUL_PTR__);
 	addNative('/', __DIV_PTR__);
-
-	loadOperations();
 }
+
+init();
 
 /* --- EXPORTS --- */
 exports.native = native;
-exports.setErr = setErr;
-exports.initNatives = init;
