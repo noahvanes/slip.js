@@ -535,11 +535,11 @@ function map() {
 	stk.save(0);
 
 	if (ag.isNull(regs.LST)) {
-		stk.save(c1_map);
+		regs.KON = c1_map;
 	} else {
 		mem.push(regs.VAL);
 		mem.push(regs.LST);
-		stk.save(c2_map);
+		regs.KON = c2_map;
 	}
 
 	return evaluator.apply;
@@ -572,11 +572,11 @@ function c2_map() {
 	regs.LEN = 1;
 
 	if (ag.isNull(regs.LST)) {
-		stk.save(c1_map);
+		regs.KON = c1_map;
 	} else {
 		mem.push(regs.VAL);
 		mem.push(regs.LST);
-		stk.save(c2_map);
+		regs.KON = c2_map;
 	}
 
 	return evaluator.apply;
@@ -624,6 +624,8 @@ function _apply() {
 		regs.TXT = 'second argument must be a list';
 		return error;
 	}
+
+	regs.KON = stk.restore();
 	return evaluator.apply;
 }
 
@@ -881,6 +883,8 @@ function c_equal() {
 			regs.ARG = car(regs.ARG);
 			regs.KON = undefined; //TODO
 			return c_equal;
+
+			//TODO ...
 	}
 }
 

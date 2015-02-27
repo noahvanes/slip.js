@@ -22,7 +22,7 @@ const printExp = require('./printer.js').printExp;
 function eval() {
 
 	regs.TAG = ag.tag(regs.EXP);
-
+	
 	switch(regs.TAG) {
 
 		case ag.__NULL_TAG__:
@@ -350,6 +350,7 @@ function c1_application() {
 		mem.zap(); //skips empty vec
 		regs.ARG = ag.__NULL__;
 		regs.LEN = 0;
+		regs.KON = stk.restore(); 
 		return apply;
 	}
 
@@ -394,6 +395,7 @@ function c3_application() {
 	while (--regs.IDX) 
 		regs.ARG = ag.makePair(mem.pop(), regs.ARG);
 	regs.VAL = mem.pop();
+	regs.KON = stk.restore();
 	return apply;
 }
 
@@ -489,8 +491,12 @@ function apply() {
 		
 		vm.claimSiz(3*regs.LEN); //cf. inf.
 
-		mem.push(regs.ENV);
-		mem.push(regs.FRM);
+		if (regs.KON !== c_bind) {
+			stk.save(regs.KON);
+			regs.KON = c_bind;
+			mem.push(regs.ENV);
+			mem.push(regs.FRM);
+		}
 
 		regs.EXP = ag.procedureBdy(regs.VAL);
 		regs.PAR = ag.procedurePar(regs.VAL);
@@ -502,6 +508,7 @@ function apply() {
 
 	if (regs.TAG === ag.__NATIVE_TAG__) {
 
+		stk.save(regs.KON);
 		return native;
 	}
 
@@ -512,10 +519,8 @@ function apply() {
 function bind() {
 
 	if (ag.isNull(regs.PAR)) {
-		if(ag.isNull(regs.ARG)) {
-			regs.KON = c_bind;
+		if(ag.isNull(regs.ARG))
 			return eval;
-		}
 		regs.TXT = 'excess arguments';
 		return error;
 	}
@@ -538,7 +543,6 @@ function bind() {
 
 		regs.BND = ag.makePair(regs.PAR, regs.ARG);
 		regs.FRM = ag.makePair(regs.BND, regs.FRM);
-		regs.KON = c_bind;
 		return eval;
 	}
 

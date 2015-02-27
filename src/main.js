@@ -155,6 +155,8 @@ function reclaim() {
 
 	//do garbage collect
 	mem.collectGarbage();
+
+	//reload symbol variables
 	compiler.loadSymbols();
 	reader.loadSymbols();
 
@@ -188,8 +190,8 @@ function reclaim() {
 
 /* ERROR MANAGEMENT */
 
-const __ERROR_PREFIX__ = "ERROR: ";
-const __FATAL_PREFIX__ = "FATAL ERROR: ";
+const __ERROR_PREFIX__ = "** ERROR: ";
+const __FATAL_PREFIX__ = "** FATAL ERROR: ";
 
 function error() {
 
