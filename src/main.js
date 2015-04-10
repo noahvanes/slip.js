@@ -1,39 +1,14 @@
-/* IMPORT MEMORY */
-
-const mem = require('./mem.js');
-
-
-/* FOR LATER INITIALISATION */ 
-
-var ag;
-var reader;
-var compiler;
-var eval;
-var printExp;
-
-
-/* CALLBACKS */
-
-const config = Object.create(null);
-
-
-/* VM ARCHITECTURE */
+/* --- VM ARCHITECTURE --- */
 
 //stack
-const stk = [];
-
-stk.save = stk.push;
-stk.restore = stk.pop;
-
-stk.peek = function() {
-	return stk[stk.length-1];
-}
-
-stk.poke = function(el) {
-	stk[stk.length-1] = el;
-}
-stk.zap = function() {
-	--stk.length;
+const _stk = [];
+const stk = {
+	save: function(el) { _stk.push(el); },
+	restore: function() { return _stk.pop(); },
+	peek: function() { return _stk[_stk.length-1]; },
+	zap: function() { --_stk.length; },
+	poke: function(el) { _stk[_stk.length-1] = el; },
+	empty: function() { _stk.length = 0; }
 }
 
 //registers
@@ -61,18 +36,68 @@ const regs = {
 	VAL: init //done
 }
 
-/* REPL */
+//trampoline
+function run(f) {
+	while(f = f());
+}
 
-const __WELCOME_TEXT__ = "Welcome to JScheme";
+/* --- INITIALISATION --- */
+
+function Slip_init(clbs, memSiz) {
+
+	//memory
+	const __DEFAULT_MEM__ = 16;
+	memSiz = 0x1 << (memSiz||__DEFAULT_MEM__);
+	var buffer = new ArrayBuffer(memSiz);
+	mem = MEMORY(window, {heapSize: memSiz}, buffer);
+
+	//callbacks
+	config = clbs;
+
+	//setup other components
+	ag = GRAMMAR();
+	regs.FRM = ag.__NULL__;
+	regs.ENV = ag.__NULL__;
+	regs.GLB = ag.__NULL__;
+	regs.EXP = ag.__NULL__;
+	regs.VAL = ag.__NULL__;
+	regs.LST = ag.__NULL__;
+
+	pool = POOL();
+	reader = READER();
+	compiler = COMPILER();
+	evaluator = EVALUATOR();
+	natives = NATIVES();
+	printExp = PRINTER().printExp;
+
+	reader.loadSymbols();
+	compiler.loadSymbols();
+}
+
+
+/* --- REPL --- */
+
+const __WELCOME_TEXT__ = "Welcome to the Slip.js REPL";
 const __PROMPT_TEXT__ = "> ";
+
+function Slip_REPL() {
+	config.printline(__WELCOME_TEXT__);
+	config.printline('');
+	run(REPL);
+}
+
+function waitForInput(txt) {
+	reader.load(txt);
+	run(reader.read);
+}
 
 function REPL() {
 
-	config.print(__PROMPT_TEXT__);
-	regs.TXT = config.read();
 	regs.GLB = regs.FRM;
 	regs.KON = c1_repl;
-	return reader.read;
+	config.print(__PROMPT_TEXT__);
+	config.readExpression(waitForInput);
+	return false;
 }
 
 function c1_repl() {
@@ -86,7 +111,7 @@ function c2_repl() {
 
 	regs.EXP = regs.VAL;
 	regs.KON = c3_repl;
-	return eval;
+	return evaluator.eval;
 }
 
 function c3_repl() {
@@ -96,10 +121,9 @@ function c3_repl() {
 	return REPL;
 }
 
+/* --- MEMORY MANAGEMENT --- */
 
-/* MEMORY MANAGEMENT */
-
-const __MARGIN__ = 15; //margin for registers
+const __MARGIN__ = 64;
 
 function claim() {
 
@@ -123,24 +147,7 @@ function claimSiz(amount) {
 	}
 }
 
-//TODO: remove debugging code
-
 function reclaim() {
-
-	/*
-	console.log("--- BEFORE ---");
-	console.log("SYM: " + printExp(regs.SYM));
-	console.log("GLB: " + printExp(regs.GLB));
-	console.log("FRM: " + printExp(regs.FRM));
-	console.log("ENV: " + printExp(regs.ENV));
-	console.log("LST: " + printExp(regs.LST));
-	console.log("ARG: " + printExp(regs.ARG));
-	console.log("VAL: " + printExp(regs.VAL));
-	console.log("EXP: " + printExp(regs.EXP));
-	console.log("STACK: ");
-	mem.stkforeach(function(el) { console.log(printExp(el)); });
-	mem.memprint();
-	*/
 
 	//save registers on stack
 	mem.push(regs.SYM);
@@ -170,25 +177,9 @@ function reclaim() {
 	regs.FRM = mem.pop();
 	regs.GLB = mem.pop();
 	regs.SYM = mem.pop();
-
-	/*
-	console.log("--- AFTER --- ");
-	console.log("SYM: " + printExp(regs.SYM));
-	console.log("GLB: " + printExp(regs.GLB));
-	console.log("FRM: " + printExp(regs.FRM));
-	console.log("ENV: " + printExp(regs.ENV));
-	console.log("LST: " + printExp(regs.LST));
-	console.log("ARG: " + printExp(regs.ARG));
-	console.log("VAL: " + printExp(regs.VAL));
-	console.log("EXP: " + printExp(regs.EXP));
-	console.log("STACK: ");
-	mem.stkforeach(function(el) { console.log(printExp(el)) });
-	mem.memprint();
-	*/
 }
 
-
-/* ERROR MANAGEMENT */
+/* --- ERROR MANAGEMENT --- */
 
 const __ERROR_PREFIX__ = "** ERROR: ";
 const __FATAL_PREFIX__ = "** FATAL ERROR: ";
@@ -196,78 +187,20 @@ const __FATAL_PREFIX__ = "** FATAL ERROR: ";
 function error() {
 
 	regs.TXT = __ERROR_PREFIX__ + regs.TXT;
-	config.printline(regs.TXT);
+	config.printerror(regs.TXT);
 	regs.FRM = regs.GLB;
 	regs.ENV = ag.__NULL__;
 	mem.emptyStk();
-	stk.length = 0;
+	stk.empty();
 	return REPL;
 }
 
 function fatalError() {
 
 	regs.TXT = __FATAL_PREFIX__ + regs.TXT;
-	config.printline(regs.TXT);
-	config.quit();
+	config.printerror(regs.TXT);
+	regs.KON = false;
 }
 
-
-/* TRAMPOLINE LOOP */
-
-function startTrampoline(fun) {
-	for(;;) fun = fun();
-}
-
-
-/* INITIALISATION */
-
-const __DEFAULT_MEM__ = 1000;
-
-function initREPL(pt, ptl, rd, ld, qt, memSize) {
-
-	//set callbacks
-	config.print = pt;
-	config.printline = ptl;
-	config.read = rd;
-	config.load = ld;
-	config.quit = qt;
-
-	//setup memory
-	memSize = memSize || __DEFAULT_MEM__;
-	memSize = Math.max(__MARGIN__+1, memSize);
-	mem.memoryInit(memSize);
-
-	//initialise registers
-	ag = require('./ag.js');
-	regs.FRM = ag.__NULL__;
-	regs.ENV = ag.__NULL__;
-	regs.GLB = ag.__NULL__;
-	regs.EXP = ag.__NULL__;
-	regs.VAL = ag.__NULL__;
-	regs.LST = ag.__NULL__;
-
-	//load other modules
-	reader = require('./reader.js');
-	compiler = require('./compile.js');
-	eval = require('./eval.js').eval;
-	printExp = require('./printer.js').printExp;
-
-	reader.loadSymbols();
-	compiler.loadSymbols();
-
-	//start REPL
-	startTrampoline(REPL);
-}
-
-
-/* EXPORTS */
-
-exports.stk = stk;
-exports.regs = regs;
-exports.initREPL = initREPL;
-exports.claim = claim;
-exports.claimSiz = claimSiz;
-exports.reclaim = reclaim;
-exports.error = error;
-exports.fatalError = fatalError;
-exports.config = config;
+//fix old dependencies
+const vm = window;

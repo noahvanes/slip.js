@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<!-- META -->
+<meta charset="UTF-8">
+<title>Slip.js REPL</title>
+<!-- STYLE -->
+<style type="text/css">
+.textelement {
+	float:left;
+	display:inline;
+}
+.textstyle {
+	font-size: 16px;
+}
+.inputbox {
+	border: 0px solid black;
+	display:inline;
+	resize:none;
+	float:left;
+	width:100%;   
+}
+.input {
+	overflow: hidden;
+	margin-left: 18px;
+}
+.log {
+	color:purple;
+}
+.error {
+	color:red;
+}
+</style>
+
+<!-- JQUERY -->
+<script src="http://code.jquery.com/jquery-1.11.2.min.js"></script>
+
+<!-- INTERPRETER COMPONENTS -->
+<script src="src/memory.js"></script>
+<script src="src/ag.js"></script>
+<script src="src/pool.js"></script>
+<script src="src/printer.js"></script>
+<script src="src/reader.js"></script>
+<script src="src/compile.js"></script>
+<script src="src/eval.js"></script>
+<script src="src/natives.js"></script>
+<script src="src/main.js"></script>
+
+</head>
+
+<body>
+
+<div id="terminal" style="width:100%"> </div>
+
+<script type="text/javascript">
+
+	/* --- I/O STUFF --- */
+
+	var terminal = $('#terminal');
+
+	function HTMLString(str) {
+		return str.replace('<', '&lt').replace('>', '&gt');
+	}
+
+	function printOut(str, style) {
+		style = style || '';
+		str = HTMLString(str);
+		terminal.append('<code class="textelement textstyle '+style+'">'+str+'</code>');
+	}
+
+	function printLine(str, style) {
+		printOut(str, style);
+		terminal.append('<br>');
+	}
+
+	function clearTerminal() {
+		terminal.empty();
+	}
+
+	function scanBrackets(txt) {
+
+		var idx = 0;
+		var count = 0;
+		var len = txt.length;
+		var currentChar;
+
+		while(idx < len) {
+			currentChar = txt.charAt(idx++);
+			if (currentChar === '(')
+				++count;
+			else if (currentChar === ')')
+				--count;
+		}
+
+		return count;
+	}
+
+	const __INPUT_HTML__ = '<div id="currentBox" class="input"><textarea id="currentInput" class="inputbox textstyle" rows=1></textarea></div>';
+
+	function readExpression(clb) { 
+
+		terminal.append(__INPUT_HTML__);
+
+		var currentBox = $('#currentBox');
+		var currentInput = $('#currentInput');
+
+		currentInput.keypress(function(ev) {
+			if(ev.which === 13) {
+				var text = currentInput.val();
+				if(scanBrackets(text)) {				
+					var rows = parseInt(currentInput.attr('rows'));
+					currentInput.attr({rows: rows + 1});
+				} else {
+					currentBox.empty();
+					currentBox.removeAttr('id');
+					currentBox.append('<code class="textstyle">'+text+'</code>');
+					clb(text);
+				}
+			}
+		});
+
+		currentInput.focus();
+	}
+
+	/* --- START SLIP.JS REPL --- */
+
+	Slip_init({
+		readExpression: readExpression,
+		print: printOut,
+		printline: printLine,
+		printerror: function(err) {
+			printLine(err, 'error');
+		},
+		printlog: function(log) {
+			printOut(log, 'log');
+		}
+	});
+
+	Slip_REPL();
+
+</script>
+</body>
+</html>
