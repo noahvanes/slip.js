@@ -547,7 +547,6 @@ function GRAMMAR() {
 	const symbolText = decodeText;
 	const isSymbol = check(__SYMBOL_TAG__);
 
-	/*
 
 	/* ---- EXPORTS ---- */
 
@@ -610,11 +609,13 @@ function GRAMMAR() {
 	exports.floatNumber = floatNumber;
 	exports.isFloat = isFloat;
 	/* STRINGS */
+	exports.__STRING_TAG__ = __STRING_TAG__;
 	exports.makeString = makeString;
 	exports.stringText = stringText;
 	exports.stringLength = stringLength;
 	exports.isString = isString;
 	/* SYMBOLS */
+	exports.__SYMBOL_TAG__ = __SYMBOL_TAG__;
 	exports.makeSymbol = makeSymbol;
 	exports.symbolText = symbolText;
 	exports.isSymbol = isSymbol;
