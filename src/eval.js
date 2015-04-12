@@ -100,6 +100,7 @@ function EVALUATOR() {
 		} while (ag.isPair(regs.LST));
 
 		regs.TXT = 'undefined non-local variable';
+		regs.TXT += printExp(regs.EXP);
 		return error;
 	}
 
