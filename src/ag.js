@@ -535,6 +535,14 @@ function GRAMMAR() {
 		return len;
 	}
 
+	function stringAt(str, idx) {
+		return mem.chunkGetByte(str, idx+4);
+	}
+
+	function stringSet(str, idx, ch) {
+		return mem.chunkSetByte(str, idx+4, ch);
+	}
+
 	const stringText = decodeText;
 	const isString = check(__STRING_TAG__);
 
@@ -612,6 +620,8 @@ function GRAMMAR() {
 	exports.__STRING_TAG__ = __STRING_TAG__;
 	exports.makeString = makeString;
 	exports.stringText = stringText;
+	exports.stringAt = stringAt;
+	exports.stringSet = stringSet;
 	exports.stringLength = stringLength;
 	exports.isString = isString;
 	/* SYMBOLS */

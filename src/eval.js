@@ -419,7 +419,6 @@ function EVALUATOR() {
 
 		if (regs.TAG === __NATIVE_TAG__) {
 
-			stk.save(regs.KON);
 			return natives.native;
 		}
 
@@ -427,6 +426,7 @@ function EVALUATOR() {
 		return error;
 	}
 
+	//TODO: put in while loop
 	function bind() {
 
 		if (ag.isNull(regs.PAR)) {

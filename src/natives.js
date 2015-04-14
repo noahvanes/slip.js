@@ -32,6 +32,7 @@ function NATIVES() {
 			case __VECTOR_PTR__: return vector;
 			/* COMPARISONS */
 			case __EQ_PTR__: return eq;
+			case __EQUAL_PTR__: return equal;
 			case __NBR_EQ_PTR__: return nbr_eq;
 			case __SMA_PTR__: return sma;
 			case __LRG_PTR__: return lrg;
@@ -50,6 +51,11 @@ function NATIVES() {
 			case __IS_NULL_PTR__: return isNull;
 			case __IS_SYMBOL_PTR__: return isSymbol;
 			case __IS_VECTOR_PTR__: return isVector;
+			case __IS_STRING_PTR__: return isString;
+			/* STRINGS */
+			case __STRING_GET_PTR__: return stringGet;
+			case __STRING_SET_PTR__: return stringSet;
+			case __STRING_LENGTH_PTR__: return stringLength;
 			/* MEMORY */
 			case __AVAIL_PTR__: return available;
 			case __COLLECT_PTR__: return collect;
@@ -66,7 +72,29 @@ function NATIVES() {
 		while(regs.LEN--) {
 			regs.EXP = car(regs.ARG);
 			regs.ARG = cdr(regs.ARG);
-			switch (ag.tag(regs.EXP)) {
+			switch(ag.tag(regs.EXP)) {
+				case __NUMBER_TAG__:
+					regs.VAL += ag.numberVal(regs.EXP);
+					break;
+				case __FLOAT_TAG__:
+					regs.VAL += ag.floatNumber(regs.EXP);
+					return addFloats;
+				default:
+					regs.TXT = 'expected numerical type';
+					return error;
+			}			
+		}
+
+		regs.VAL = ag.makeNumber(regs.VAL);
+		return regs.KON;
+	}
+
+	function addFloats() {
+
+		while(regs.LEN--) {
+			regs.EXP = car(regs.ARG);
+			regs.ARG = cdr(regs.ARG);
+			switch(ag.tag(regs.EXP)) {
 				case __NUMBER_TAG__:
 					regs.VAL += ag.numberVal(regs.EXP);
 					break;
@@ -74,13 +102,13 @@ function NATIVES() {
 					regs.VAL += ag.floatNumber(regs.EXP);
 					break;
 				default:
-					regs.TXT = 'invalid argument type';
+					regs.TXT = 'expected numerical type';
 					return error;
-			}
+			}			
 		}
 
-		regs.VAL = ag.makeNumber(regs.VAL);
-		regs.KON = stk.restore();
+		claim();
+		regs.VAL = ag.makeFloat(regs.VAL);
 		return regs.KON;
 	}
 
@@ -96,31 +124,56 @@ function NATIVES() {
 		/* UNARY => NEGATION */
 		if (regs.LEN === 1) {
 			regs.ARG = car(regs.ARG);
-			if (ag.isNumber(regs.VAL))
-				regs.VAL = ag.makeNumber(-ag.numberVal(regs.ARG));
-			else if (ag.isFloat(regs.VAL))
-				regs.VAL = ag.makeFloat(-ag.doubleVal(regs.ARG));
-			else {
-				regs.TXT = 'invalid argument';
-				return error;
+			switch(ag.tag(regs.ARG)) {
+				case __NUMBER_TAG__:
+					regs.VAL = ag.makeNumber(-ag.numberVal(regs.ARG));
+					return regs.KON;
+				case __FLOAT_TAG__:
+					regs.VAL = ag.makeFloat(-ag.floatNumber(regs.ARG));
+					return regs.KON;
+				default:
+					regs.TXT = 'expected numerical type';
+					return error;
 			}
-
-			regs.KON = stk.restore();
-			return regs.KON;
 		}
 
 		/* N-ARY => SUBSTRACTION */
 		regs.VAL = car(regs.ARG);
 		regs.ARG = cdr(regs.ARG);
 		
-		if (ag.isNumber(regs.VAL))
-			regs.VAL = ag.numberVal(regs.VAL);
-		else if (ag.isFloat(regs.VAL))
-			regs.VAL = ag.floatNumber(regs.VAL);
-		else {
-			regs.TXT = 'invalid argument';
-			return error;
+		switch(ag.tag(regs.VAL)) {
+			case __NUMBER_TAG__:
+				regs.VAL = ag.numberVal(regs.VAL);
+				break;
+			case __FLOAT_TAG__:
+				regs.VAL = ag.floatNumber(regs.VAL);
+				return substractFloats;
+			default:
+				regs.TXT = 'expected numerical type';
+				return error;
 		}
+
+		while(--regs.LEN) {
+			regs.EXP = car(regs.ARG);
+			regs.ARG = cdr(regs.ARG);
+			switch (ag.tag(regs.EXP)) {
+				case __NUMBER_TAG__:
+					regs.VAL -= ag.numberVal(regs.EXP);
+					break;
+				case __FLOAT_TAG__:
+					regs.VAL -= ag.floatNumber(regs.EXP);
+					return substractFloats;
+				default:
+					regs.TXT = 'expected numerical type';
+					return error;
+			}
+		}
+
+		regs.VAL = ag.makeNumber(regs.VAL);
+		return regs.KON;
+	}
+
+	function substractFloats() {
 
 		while(--regs.LEN) {
 			regs.EXP = car(regs.ARG);
@@ -138,8 +191,8 @@ function NATIVES() {
 			}
 		}
 
-		regs.VAL = ag.makeNumber(regs.VAL);
-		regs.KON = stk.restore();
+		claim();
+		regs.VAL = ag.makeFloat(regs.VAL);
 		return regs.KON;
 	}
 
@@ -157,7 +210,7 @@ function NATIVES() {
 					break;
 				case __FLOAT_TAG__:
 					regs.VAL *= ag.floatNumber(regs.EXP);
-					break;
+					return multiplyFloats;
 				default:
 					regs.TXT = 'invalid argument type';
 					return error;
@@ -165,7 +218,29 @@ function NATIVES() {
 		}
 
 		regs.VAL = ag.makeNumber(regs.VAL);
-		regs.KON = stk.restore();
+		return regs.KON;
+	}
+
+	function multiplyFloats() {
+
+		while(regs.LEN--) {
+			regs.EXP = car(regs.ARG);
+			regs.ARG = cdr(regs.ARG);
+			switch (ag.tag(regs.EXP)) {
+				case __NUMBER_TAG__:
+					regs.VAL *= ag.numberVal(regs.EXP);
+					break;
+				case __FLOAT_TAG__:
+					regs.VAL *= ag.floatNumber(regs.EXP);
+					break;
+				default:
+					regs.TXT = 'invalid argument type';
+					return error;
+			}
+		}
+
+		claim();
+		regs.VAL = ag.makeFloat(regs.VAL);
 		return regs.KON;
 	}
 
@@ -178,16 +253,36 @@ function NATIVES() {
 			return error;
 		}
 
+		/* UNARY => RECIPROCAL */
+		if (regs.LEN === 1) {
+			regs.ARG = car(regs.ARG);
+			switch(ag.tag(regs.ARG)) {
+				case __NUMBER_TAG__:
+					regs.VAL = ag.makeFloat(1/ag.numberVal(regs.ARG));
+					return regs.KON;
+				case __FLOAT_TAG__:
+					regs.VAL = ag.makeFloat(1/ag.floatNumber(regs.ARG));
+					return regs.KON;
+				default:
+					regs.TXT = 'expected numerical type';
+					return error;
+			}
+		}
+
+		/* N-ARY */
 		regs.VAL = car(regs.ARG);
 		regs.ARG = cdr(regs.ARG);
-		
-		if(ag.isNumber(regs.VAL)) {
-			regs.VAL = ag.numberVal(regs.VAL);
-		} else if (ag.isFloat(regs.VAL)) {
-			regs.VAL = ag.floatNumber(regs.VAL);
-		} else {
-			regs.TXT = 'invalid argument';
-			return error;
+
+		switch(ag.tag(regs.VAL)) {
+			case __NUMBER_TAG__:
+				regs.VAL = ag.numberVal(regs.VAL);
+				break;
+			case __FLOAT_TAG__:
+				regs.VAL = ag.floatNumber(regs.VAL);
+				break;
+			default:
+				regs.TXT = 'expected numerical type';
+				return error;
 		}
 
 		while(--regs.LEN) {
@@ -206,8 +301,8 @@ function NATIVES() {
 			}
 		}
 
-		regs.VAL = ag.makeNumber(regs.VAL);
-		regs.KON = stk.restore();
+		claim();
+		regs.VAL = ag.makeFloat(regs.VAL);
 		return regs.KON;
 	}
 
@@ -224,7 +319,6 @@ function NATIVES() {
 
 		claim();
 		regs.VAL = ag.makePair(car(regs.ARG), car(cdr(regs.ARG)));
-		regs.KON = stk.restore();
 		return regs.KON;
 	}
 
@@ -244,7 +338,6 @@ function NATIVES() {
 		}
 
 		regs.VAL = car(regs.ARG);
-		regs.KON = stk.restore();
 		return regs.KON;
 	}
 
@@ -264,7 +357,6 @@ function NATIVES() {
 		}
 
 		regs.VAL = cdr(regs.ARG);
-		regs.KON = stk.restore();
 		return regs.KON;
 	}
 
@@ -286,7 +378,6 @@ function NATIVES() {
 		}
 
 		ag.pairSetCar(regs.ARG, regs.VAL);
-		regs.KON = stk.restore();
 		return regs.KON;
 	}
 
@@ -308,7 +399,6 @@ function NATIVES() {
 		}
 
 		ag.pairSetCdr(regs.ARG, regs.VAL);
-		regs.KON = stk.restore();
 		return regs.KON;
 	}
 
@@ -317,7 +407,6 @@ function NATIVES() {
 	function list() {
 
 		regs.VAL = regs.ARG;
-		regs.KON = stk.restore();
 		return regs.KON;
 	}
 
@@ -333,20 +422,34 @@ function NATIVES() {
 		}
 
 		regs.VAL = car(regs.ARG);
-		regs.ARG = car(cdr(regs.ARG));
+		regs.ARG = cdr(regs.ARG);
 
-		if (ag.isNumber(regs.VAL) && ag.isNumber(regs.ARG))
-			regs.VAL = (ag.numberVal(regs.VAL) === ag.numberVal(regs.ARG) ?
-						ag.__TRUE__ : ag.__FALSE__);
-		else if (ag.isFloat(regs.VAL) && ag.isFloat(regs.ARG))
-			regs.VAL = (ag.floatNumber(regs.VAL) === ag.floatNumber(regs.ARG) ?
-						ag.__TRUE__ : ag.__FALSE__);
-		else {
-			regs.TXT = 'expected numeric types';
-			return error;
+		switch(ag.tag(regs.VAL)) {
+			case __NUMBER_TAG__:
+				regs.VAL = ag.numberVal(regs.VAL);
+				break;
+			case __FLOAT_TAG__:
+				regs.VAL = ag.floatNumber(regs.VAL);
+				break;
+			default:
+				regs.TXT = 'expected numerical types';
+				return error;
 		}
 
-		regs.KON = stk.restore();
+		regs.ARG = car(regs.ARG);
+		switch(ag.tag(regs.ARG)) {
+			case __NUMBER_TAG__:
+				regs.ARG = ag.numberVal(regs.ARG);
+				break;
+			case __FLOAT_TAG__:
+				regs.ARG = ag.floatNumber(regs.ARG);
+				break;
+			default:
+				regs.TXT = 'expected numerical types';
+				return error;
+		}
+
+		regs.VAL = (regs.VAL === regs.ARG ? ag.__TRUE__ : ag.__FALSE__);
 		return regs.KON;
 	}
 
@@ -360,20 +463,34 @@ function NATIVES() {
 		}
 
 		regs.VAL = car(regs.ARG);
-		regs.ARG = car(cdr(regs.ARG));
+		regs.ARG = cdr(regs.ARG);
 
-		if (ag.isNumber(regs.VAL) && ag.isNumber(regs.ARG))
-			regs.VAL = (ag.numberVal(regs.VAL) < ag.numberVal(regs.ARG) ?
-						ag.__TRUE__ : ag.__FALSE__);
-		else if (ag.isFloat(regs.VAL) && ag.isFloat(regs.ARG))
-			regs.VAL = (ag.floatNumber(regs.VAL) < ag.floatNumber(regs.ARG) ?
-						ag.__TRUE__ : ag.__FALSE__);
-		else {
-			regs.TXT = 'expected numeric types';
-			return error;
+		switch(ag.tag(regs.VAL)) {
+			case __NUMBER_TAG__:
+				regs.VAL = ag.numberVal(regs.VAL);
+				break;
+			case __FLOAT_TAG__:
+				regs.VAL = ag.floatNumber(regs.VAL);
+				break;
+			default:
+				regs.TXT = 'expected numerical types';
+				return error;
 		}
 
-		regs.KON = stk.restore();
+		regs.ARG = car(regs.ARG);
+		switch(ag.tag(regs.ARG)) {
+			case __NUMBER_TAG__:
+				regs.ARG = ag.numberVal(regs.ARG);
+				break;
+			case __FLOAT_TAG__:
+				regs.ARG = ag.floatNumber(regs.ARG);
+				break;
+			default:
+				regs.TXT = 'expected numerical types';
+				return error;
+		}
+
+		regs.VAL = (regs.VAL < regs.ARG ? ag.__TRUE__ : ag.__FALSE__);
 		return regs.KON;
 	}
 
@@ -387,20 +504,34 @@ function NATIVES() {
 		}
 
 		regs.VAL = car(regs.ARG);
-		regs.ARG = car(cdr(regs.ARG));
+		regs.ARG = cdr(regs.ARG);
 
-		if (ag.isNumber(regs.VAL) && ag.isNumber(regs.ARG))
-			regs.VAL = (ag.numberVal(regs.VAL) > ag.numberVal(regs.ARG) ?
-						ag.__TRUE__ : ag.__FALSE__);
-		else if (ag.isFloat(regs.VAL) && ag.isFloat(regs.ARG))
-			regs.VAL = (ag.floatNumber(regs.VAL) > ag.floatNumber(regs.ARG) ?
-						ag.__TRUE__ : ag.__FALSE__);
-		else {
-			regs.TXT = 'expected numeric types';
-			return error;
+		switch(ag.tag(regs.VAL)) {
+			case __NUMBER_TAG__:
+				regs.VAL = ag.numberVal(regs.VAL);
+				break;
+			case __FLOAT_TAG__:
+				regs.VAL = ag.floatNumber(regs.VAL);
+				break;
+			default:
+				regs.TXT = 'expected numerical types';
+				return error;
 		}
 
-		regs.KON = stk.restore();
+		regs.ARG = car(regs.ARG);
+		switch(ag.tag(regs.ARG)) {
+			case __NUMBER_TAG__:
+				regs.ARG = ag.numberVal(regs.ARG);
+				break;
+			case __FLOAT_TAG__:
+				regs.ARG = ag.floatNumber(regs.ARG);
+				break;
+			default:
+				regs.TXT = 'expected numerical types';
+				return error;
+		}
+
+		regs.VAL = (regs.VAL > regs.ARG ? ag.__TRUE__ : ag.__FALSE__);
 		return regs.KON;
 	}
 
@@ -414,20 +545,34 @@ function NATIVES() {
 		}
 
 		regs.VAL = car(regs.ARG);
-		regs.ARG = car(cdr(regs.ARG));
+		regs.ARG = cdr(regs.ARG);
 
-		if (ag.isNumber(regs.VAL) && ag.isNumber(regs.ARG))
-			regs.VAL = (ag.numberVal(regs.VAL) <= ag.numberVal(regs.ARG) ?
-						ag.__TRUE__ : ag.__FALSE__);
-		else if (ag.isFloat(regs.VAL) && ag.isFloat(regs.ARG))
-			regs.VAL = (ag.floatNumber(regs.VAL) <= ag.floatNumber(regs.ARG) ?
-						ag.__TRUE__ : ag.__FALSE__);
-		else {
-			regs.TXT = 'expected numeric types';
-			return error;
+		switch(ag.tag(regs.VAL)) {
+			case __NUMBER_TAG__:
+				regs.VAL = ag.numberVal(regs.VAL);
+				break;
+			case __FLOAT_TAG__:
+				regs.VAL = ag.floatNumber(regs.VAL);
+				break;
+			default:
+				regs.TXT = 'expected numerical types';
+				return error;
 		}
 
-		regs.KON = stk.restore();
+		regs.ARG = car(regs.ARG);
+		switch(ag.tag(regs.ARG)) {
+			case __NUMBER_TAG__:
+				regs.ARG = ag.numberVal(regs.ARG);
+				break;
+			case __FLOAT_TAG__:
+				regs.ARG = ag.floatNumber(regs.ARG);
+				break;
+			default:
+				regs.TXT = 'expected numerical types';
+				return error;
+		}
+
+		regs.VAL = (regs.VAL <= regs.ARG ? ag.__TRUE__ : ag.__FALSE__);
 		return regs.KON;
 	}
 
@@ -441,20 +586,34 @@ function NATIVES() {
 		}
 
 		regs.VAL = car(regs.ARG);
-		regs.ARG = car(cdr(regs.ARG));
+		regs.ARG = cdr(regs.ARG);
 
-		if (ag.isNumber(regs.VAL) && ag.isNumber(regs.ARG))
-			regs.VAL = (ag.numberVal(regs.VAL) >= ag.numberVal(regs.ARG) ?
-						ag.__TRUE__ : ag.__FALSE__);
-		else if (ag.isFloat(regs.VAL) && ag.isFloat(regs.ARG))
-			regs.VAL = (ag.floatNumber(regs.VAL) >= ag.floatNumber(regs.ARG) ?
-						ag.__TRUE__ : ag.__FALSE__);
-		else {
-			regs.TXT = 'expected numeric types';
-			return error;
+		switch(ag.tag(regs.VAL)) {
+			case __NUMBER_TAG__:
+				regs.VAL = ag.numberVal(regs.VAL);
+				break;
+			case __FLOAT_TAG__:
+				regs.VAL = ag.floatNumber(regs.VAL);
+				break;
+			default:
+				regs.TXT = 'expected numerical types';
+				return error;
 		}
 
-		regs.KON = stk.restore();
+		regs.ARG = car(regs.ARG);
+		switch(ag.tag(regs.ARG)) {
+			case __NUMBER_TAG__:
+				regs.ARG = ag.numberVal(regs.ARG);
+				break;
+			case __FLOAT_TAG__:
+				regs.ARG = ag.floatNumber(regs.ARG);
+				break;
+			default:
+				regs.TXT = 'expected numerical types';
+				return error;
+		}
+
+		regs.VAL = (regs.VAL >= regs.ARG ? ag.__TRUE__ : ag.__FALSE__);
 		return regs.KON;
 	}
 
@@ -468,8 +627,6 @@ function NATIVES() {
 			regs.TXT = 'assoc requires exactly two arguments';
 			return error;
 		}
-
-		regs.KON = stk.restore();
 
 		regs.VAL = car(regs.ARG);
 		regs.LST = car(cdr(regs.ARG));
@@ -506,13 +663,13 @@ function NATIVES() {
 
 		if (ag.isNull(regs.LST)) {
 			regs.VAL = ag.__NULL__;
-			regs.KON = stk.restore();
 			return regs.KON;
 		}
 
 		vm.claim();
 		regs.ARG = ag.makePair(car(regs.LST), ag.__NULL__);
 		regs.LST = cdr(regs.LST);
+		stk.save(regs.KON);
 		stk.save(0);
 
 		if (ag.isNull(regs.LST)) {
@@ -529,7 +686,7 @@ function NATIVES() {
 	function c1_map() {
 
 		regs.LEN = stk.restore();
-		claimSiz(3*regs.LEN);
+		claimSiz(8*regs.LEN);
 		regs.VAL = ag.makePair(regs.VAL, ag.__NULL__);
 		while(regs.LEN--)
 				regs.VAL = ag.makePair(mem.pop(), regs.VAL);
@@ -575,6 +732,7 @@ function NATIVES() {
 		}
 
 		regs.EXP = car(regs.ARG);
+		stk.save(regs.KON);
 		regs.KON = c_eval;
 		return compiler.compile;
 	}
@@ -598,7 +756,8 @@ function NATIVES() {
 		regs.VAL = car(regs.ARG);
 		regs.ARG = car(cdr(regs.ARG));
 		regs.LST = regs.ARG;
-		// check + calculate list length
+
+		// check + calculate list length in regs.LEN
 		for(regs.LEN = 0; ag.isPair(regs.LST); ++regs.LEN)
 			regs.LST = cdr(regs.LST);
 		if (!ag.isNull(regs.LST)) {
@@ -606,7 +765,6 @@ function NATIVES() {
 			return error;
 		}
 
-		regs.KON = stk.restore();
 		return evaluator.apply;
 	}
 
@@ -616,7 +774,6 @@ function NATIVES() {
 
 		config.print(":: ");
 		regs.TXT = config.readExpression(waitForInput);
-		regs.KON = stk.restore();
 		return false;
 	}
 
@@ -637,6 +794,7 @@ function NATIVES() {
 
 		regs.TXT = ag.stringText(regs.ARG);
 		regs.TXT = config.load(regs.TXT);
+		stk.save(regs.KON);
 		regs.KON = c1_load;
 		return reader.read;
 	}
@@ -668,7 +826,6 @@ function NATIVES() {
 		regs.TXT = printExp(car(regs.ARG));
 		config.printlog(regs.TXT);
 		regs.VAL = ag.__VOID__;
-		regs.KON = stk.restore();
 		return regs.KON;
 	}
 
@@ -678,7 +835,6 @@ function NATIVES() {
 
 		config.printline('');
 		regs.VAL = ag.__VOID__;
-		regs.KON = stk.restore();
 		return regs.KON;
 	}
 
@@ -715,7 +871,6 @@ function NATIVES() {
 			regs.VAL = ag.makeVector(regs.LEN, regs.VAL);
 		}
 
-		regs.KON = stk.restore();
 		return regs.KON;
 	}
 
@@ -739,7 +894,6 @@ function NATIVES() {
 		regs.IDX = ag.numberVal(regs.EXP);
 		if (0 <= regs.IDX && regs.IDX < ag.vectorLength(regs.ARG)) {
 			regs.VAL = ag.vectorRef(regs.ARG, regs.IDX+1);
-			regs.KON = stk.restore();
 			return regs.KON;
 		}
 
@@ -769,7 +923,6 @@ function NATIVES() {
 		regs.IDX = ag.numberVal(regs.EXP);
 		if (0 <= regs.IDX && regs.IDX < ag.vectorLength(regs.ARG)) {
 			ag.vectorSet(regs.ARG, regs.IDX+1, regs.VAL);
-			regs.KON = stk.restore();
 			return regs.KON;
 		}
 
@@ -794,7 +947,6 @@ function NATIVES() {
 
 		regs.LEN = ag.vectorLength(regs.ARG);
 		regs.VAL = ag.makeNumber(regs.LEN);
-		regs.KON = stk.restore();
 		return regs.KON;
 	}
 
@@ -810,7 +962,6 @@ function NATIVES() {
 			regs.ARG = cdr(regs.ARG);
 		}
 
-		regs.KON = stk.restore();
 		return regs.KON;
 	}
 
@@ -827,8 +978,150 @@ function NATIVES() {
 
 		regs.VAL = (car(regs.ARG) === car(cdr(regs.ARG)) ?
 					 ag.__TRUE__ : ag.__FALSE__);
-		regs.KON = stk.restore();
 		return regs.KON;
+	}
+
+	const __EQUAL_PTR__ = 39;
+
+	function equal() {
+
+		if (regs.LEN != 2) {
+			regs.TXT = 'invalid parameter count';
+			return error;
+		}
+
+		regs.EXP = car(regs.ARG);
+		regs.ARG = car(cdr(regs.ARG));
+		return compare;
+	}
+
+	function compare() {
+
+		//different types => #f
+		regs.TAG = ag.tag(regs.EXP);
+		if(regs.TAG !== ag.tag(regs.ARG)) {
+			regs.VAL = ag.__FALSE__;
+			return regs.KON;
+		}
+
+		switch(regs.TAG) {
+			case __FLOAT_TAG__: return compareFloat;
+			case __STRING_TAG__: return compareString;
+			case __PAIR_TAG__: return comparePair;
+			case __VECTOR_TAG__: return compareVector;
+			default:
+				regs.VAL = (regs.ARG === regs.EXP ? ag.__TRUE__ : ag.__FALSE__);
+				return regs.KON;
+		}
+	}
+
+	function compareFloat() {
+
+		regs.ARG = ag.floatNumber(regs.ARG);
+		regs.EXP = ag.floatNumber(regs.EXP);
+		regs.VAL = (regs.ARG === regs.EXP ? ag.__TRUE__ : ag.__FALSE__);
+		return regs.KON;
+	}
+
+	function compareString() {
+
+		regs.LEN = ag.stringLength(regs.ARG);
+		if(ag.stringLength(regs.EXP) !== regs.LEN) {
+			regs.VAL = ag.__FALSE__;
+			return regs.KON;
+		}
+
+		while(regs.LEN--) {
+			if(ag.stringAt(regs.ARG, regs.LEN) !== ag.stringAt(regs.EXP, regs.LEN)) {
+				regs.VAL = ag.__FALSE__;
+				return regs.KON;
+			}
+		}
+
+		regs.VAL = ag.__TRUE__;
+		return regs.KON;
+	}
+
+	function comparePair() {
+
+		mem.push(cdr(regs.EXP));
+		mem.push(cdr(regs.ARG));
+		regs.EXP = car(regs.EXP);
+		regs.ARG = car(regs.ARG);
+
+		stk.save(regs.KON);
+		regs.KON = c_comparePair;
+		return compare;
+	}
+
+	function c_comparePair() {
+
+		regs.KON = stk.restore();
+
+		if (regs.VAL === ag.__FALSE__) {
+			mem.zap(); //zap cdr(ARG)
+			mem.zap(); //zap cdr(EXP)
+			return regs.KON;
+		}
+
+		regs.ARG = mem.pop();
+		regs.EXP = mem.pop();
+		return compare;
+	}
+
+	function compareVector() {
+
+		regs.LEN = ag.vectorLength(regs.ARG);
+		if(ag.vectorLength(regs.EXP) !== regs.LEN) {
+			regs.VAL = ag.__FALSE__;
+			return regs.KON;
+		}
+
+		if(regs.LEN === 0) {
+			regs.VAL = ag.__TRUE__;
+			return regs.KON;
+		}
+
+		if(regs.LEN > 1) {
+			mem.push(regs.EXP);
+			mem.push(regs.ARG);
+			stk.save(regs.KON);
+			stk.save(2);
+			regs.KON = c_compareVector;
+		}
+
+		regs.ARG = ag.vectorRef(regs.ARG, 1);
+		regs.EXP = ag.vectorRef(regs.EXP, 1);
+		return compare;
+	}
+
+	function c_compareVector() {
+
+		if (regs.VAL === ag.__FALSE__) {
+			mem.zap(); //zap vector ARG
+			mem.zap(); //zap vector EXP
+			stk.zap(); //discard count
+			regs.KON = stk.restore();
+			return regs.KON;
+		}
+
+		regs.ARG = mem.pop();
+		regs.EXP = mem.peek();
+		regs.IDX = stk.peek();
+
+		if(regs.IDX === ag.vectorLength(regs.ARG)) {
+			mem.zap(); //zap vector EXP
+			stk.zap(); //discard count
+			regs.KON = stk.restore();
+		} else {
+			stk.poke(regs.IDX+1);
+			mem.push(regs.ARG);
+			regs.KON = c_compareVector;
+		}
+
+		regs.ARG = ag.vectorRef(regs.ARG, regs.IDX);
+		regs.EXP = ag.vectorRef(regs.EXP, regs.IDX);
+		return compare;
 	}
 
 	/* --- TYPE CHECKS --- */
@@ -836,13 +1129,13 @@ function NATIVES() {
 	function makeTypeCheck(tag) {
 
 		return function() {
+
 			if (regs.LEN !== 1) {
 				regs.TXT = 'invalid argument count';
 				return error;
 			}
 			regs.TAG = ag.tag(car(regs.ARG));
 			regs.VAL = (regs.TAG === tag ? ag.__TRUE__ : ag.__FALSE__);
-			regs.KON = stk.restore();
 			return regs.KON;
 		}
 	}
@@ -859,6 +1152,87 @@ function NATIVES() {
 	const __IS_VECTOR_PTR__ = 32;
 	const isVector = makeTypeCheck(ag.__VECTOR_TAG__);
 
+	const __IS_STRING_PTR__ = 35;
+	const isString = makeTypeCheck(ag.__STRING_TAG__);
+
+	/* --- STRINGS --- */
+
+	const __STRING_GET_PTR__ = 36;
+
+	function stringGet() {
+
+		if (regs.LEN !== 2) {
+			regs.TXT = 'invalid parameter count';
+			return error;
+		}
+
+		regs.EXP = car(cdr(regs.ARG));
+		regs.ARG = car(regs.ARG);
+
+		if (!(ag.isString(regs.ARG) && ag.isNumber(regs.EXP))) {
+			regs.TXT = 'invalid parameter types';
+			return error;
+		}
+
+		regs.IDX = ag.numberVal(regs.EXP);
+		if (0 <= regs.IDX && regs.IDX < ag.stringLength(regs.ARG)) {
+			regs.VAL = ag.makeChar(ag.stringAt(regs.ARG, regs.IDX));
+			return regs.KON;
+		}
+
+		regs.TXT = 'index out of bounds';
+		return error;
+	}
+
+	const __STRING_SET_PTR__ = 37;
+
+	function stringSet() {
+
+		if (regs.LEN !== 3) {
+			regs.TXT = 'invalid parameter count';
+			return error;
+		}
+
+		regs.LST = cdr(regs.ARG);
+		regs.ARG = car(regs.ARG);
+		regs.EXP = car(regs.LST);
+		regs.VAL = car(cdr(regs.LST));
+
+		if (!(ag.isString(regs.ARG) && ag.isNumber(regs.EXP) && ag.isChar(regs.VAL))) {
+			regs.TXT = 'invalid parameter types';
+			return error;
+		}
+
+		regs.IDX = ag.numberVal(regs.EXP);
+		if (0 <= regs.IDX && regs.IDX < ag.stringLength(regs.ARG)) {
+			regs.VAL = ag.charCode(regs.VAL);
+			ag.stringSet(regs.ARG, regs.IDX, regs.VAL);
+			return regs.KON;
+		}
+
+		regs.TXT = 'index out of bounds';
+		return error;
+	}
+
+	const __STRING_LENGTH_PTR__ = 38;
+
+	function stringLength() {
+
+		if (regs.LEN !== 1) {
+			regs.TXT = 'expected single argument';
+			return error;
+		}
+
+		regs.ARG = car(regs.ARG);
+		if(!ag.isString(regs.ARG)) {
+			regs.TXT = 'invalid parameter type';
+			return error;
+		}
+
+		regs.VAL = ag.makeNumber(ag.stringLength(regs.ARG));
+		return regs.KON;
+	}
+
 	/* --- MEMORY --- */
 
 	const __COLLECT_PTR__ = 33;
@@ -873,7 +1247,6 @@ function NATIVES() {
 
 		regs.NBR = mem.available();
 		regs.VAL = ag.makeNumber(regs.NBR);
-		regs.KON = stk.restore();
 		return regs.KON;
 	}
 
@@ -882,7 +1255,6 @@ function NATIVES() {
 	function available() {
 
 		regs.VAL = ag.makeNumber(mem.available());
-		regs.KON = stk.restore();
 		return regs.KON;
 	}
 
@@ -897,9 +1269,13 @@ function NATIVES() {
 			regs.FRM = ag.makePair(regs.BND, regs.FRM);
 		}
 
+		addNative('string-length', __STRING_LENGTH_PTR__);
+		addNative('string-ref', __STRING_GET_PTR__);
+		addNative('string-set!', __STRING_SET_PTR__);
 		addNative('collect', __COLLECT_PTR__);
 		addNative('available', __AVAIL_PTR__);
 		addNative('load', __LOAD_PTR__);
+		addNative('equal?', __EQUAL_PTR__);
 		addNative('eq?', __EQ_PTR__);
 		addNative('map', __MAP_PTR__);
 		addNative('assoc', __ASSOC_PTR__);
@@ -909,6 +1285,7 @@ function NATIVES() {
 		addNative('newline', __NEWLINE_PTR__);
 		addNative('read', __READ_PTR__);
 		addNative('null?', __IS_NULL_PTR__);
+		addNative('string?', __IS_STRING_PTR__);
 		addNative('pair?', __IS_PAIR_PTR__);
 		addNative('symbol?', __IS_SYMBOL_PTR__);
 		addNative('vector?', __IS_VECTOR_PTR__);
