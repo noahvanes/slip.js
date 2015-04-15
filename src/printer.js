@@ -7,18 +7,18 @@ function PRINTER() {
 		switch(tag) {
 
 			case __NULL_TAG__: return '()';
-			case __VOID_TAG__: return '<void>';
+			case __VOID_TAG__: return '#<void>';
 			case __TRUE_TAG__: return '#t';
 			case __FALSE_TAG__: return '#f';
 			case __NUMBER_TAG__: return ag.numberVal(exp).toString();
 			case __CHAR_TAG__: 
 				return '#\\' + String.fromCharCode(ag.charCode(exp).toString());
 			case __PAIR_TAG__: return printPair(exp);
-			case __PROCEDURE_TAG__: return '<procedure>';
+			case __PROCEDURE_TAG__: return '#<procedure>';
 			case __VECTOR_TAG__: return printVector(exp);
 			case __STRING_TAG__: return '\"' + ag.stringText(exp) + '\"';
 			case __FLOAT_TAG__: return ag.floatNumber(exp).toString();
-			case __NATIVE_TAG__: return '<native procedure>';
+			case __NATIVE_TAG__: return '#<native procedure>';
 			case __SYMBOL_TAG__: return ag.symbolText(exp);
 			/* ALSO PRINT OTHER ABSTRACT GRAMMAR ITEMS */
 			case __SEQUENCE_TAG__:
