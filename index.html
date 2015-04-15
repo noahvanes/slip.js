@@ -123,10 +123,20 @@
 		currentInput.focus();
 	}
 
+	function loadFile(url, clb, err) {
+
+		$.ajax(url, {
+			datatype: 'text',
+			success: clb,
+			error: err
+		});
+	}
+
 	/* --- START SLIP.JS REPL --- */
 
 	Slip_init({
 		readExpression: readExpression,
+		load: loadFile,
 		print: printOut,
 		printline: printLine,
 		printerror: function(err) {

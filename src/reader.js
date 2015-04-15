@@ -36,14 +36,13 @@ function READER() {
 
 				switch (program.charAt(position)) {
 
-					case '\n': case '\r': 
-					case '\t': case ' ':
-						++position;
-						break;
 					case ';': 
 						var current;
 						while((current = program.charAt(++position)) != '\n'
 						    	&& current != '\r' && current != '');
+					case '\n': case '\r': 
+					case '\t': case ' ':
+						++position;
 						break;
 					default:
 						return;

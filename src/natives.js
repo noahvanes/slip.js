@@ -779,6 +779,20 @@ function NATIVES() {
 
 	const __LOAD_PTR__ = 19;
 
+	function onFileLoad(data) {
+
+		regs.TXT = data;
+		console.log(regs.TXT);
+		stk.save(regs.KON);
+		regs.KON = c1_load;
+		run(reader.read);
+	}
+
+	function fileLoadError(err) {
+		regs.TXT = 'failed to load file';
+		run(error);
+	}
+
 	function load() {
 
 		if (regs.LEN !== 1) {
@@ -793,10 +807,8 @@ function NATIVES() {
 		}
 
 		regs.TXT = ag.stringText(regs.ARG);
-		regs.TXT = config.load(regs.TXT);
-		stk.save(regs.KON);
-		regs.KON = c1_load;
-		return reader.read;
+		config.load(regs.TXT, onFileLoad, fileLoadError);
+		return false;
 	}
 
 	function c1_load() {
