@@ -59,6 +59,8 @@ function NATIVES() {
 			/* MEMORY */
 			case __AVAIL_PTR__: return available;
 			case __COLLECT_PTR__: return collect;
+			/* JS FFI */
+			case __JS_PTR__: return js_exec;
 		}
 	}
 
@@ -781,8 +783,7 @@ function NATIVES() {
 
 	function onFileLoad(data) {
 
-		regs.TXT = data;
-		console.log(regs.TXT);
+		reader.load(data);
 		stk.save(regs.KON);
 		regs.KON = c1_load;
 		run(reader.read);
@@ -1270,6 +1271,26 @@ function NATIVES() {
 		return regs.KON;
 	}
 
+	const __JS_PTR__ = 40;
+
+	function js_exec() {
+
+		if (regs.LEN !== 1) {
+			regs.TXT = 'expected exactly one argument';
+			return error;
+		}
+
+		regs.ARG = car(regs.ARG);
+		if (!ag.isString(regs.ARG)) {
+			regs.TXT = 'expected string';
+			return error;
+		}
+
+		eval(ag.stringText(regs.ARG));
+		regs.VAL = ag.__VOID__;
+		return regs.KON;
+	}
+
 	/* --- INITIALISATION --- */
 
 	function init() {
@@ -1281,6 +1302,7 @@ function NATIVES() {
 			regs.FRM = ag.makePair(regs.BND, regs.FRM);
 		}
 
+		addNative('eval/js', __JS_PTR__);
 		addNative('string-length', __STRING_LENGTH_PTR__);
 		addNative('string-ref', __STRING_GET_PTR__);
 		addNative('string-set!', __STRING_SET_PTR__);
