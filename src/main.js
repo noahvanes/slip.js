@@ -46,7 +46,7 @@ function run(f) {
 function Slip_init(clbs, memSiz) {
 
 	//memory
-	const __DEFAULT_MEM__ = 16;
+	const __DEFAULT_MEM__ = 24;
 	memSiz = 0x1 << (memSiz||__DEFAULT_MEM__);
 	var buffer = new ArrayBuffer(memSiz);
 	mem = MEMORY(window, {heapSize: memSiz}, buffer);

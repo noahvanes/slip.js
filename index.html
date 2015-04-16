@@ -60,7 +60,7 @@
 	var terminal = $('#terminal');
 
 	function HTMLString(str) {
-		return str.replace('<', '&lt').replace('>', '&gt');
+		return str.replace(/</g, '&lt').replace(/>/g, '&gt');
 	}
 
 	function printOut(str, style) {
