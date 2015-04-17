@@ -67,6 +67,8 @@ function NATIVES() {
 			case __SLEEP_PTR__: return sleep;
 			/* RANDOM */
 			case __RANDOM_PTR__: return random;
+			/* ERROR */
+			case __ERROR_PTR__: return _error;
 			/* JS FFI */
 			case __JS_PTR__: return js_exec;
 		}
@@ -1366,6 +1368,27 @@ function NATIVES() {
 		return regs.KON;
 	}
 
+	/* --- ERROR --- */
+
+	const __ERROR_PTR__ = 44;
+
+	function _error() {
+
+		if (regs.LEN !== 1) {
+			regs.TXT = 'invalid parameter count';
+			return error;
+		}
+
+		regs.ARG = car(regs.ARG);
+		if (!ag.isString(regs.ARG)) {
+			regs.TXT = 'expected string';
+			return error;
+		}
+
+		regs.TXT = ag.stringText(regs.ARG);
+		return error;
+	}
+
 	/* --- INITIALISATION --- */
 
 	function init() {
@@ -1381,6 +1404,7 @@ function NATIVES() {
 		addNative('random', __RANDOM_PTR__);
 		addNative('clock', __TIME_PTR__);
 		addNative('sleep', __SLEEP_PTR__);
+		addNative('error' , __ERROR_PTR__);
 		addNative('string-length', __STRING_LENGTH_PTR__);
 		addNative('string-ref', __STRING_GET_PTR__);
 		addNative('string-set!', __STRING_SET_PTR__);
