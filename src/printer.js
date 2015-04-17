@@ -1,4 +1,5 @@
 function PRINTER() {
+	"use strict";
 	
 	function printExp(exp) {
 

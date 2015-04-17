@@ -1,4 +1,5 @@
 function EVALUATOR() {
+	"use strict";
 
 	const car = ag.pairCar;
 	const cdr = ag.pairCdr;
@@ -7,7 +8,7 @@ function EVALUATOR() {
 
 	/* --- EVAL --- */
 
-	function eval() {
+	function _eval() {
 
 		regs.TAG = ag.tag(regs.EXP);
 		
@@ -114,7 +115,7 @@ function EVALUATOR() {
 		stk.save(regs.KON);
 		mem.push(regs.PAT);
 		regs.KON = c_define;
-		return eval;
+		return _eval;
 	}
 
 	function evalDff() {
@@ -161,7 +162,7 @@ function EVALUATOR() {
 				mem.push(regs.BND);
 				stk.save(regs.KON);
 				regs.KON = c_set;
-				return eval;
+				return _eval;
 	 		}
 	 		regs.LST = cdr(regs.LST);
 		}
@@ -181,7 +182,7 @@ function EVALUATOR() {
 					mem.push(regs.BND);
 					stk.save(regs.KON);
 					regs.KON = c_set;
-					return eval;
+					return _eval;
 				}
 				regs.DCT = cdr(regs.DCT);
 			}
@@ -218,7 +219,7 @@ function EVALUATOR() {
 		stk.save(regs.KON);
 		regs.KON = c_sequence;
 		stk.save(1);
-		return eval;
+		return _eval;
 	}
 
 	function c_sequence() {
@@ -236,7 +237,7 @@ function EVALUATOR() {
 			stk.poke(regs.IDX);
 		}
 
-		return eval;
+		return _eval;
 	}
 
 	/* --- EVAL IFS/IFF --- */
@@ -248,7 +249,7 @@ function EVALUATOR() {
 		regs.EXP = ag.ifsPredicate(regs.EXP);
 		stk.save(regs.KON);
 		regs.KON = c_ifs;
-		return eval;
+		return _eval;
 	}
 
 	function c_ifs() {
@@ -268,7 +269,7 @@ function EVALUATOR() {
 			}
 			regs.ENV = ag.makePair(regs.FRM, regs.ENV);
 			regs.FRM = ag.__NULL__;
-			return eval;
+			return _eval;
 		}
 
 		regs.VAL = ag.__VOID__;
@@ -283,7 +284,7 @@ function EVALUATOR() {
 		regs.EXP = ag.iffPredicate(regs.EXP);
 		stk.save(regs.KON);
 		regs.KON = c_iff;
-		return eval;
+		return _eval;
 	}
 
 	function c_iff() {
@@ -306,7 +307,7 @@ function EVALUATOR() {
 		else
 			regs.EXP = ag.iffConsequence(regs.EXP);
 
-		return eval;
+		return _eval;
 	}
 
 	/* --- EVAL LAMBDA --- */
@@ -330,7 +331,7 @@ function EVALUATOR() {
 		regs.EXP = ag.aplOperator(regs.EXP);
 		stk.save(regs.KON);
 		regs.KON = c1_application;
-		return eval;
+		return _eval;
 	}
 
 	function c1_application() {
@@ -358,7 +359,7 @@ function EVALUATOR() {
 			mem.push(regs.ARG);
 		}
 
-		return eval;
+		return _eval;
 	}
 
 	function c2_application() {
@@ -376,7 +377,7 @@ function EVALUATOR() {
 			mem.push(regs.ARG);
 		}
 
-		return eval;
+		return _eval;
 	}
 
 	function c3_application() {
@@ -431,7 +432,7 @@ function EVALUATOR() {
 
 		if (ag.isNull(regs.PAR)) {
 			if(ag.isNull(regs.ARG))
-				return eval;
+				return _eval;
 			regs.TXT = 'excess arguments';
 			return error;
 		}
@@ -454,7 +455,7 @@ function EVALUATOR() {
 
 			regs.BND = ag.makePair(regs.PAR, regs.ARG);
 			regs.FRM = ag.makePair(regs.BND, regs.FRM);
-			return eval;
+			return _eval;
 		}
 
 		regs.TXT = "Invalid parameter pattern";
@@ -470,7 +471,7 @@ function EVALUATOR() {
 	}
 
 	return {
-		eval: eval,
+		eval: _eval,
 		apply: apply
 	}
 }

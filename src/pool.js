@@ -1,4 +1,5 @@
 function POOL() {
+	"use strict";
 
 	const __POOL__ = Object.create(null);
 	var __POOL_TOP__ = 1;

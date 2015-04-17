@@ -1,7 +1,10 @@
 function NATIVES() {
+	"use strict";
 
 	const car = ag.pairCar;
 	const cdr = ag.pairCdr;
+
+	const __START__ = new Date().getTime();
 
 	/* --- NATIVE --- */
 
@@ -59,6 +62,11 @@ function NATIVES() {
 			/* MEMORY */
 			case __AVAIL_PTR__: return available;
 			case __COLLECT_PTR__: return collect;
+			/* TIMING */
+			case __TIME_PTR__: return clock;
+			case __SLEEP_PTR__: return sleep;
+			/* RANDOM */
+			case __RANDOM_PTR__: return random;
 			/* JS FFI */
 			case __JS_PTR__: return js_exec;
 		}
@@ -1273,6 +1281,8 @@ function NATIVES() {
 
 	const __JS_PTR__ = 40;
 
+	/* --- JS FFI --- */
+
 	function js_exec() {
 
 		if (regs.LEN !== 1) {
@@ -1291,6 +1301,71 @@ function NATIVES() {
 		return regs.KON;
 	}
 
+	/* --- TIMING --- */
+
+	const __TIME_PTR__ = 41;
+
+	function clock() {
+
+		if(regs.LEN !== 0) {
+			regs.TXT = 'invalid argument count';
+			return error;
+		}
+
+		claim();
+		regs.VAL = new Date().getTime();
+		regs.VAL = ag.makeNumber(regs.VAL - __START__);
+		return regs.KON;
+	}
+
+	const __SLEEP_PTR__ = 42;
+
+	function sleep() {
+
+		if(regs.LEN !== 1) {
+			regs.TXT = 'argument count mismatch';
+			return error;
+		}
+
+		regs.ARG = car(regs.ARG);
+		regs.TAG = ag.tag(regs.ARG);
+		switch(regs.TAG) {
+			case __NUMBER_TAG__:
+				regs.VAL = ag.numberVal(regs.ARG);
+				break;
+			case __FLOAT_TAG__:
+				regs.VAL = ag.floatNumber(regs.ARG);
+				break;
+			default:
+				regs.TXT = 'expected numerical type';
+				return error;
+		}
+
+		setTimeout(c_sleep, regs.VAL);
+		return false;
+	}
+
+	function c_sleep() {
+
+		regs.VAL = ag.__VOID__;
+		run(regs.KON);
+	}
+
+	/* --- RANDOM --- */
+
+	const __RANDOM_PTR__ = 43;
+
+	function random() {
+
+		if (regs.LEN !== 0) {
+			regs.TXT = 'invalid argument count';
+			return error;
+		}
+
+		regs.VAL = ag.makeFloat(Math.random());
+		return regs.KON;
+	}
+
 	/* --- INITIALISATION --- */
 
 	function init() {
@@ -1303,6 +1378,9 @@ function NATIVES() {
 		}
 
 		addNative('eval/js', __JS_PTR__);
+		addNative('random', __RANDOM_PTR__);
+		addNative('clock', __TIME_PTR__);
+		addNative('sleep', __SLEEP_PTR__);
 		addNative('string-length', __STRING_LENGTH_PTR__);
 		addNative('string-ref', __STRING_GET_PTR__);
 		addNative('string-set!', __STRING_SET_PTR__);

@@ -13,6 +13,7 @@
 */
 
 function COMPILER() {
+	"use strict";
 
 	/* --- CONSTANT SYMBOLS --- */
 

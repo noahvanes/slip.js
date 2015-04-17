@@ -1,5 +1,6 @@
 function READER() {
-
+	"use strict";
+	
 	var __QUO_SYM__;
 	function loadSymbols() {
 		 __QUO_SYM__ = pool.enterPool('quote');

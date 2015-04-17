@@ -97,10 +97,10 @@ function MEMORY(stdlib, foreign, heap) {
 				for(cur = (src+siz)|0; 
 					(cur|0) < (MEMTOP|0);
 					cur = (cur+len)|0, siz = (siz+len)|0) {
-					//TODO: check size overflow (< 2^24?)
 					cel = MEM32[cur >> 2]|0;
 					if(cel & 0x2) break; //busy
 					len = ((headerSize(cel)|0)+1) << 2;
+					if(((siz+len)|0) > 0x3FFFFFC) break; //size overflow
 				}
 				MEM32[src >> 2] = makeHeader(0,((siz>>2)-1)|0)|0;
 				src = (src + siz)|0;

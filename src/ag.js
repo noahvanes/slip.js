@@ -28,6 +28,7 @@ const __NUMBER_TAG__ = maxTag+6;
 const __NATIVE_TAG__ = maxTag+7;
 
 function GRAMMAR() {
+	"use strict";
 
 	/* -- CONSTANTS -- */
 	const byteMask = 0xff;

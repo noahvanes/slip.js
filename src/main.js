@@ -1,3 +1,11 @@
+/* --- MAIN --- */
+"use strict";
+
+/* --- MODULES --- */
+var mem, ag, config,
+pool, reader, compiler, evaluator,
+natives, printExp;
+
 /* --- VM ARCHITECTURE --- */
 
 //stack
