@@ -1,47 +1,47 @@
-const maxTag = 0x3f;
+var maxTag = 0x3f;
 /* -- POINTER STRUCTURES -- */
-const __PAIR_TAG__ 			= 0x00 << 1 | 0;
-const __VECTOR_TAG__ 		= 0x01 << 1 | 0;
-const __PROCEDURE_TAG__ 	= 0x02 << 1 | 0;
-const __SEQUENCE_TAG__ 		= 0x03 << 1 | 0;
-const __IFS_TAG__ 			= 0x04 << 1 | 0;
-const __IFF_TAG__ 			= 0x05 << 1 | 0;
-const __DFV_TAG__ 			= 0x06 << 1 | 0;
-const __DFF_TAG__ 			= 0x07 << 1 | 0;
-const __APPLICATION_TAG__ 	= 0x08 << 1 | 0;
-const __LAMBDA_TAG__ 		= 0x09 << 1 | 0;
-const __SET_TAG__ 			= 0x0a << 1 | 0;
-const __QUO_TAG__			= 0x0b << 1 | 0;
+var __PAIR_TAG__ 			= 0x00 << 1 | 0;
+var __VECTOR_TAG__ 		= 0x01 << 1 | 0;
+var __PROCEDURE_TAG__ 	= 0x02 << 1 | 0;
+var __SEQUENCE_TAG__ 		= 0x03 << 1 | 0;
+var __IFS_TAG__ 			= 0x04 << 1 | 0;
+var __IFF_TAG__ 			= 0x05 << 1 | 0;
+var __DFV_TAG__ 			= 0x06 << 1 | 0;
+var __DFF_TAG__ 			= 0x07 << 1 | 0;
+var __APPLICATION_TAG__ 	= 0x08 << 1 | 0;
+var __LAMBDA_TAG__ 		= 0x09 << 1 | 0;
+var __SET_TAG__ 			= 0x0a << 1 | 0;
+var __QUO_TAG__			= 0x0b << 1 | 0;
 
 /* -- RAW CHUNKS -- */
-const __FLOAT_TAG__			= 0x00 << 1 | 1;
-const __SYMBOL_TAG__		= 0x01 << 1 | 1;
-const __STRING_TAG__		= 0x02 << 1 | 1;
+var __FLOAT_TAG__			= 0x00 << 1 | 1;
+var __SYMBOL_TAG__		= 0x01 << 1 | 1;
+var __STRING_TAG__		= 0x02 << 1 | 1;
 
 /* -- IMMEDIATES -- */
-const __CHAR_TAG__ = maxTag+1;
-const __TRUE_TAG__ = maxTag+2;
-const __FALSE_TAG__ = maxTag+3;
-const __VOID_TAG__ = maxTag+4;
-const __NULL_TAG__ = maxTag+5;
-const __NUMBER_TAG__ = maxTag+6;
-const __NATIVE_TAG__ = maxTag+7;
+var __CHAR_TAG__ = maxTag+1;
+var __TRUE_TAG__ = maxTag+2;
+var __FALSE_TAG__ = maxTag+3;
+var __VOID_TAG__ = maxTag+4;
+var __NULL_TAG__ = maxTag+5;
+var __NUMBER_TAG__ = maxTag+6;
+var __NATIVE_TAG__ = maxTag+7;
 
 function GRAMMAR() {
 	"use strict";
 
-	/* -- CONSTANTS -- */
-	const byteMask = 0xff;
-	const maxImm = 0x3fffffff;
-	const maxNum = 0x3ffffe00;
-	const maxChr = 0x3fffff00;
-	const maxNat = 0x3ffffffc;
-	const falseVal = 0;
-	const trueVal = 1;
-	const nullVal = 2;
-	const voidVal = 3;
-	const specialMask = 0x3;
-	const specialTab = new Array(4);
+	/* -- varANTS -- */
+	var byteMask = 0xff;
+	var maxImm = 0x3fffffff;
+	var maxNum = 0x3ffffe00;
+	var maxChr = 0x3fffff00;
+	var maxNat = 0x3ffffffc;
+	var falseVal = 0;
+	var trueVal = 1;
+	var nullVal = 2;
+	var voidVal = 3;
+	var specialMask = 0x3;
+	var specialTab = new Array(4);
 
 	/*===============*/
 	/* ---- TAG ---- */
@@ -98,27 +98,27 @@ function GRAMMAR() {
 		return mem.immediateVal(ch) & byteMask; 
 	}
 
-	const isChar = check(__CHAR_TAG__);
+	var isChar = check(__CHAR_TAG__);
 
 	/* ---- TRUE ---- */
 
-	const __TRUE__ = mem.makeImmediate(maxNat | trueVal); 
-	const isTrue = check(__TRUE_TAG__);
+	var __TRUE__ = mem.makeImmediate(maxNat | trueVal); 
+	var isTrue = check(__TRUE_TAG__);
 
 	/* ---- FALSE ---- */
 
-	const __FALSE__ = mem.makeImmediate(maxNat | falseVal);
-	const isFalse = check(__FALSE_TAG__);
+	var __FALSE__ = mem.makeImmediate(maxNat | falseVal);
+	var isFalse = check(__FALSE_TAG__);
 
 	/* ---- VOID ---- */
 
-	const __VOID__ = mem.makeImmediate(maxNat | voidVal);
-	const isVoid = check(__VOID_TAG__);
+	var __VOID__ = mem.makeImmediate(maxNat | voidVal);
+	var isVoid = check(__VOID_TAG__);
 
 	/* ---- NULL ---- */
 
-	const __NULL__ = mem.makeImmediate(maxNat | nullVal);
-	const isNull = check(__NULL_TAG__);
+	var __NULL__ = mem.makeImmediate(maxNat | nullVal);
+	var isNull = check(__NULL_TAG__);
 
 	/* ---- NUMBER ---- */
 
@@ -130,7 +130,7 @@ function GRAMMAR() {
 		return mem.immediateVal(exp);
 	}
 
-	const isNumber = check(__NUMBER_TAG__);
+	var isNumber = check(__NUMBER_TAG__);
 
 	/* ---- NATIVES ----- */
 
@@ -143,7 +143,7 @@ function GRAMMAR() {
 		return val & byteMask;
 	}
 
-	const isNative = check(__NATIVE_TAG__);
+	var isNative = check(__NATIVE_TAG__);
 
 	// setup jump table
 	specialTab[falseVal] = __FALSE_TAG__;
@@ -157,9 +157,9 @@ function GRAMMAR() {
 
 	/* ---- PAIR ---- */
 
-	const __PAIR_SIZ__ = 2;
-	const __PAIR_CAR__ = 1<<2;
-	const __PAIR_CDR__ = 2<<2;
+	var __PAIR_SIZ__ = 2;
+	var __PAIR_CAR__ = 1<<2;
+	var __PAIR_CDR__ = 2<<2;
 
 	function makePair(car, cdr) {
 		var pair = mem.makeChunk(__PAIR_TAG__, __PAIR_SIZ__);
@@ -184,14 +184,14 @@ function GRAMMAR() {
 		return mem.chunkSet(ptr, __PAIR_CDR__, exp);
 	}
 
-	const isPair = check(__PAIR_TAG__);
+	var isPair = check(__PAIR_TAG__);
 
 	/* ---- PROCEDURE ---- */
 
-	const __PROCEDURE_SIZ__ = 3;
-	const __PROCEDURE_PAR__ = 1<<2;
-	const __PROCEDURE_BDY__ = 2<<2;
-	const __PROCEDURE_ENV__ = 3<<2;
+	var __PROCEDURE_SIZ__ = 3;
+	var __PROCEDURE_PAR__ = 1<<2;
+	var __PROCEDURE_BDY__ = 2<<2;
+	var __PROCEDURE_ENV__ = 3<<2;
 
 	function makeProcedure(par, bdy, env) {
 
@@ -214,7 +214,7 @@ function GRAMMAR() {
 		return mem.chunkGet(exp, __PROCEDURE_ENV__);
 	}
 
-	const isProcedure = check(__PROCEDURE_TAG__);
+	var isProcedure = check(__PROCEDURE_TAG__);
 
 	/* ---- VECTOR ---- */
 
@@ -238,8 +238,8 @@ function GRAMMAR() {
 		return mem.chunkSize(vct);
 	}
 
-	const isVector = check(__VECTOR_TAG__);
-	const __EMPTY_VEC__ = makeVector(0, __VOID__);
+	var isVector = check(__VECTOR_TAG__);
+	var __EMPTY_VEC__ = makeVector(0, __VOID__);
 
 	/* ---- SEQUENCE ---- */
 
@@ -259,13 +259,13 @@ function GRAMMAR() {
 		return mem.chunkSize(seq);
 	}
 
-	const isSequence = check(__SEQUENCE_TAG__);
+	var isSequence = check(__SEQUENCE_TAG__);
 
 	/* ---- IFS ---- */
 
-	const __IFS_SIZ__ = 2;
-	const __IFS_PRE__ = 1<<2;
-	const __IFS_CON__ = 2<<2;
+	var __IFS_SIZ__ = 2;
+	var __IFS_PRE__ = 1<<2;
+	var __IFS_CON__ = 2<<2;
 
 	function makeIfs(pred, conseq) {
 		var ifs = mem.makeChunk(__IFS_TAG__, __IFS_SIZ__);
@@ -282,14 +282,14 @@ function GRAMMAR() {
 		return mem.chunkGet(ifs, __IFS_CON__);
 	}
 
-	const isIfs = check(__IFS_TAG__);
+	var isIfs = check(__IFS_TAG__);
 
 	/* ---- IFF ---- */
 
-	const __IFF_SIZ__ = 3;
-	const __IFF_PRE__ = 1<<2;
-	const __IFF_CON__ = 2<<2;
-	const __IFF_ALT__ = 3<<2;
+	var __IFF_SIZ__ = 3;
+	var __IFF_PRE__ = 1<<2;
+	var __IFF_CON__ = 2<<2;
+	var __IFF_ALT__ = 3<<2;
 
 	function makeIff(pred, conseq, alter) {
 		var iff = mem.makeChunk(__IFF_TAG__, __IFF_SIZ__);
@@ -311,12 +311,12 @@ function GRAMMAR() {
 		return mem.chunkGet(iff, __IFF_ALT__);
 	}
 
-	const isIff = check(__IFF_TAG__);
+	var isIff = check(__IFF_TAG__);
 
 	/* ---- QUO ---- */
 
-	const __QUO_SIZ__ = 1;
-	const __QUO_EXP__ = 1<<2;
+	var __QUO_SIZ__ = 1;
+	var __QUO_EXP__ = 1<<2;
 
 	function makeQuo(exp) {
 		var quo = mem.makeChunk(__QUO_TAG__, __QUO_SIZ__);
@@ -328,13 +328,13 @@ function GRAMMAR() {
 		return mem.chunkGet(quo, __QUO_EXP__);
 	}
 
-	const isQuo = check(__QUO_TAG__);
+	var isQuo = check(__QUO_TAG__);
 
 	/* ---- LAMBDA ---- */
 
-	const __LAMBDA_SIZ__ = 2;
-	const __LAMBDA_ARG__ = 1<<2;
-	const __LAMBDA_BDY__ = 2<<2;
+	var __LAMBDA_SIZ__ = 2;
+	var __LAMBDA_ARG__ = 1<<2;
+	var __LAMBDA_BDY__ = 2<<2;
 
 	function makeLambda(arg, bdy) {
 		var lmb = mem.makeChunk(__LAMBDA_TAG__, __LAMBDA_SIZ__);
@@ -351,13 +351,13 @@ function GRAMMAR() {
 		return mem.chunkGet(lmb, __LAMBDA_BDY__);
 	}
 
-	const isLambda = check(__LAMBDA_TAG__);
+	var isLambda = check(__LAMBDA_TAG__);
 
 	/* ---- DEFINE VARIABLE ---- */
 
-	const __DFV_SIZ__ = 2;
-	const __DFV_VAR__ = 1<<2;
-	const __DFV_VAL__ = 2<<2;
+	var __DFV_SIZ__ = 2;
+	var __DFV_VAR__ = 1<<2;
+	var __DFV_VAL__ = 2<<2;
 
 	function makeDfv(vrb, val) {
 		var dfv = mem.makeChunk(__DFV_TAG__, __DFV_SIZ__);
@@ -374,14 +374,14 @@ function GRAMMAR() {
 		return mem.chunkGet(dfv, __DFV_VAL__);
 	}
 
-	const isDfv = check(__DFV_TAG__);
+	var isDfv = check(__DFV_TAG__);
 
 	/* ---- DEFINE FUNCTION ---- */
 
-	const __DFF_SIZ__ = 3;
-	const __DFF_VAR__ = 1<<2;
-	const __DFF_ARG__ = 2<<2;
-	const __DFF_BDY__ = 3<<2;
+	var __DFF_SIZ__ = 3;
+	var __DFF_VAR__ = 1<<2;
+	var __DFF_ARG__ = 2<<2;
+	var __DFF_BDY__ = 3<<2;
 
 	function makeDff(vrb, arg, bdy) {
 		var dff = mem.makeChunk(__DFF_TAG__, __DFF_SIZ__);
@@ -403,13 +403,13 @@ function GRAMMAR() {
 		return mem.chunkGet(dff, __DFF_BDY__);
 	}
 
-	const isDff = check(__DFF_TAG__);
+	var isDff = check(__DFF_TAG__);
 
 	/* ---- SET ---- */
 
-	const __SET_SIZ__ = 2;
-	const __SET_VAR__ = 1<<2;
-	const __SET_VAL__ = 2<<2;
+	var __SET_SIZ__ = 2;
+	var __SET_VAR__ = 1<<2;
+	var __SET_VAL__ = 2<<2;
 
 	function makeSet(vrb, val) {
 		var set = mem.makeChunk(__SET_TAG__, __SET_SIZ__);
@@ -426,13 +426,13 @@ function GRAMMAR() {
 		return mem.chunkGet(set, __SET_VAL__);
 	}
 
-	const isSet = check(__SET_TAG__);
+	var isSet = check(__SET_TAG__);
 
 	/* ---- APPLICATION ---- */
 
-	const __APPLICATION_SIZ__ = 2;
-	const __APPLICATION_OPR__ = 1<<2;
-	const __APPLICATION_OPD__ = 2<<2;
+	var __APPLICATION_SIZ__ = 2;
+	var __APPLICATION_OPR__ = 1<<2;
+	var __APPLICATION_OPD__ = 2<<2;
 
 	function makeApplication(opr, opd) {
 		var apl = mem.makeChunk(__APPLICATION_TAG__, __APPLICATION_SIZ__);
@@ -449,7 +449,7 @@ function GRAMMAR() {
 		return mem.chunkGet(apl, __APPLICATION_OPD__);
 	}
 
-	const isApplication = check(__APPLICATION_TAG__);
+	var isApplication = check(__APPLICATION_TAG__);
 
 	/*================*/
 	/* ---- RAWS ---- */
@@ -457,8 +457,8 @@ function GRAMMAR() {
 
 	/* --- FLOATS --- */
 
-	const __FLOAT_SIZ__ = 1;
-	const __FLOAT_NBR__ = 1<<2;
+	var __FLOAT_SIZ__ = 1;
+	var __FLOAT_NBR__ = 1<<2;
 
 	function makeFloat(nbr) {
 		var flt = mem.makeChunk(__FLOAT_TAG__, __FLOAT_SIZ__);
@@ -470,7 +470,7 @@ function GRAMMAR() {
 		return mem.chunkGetFloat(flt, __FLOAT_NBR__);
 	}
 
-	const isFloat = check(__FLOAT_TAG__);
+	var isFloat = check(__FLOAT_TAG__);
 
 	/* --- TEXT --- */
 
@@ -489,7 +489,7 @@ function GRAMMAR() {
 		return chk;
 	}
 
-	const __empty_str__ = '';
+	var __empty_str__ = '';
 
 	function decodeText(chk) {
 
@@ -544,8 +544,8 @@ function GRAMMAR() {
 		return mem.chunkSetByte(str, idx+4, ch);
 	}
 
-	const stringText = decodeText;
-	const isString = check(__STRING_TAG__);
+	var stringText = decodeText;
+	var isString = check(__STRING_TAG__);
 
 	/* --- SYMBOLS --- */
 
@@ -553,8 +553,8 @@ function GRAMMAR() {
 		return encodeText(__SYMBOL_TAG__, txt);
 	}
 
-	const symbolText = decodeText;
-	const isSymbol = check(__SYMBOL_TAG__);
+	var symbolText = decodeText;
+	var isSymbol = check(__SYMBOL_TAG__);
 
 
 	/* ---- EXPORTS ---- */

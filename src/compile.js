@@ -15,7 +15,7 @@
 function COMPILER() {
 	"use strict";
 
-	/* --- CONSTANT SYMBOLS --- */
+	/* --- varANT SYMBOLS --- */
 
 	var __QUO_SYM__;
 	var __BEG_SYM__;
@@ -38,8 +38,8 @@ function COMPILER() {
 		__VEC_SYM__ = pool.enterPool('vector');
 	}
 
-	const car = ag.pairCar;
-	const cdr = ag.pairCdr;
+	var car = ag.pairCar;
+	var cdr = ag.pairCdr;
 
 	/* --- COMPILE --- */
 

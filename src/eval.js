@@ -1,10 +1,10 @@
 function EVALUATOR() {
 	"use strict";
 
-	const car = ag.pairCar;
-	const cdr = ag.pairCdr;
-	const ref = ag.vectorRef;
-	const set = ag.vectorSet;
+	var car = ag.pairCar;
+	var cdr = ag.pairCdr;
+	var ref = ag.vectorRef;
+	var set = ag.vectorSet;
 
 	/* --- EVAL --- */
 

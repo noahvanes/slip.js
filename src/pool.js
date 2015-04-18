@@ -1,7 +1,7 @@
 function POOL() {
 	"use strict";
 
-	const __POOL__ = Object.create(null);
+	var __POOL__ = Object.create(null);
 	var __POOL_TOP__ = 1;
 	var __POOL_SIZ__ = 64;
 	var __POOL_INC__ = 32;

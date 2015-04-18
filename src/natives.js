@@ -1,10 +1,10 @@
 function NATIVES() {
 	"use strict";
 
-	const car = ag.pairCar;
-	const cdr = ag.pairCdr;
+	var car = ag.pairCar;
+	var cdr = ag.pairCdr;
 
-	const __START__ = new Date().getTime();
+	var __START__ = new Date().getTime();
 
 	/* --- NATIVE --- */
 
@@ -76,7 +76,7 @@ function NATIVES() {
 
 	/* --- ARITHMETIC --- */
 
-	const __ADD_PTR__ = 0;
+	var __ADD_PTR__ = 0;
 
 	function add() {
 
@@ -124,7 +124,7 @@ function NATIVES() {
 		return regs.KON;
 	}
 
-	const __SUB_PTR__ = 1;
+	var __SUB_PTR__ = 1;
 
 	function sub() {
 
@@ -208,7 +208,7 @@ function NATIVES() {
 		return regs.KON;
 	}
 
-	const __MUL_PTR__ = 2;
+	var __MUL_PTR__ = 2;
 
 	function mul() {
 
@@ -256,7 +256,7 @@ function NATIVES() {
 		return regs.KON;
 	}
 
-	const __DIV_PTR__ = 3;
+	var __DIV_PTR__ = 3;
 
 	function div() {
 
@@ -320,7 +320,7 @@ function NATIVES() {
 
 	/* --- PAIRS --- */
 
-	const __CONS_PTR__ = 4;
+	var __CONS_PTR__ = 4;
 
 	function mcons() {
 
@@ -334,7 +334,7 @@ function NATIVES() {
 		return regs.KON;
 	}
 
-	const __CAR_PTR__ = 5;
+	var __CAR_PTR__ = 5;
 
 	function mcar() {
 
@@ -353,7 +353,7 @@ function NATIVES() {
 		return regs.KON;
 	}
 
-	const __CDR_PTR__ = 6;
+	var __CDR_PTR__ = 6;
 
 	function mcdr() {
 
@@ -372,7 +372,7 @@ function NATIVES() {
 		return regs.KON;
 	}
 
-	const __SET_CAR_PTR__ = 23;
+	var __SET_CAR_PTR__ = 23;
 
 	function scar() {
 
@@ -393,7 +393,7 @@ function NATIVES() {
 		return regs.KON;
 	}
 
-	const __SET_CDR_PTR__ = 24;
+	var __SET_CDR_PTR__ = 24;
 
 	function scdr() {
 
@@ -414,7 +414,7 @@ function NATIVES() {
 		return regs.KON;
 	}
 
-	const __LIST_PTR__ = 7;
+	var __LIST_PTR__ = 7;
 
 	function list() {
 
@@ -424,7 +424,7 @@ function NATIVES() {
 
 	/* --- COMPARISONS --- */
 
-	const __NBR_EQ_PTR__ = 9;
+	var __NBR_EQ_PTR__ = 9;
 
 	function nbr_eq() {
 
@@ -465,7 +465,7 @@ function NATIVES() {
 		return regs.KON;
 	}
 
-	const __SMA_PTR__ = 10;
+	var __SMA_PTR__ = 10;
 
 	function sma() {
 
@@ -506,7 +506,7 @@ function NATIVES() {
 		return regs.KON;
 	}
 
-	const __LRG_PTR__ = 11;
+	var __LRG_PTR__ = 11;
 
 	function lrg() {
 
@@ -547,7 +547,7 @@ function NATIVES() {
 		return regs.KON;
 	}
 
-	const __SEQ_PTR__ = 12;
+	var __SEQ_PTR__ = 12;
 
 	function seq() {
 
@@ -588,7 +588,7 @@ function NATIVES() {
 		return regs.KON;
 	}
 
-	const __LEQ_PTR__ = 13;
+	var __LEQ_PTR__ = 13;
 
 	function leq() {
 
@@ -631,7 +631,7 @@ function NATIVES() {
 
 	/* --- ASSOC --- */
 
-	const __ASSOC_PTR__ = 25;
+	var __ASSOC_PTR__ = 25;
 
 	function assoc() {
 
@@ -660,7 +660,7 @@ function NATIVES() {
 	/* --- MAP --- */
 	// unary map, takes only two arguments
 
-	const __MAP_PTR__ = 14;
+	var __MAP_PTR__ = 14;
 
 	function map() {
 
@@ -734,7 +734,7 @@ function NATIVES() {
 
 	/* --- META --- */
 
-	const __EVAL_PTR__ = 15;
+	var __EVAL_PTR__ = 15;
 
 	function _eval() {
 
@@ -756,7 +756,7 @@ function NATIVES() {
 		return evaluator.eval;
 	}
 
-	const __APPLY_PTR__ = 16;
+	var __APPLY_PTR__ = 16;
 
 	function _apply() {
 
@@ -780,7 +780,7 @@ function NATIVES() {
 		return evaluator.apply;
 	}
 
-	const __READ_PTR__ = 18;
+	var __READ_PTR__ = 18;
 
 	function read() {
 
@@ -789,7 +789,7 @@ function NATIVES() {
 		return false;
 	}
 
-	const __LOAD_PTR__ = 19;
+	var __LOAD_PTR__ = 19;
 
 	function onFileLoad(data) {
 
@@ -838,7 +838,7 @@ function NATIVES() {
 
 	/* --- DISPLAYS --- */
 
-	const __DISP_PTR__ = 17;
+	var __DISP_PTR__ = 17;
 
 	function display() {
 
@@ -852,7 +852,7 @@ function NATIVES() {
 		return regs.KON;
 	}
 
-	const __NEWLINE_PTR__ = 26;
+	var __NEWLINE_PTR__ = 26;
 
 	function newline() {
 
@@ -863,7 +863,7 @@ function NATIVES() {
 
 	/* --- VECTORS --- */
 
-	const __VMAKE_PTR__ = 27;
+	var __VMAKE_PTR__ = 27;
 
 	function makeVector() {
 
@@ -897,7 +897,7 @@ function NATIVES() {
 		return regs.KON;
 	}
 
-	const __VREF_PTR__ = 28;
+	var __VREF_PTR__ = 28;
 
 	function vectorRef() {
 
@@ -924,7 +924,7 @@ function NATIVES() {
 		return error;
 	}
 
-	const __VSET_PTR__ = 29;
+	var __VSET_PTR__ = 29;
 
 	function vectorSet() {
 
@@ -953,7 +953,7 @@ function NATIVES() {
 		return error;
 	}
 
-	const __VLEN_PTR__ = 30;
+	var __VLEN_PTR__ = 30;
 
 	function vectorLength() {
 
@@ -973,7 +973,7 @@ function NATIVES() {
 		return regs.KON;
 	}
 
-	const __VECTOR_PTR__ = 31;
+	var __VECTOR_PTR__ = 31;
 
 	function vector() {
 
@@ -990,7 +990,7 @@ function NATIVES() {
 
 	/* --- EQUALITY --- */
 
-	const __EQ_PTR__ = 8;
+	var __EQ_PTR__ = 8;
 
 	function eq() {
 
@@ -1004,7 +1004,7 @@ function NATIVES() {
 		return regs.KON;
 	}
 
-	const __EQUAL_PTR__ = 39;
+	var __EQUAL_PTR__ = 39;
 
 	function equal() {
 
@@ -1163,24 +1163,24 @@ function NATIVES() {
 		}
 	}
 
-	const __IS_PAIR_PTR__ = 20;
-	const isPair = makeTypeCheck(ag.__PAIR_TAG__);
+	var __IS_PAIR_PTR__ = 20;
+	var isPair = makeTypeCheck(ag.__PAIR_TAG__);
 
-	const __IS_NULL_PTR__ = 21;
-	const isNull = makeTypeCheck(ag.__NULL_TAG__);
+	var __IS_NULL_PTR__ = 21;
+	var isNull = makeTypeCheck(ag.__NULL_TAG__);
 
-	const __IS_SYMBOL_PTR__ = 22;
-	const isSymbol = makeTypeCheck(ag.__SYMBOL_TAG__);
+	var __IS_SYMBOL_PTR__ = 22;
+	var isSymbol = makeTypeCheck(ag.__SYMBOL_TAG__);
 
-	const __IS_VECTOR_PTR__ = 32;
-	const isVector = makeTypeCheck(ag.__VECTOR_TAG__);
+	var __IS_VECTOR_PTR__ = 32;
+	var isVector = makeTypeCheck(ag.__VECTOR_TAG__);
 
-	const __IS_STRING_PTR__ = 35;
-	const isString = makeTypeCheck(ag.__STRING_TAG__);
+	var __IS_STRING_PTR__ = 35;
+	var isString = makeTypeCheck(ag.__STRING_TAG__);
 
 	/* --- STRINGS --- */
 
-	const __STRING_GET_PTR__ = 36;
+	var __STRING_GET_PTR__ = 36;
 
 	function stringGet() {
 
@@ -1207,7 +1207,7 @@ function NATIVES() {
 		return error;
 	}
 
-	const __STRING_SET_PTR__ = 37;
+	var __STRING_SET_PTR__ = 37;
 
 	function stringSet() {
 
@@ -1237,7 +1237,7 @@ function NATIVES() {
 		return error;
 	}
 
-	const __STRING_LENGTH_PTR__ = 38;
+	var __STRING_LENGTH_PTR__ = 38;
 
 	function stringLength() {
 
@@ -1258,7 +1258,7 @@ function NATIVES() {
 
 	/* --- MEMORY --- */
 
-	const __COLLECT_PTR__ = 33;
+	var __COLLECT_PTR__ = 33;
 
 	function collect() {
 
@@ -1273,7 +1273,7 @@ function NATIVES() {
 		return regs.KON;
 	}
 
-	const __AVAIL_PTR__ = 34;
+	var __AVAIL_PTR__ = 34;
 
 	function available() {
 
@@ -1281,7 +1281,7 @@ function NATIVES() {
 		return regs.KON;
 	}
 
-	const __JS_PTR__ = 40;
+	var __JS_PTR__ = 40;
 
 	/* --- JS FFI --- */
 
@@ -1305,7 +1305,7 @@ function NATIVES() {
 
 	/* --- TIMING --- */
 
-	const __TIME_PTR__ = 41;
+	var __TIME_PTR__ = 41;
 
 	function clock() {
 
@@ -1320,7 +1320,7 @@ function NATIVES() {
 		return regs.KON;
 	}
 
-	const __SLEEP_PTR__ = 42;
+	var __SLEEP_PTR__ = 42;
 
 	function sleep() {
 
@@ -1355,7 +1355,7 @@ function NATIVES() {
 
 	/* --- RANDOM --- */
 
-	const __RANDOM_PTR__ = 43;
+	var __RANDOM_PTR__ = 43;
 
 	function random() {
 
@@ -1370,7 +1370,7 @@ function NATIVES() {
 
 	/* --- ERROR --- */
 
-	const __ERROR_PTR__ = 44;
+	var __ERROR_PTR__ = 44;
 
 	function _error() {
 

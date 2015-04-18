@@ -9,8 +9,8 @@ natives, printExp;
 /* --- VM ARCHITECTURE --- */
 
 //stack
-const _stk = [];
-const stk = {
+var _stk = [];
+var stk = {
 	save: function(el) { _stk.push(el); },
 	restore: function() { return _stk.pop(); },
 	peek: function() { return _stk[_stk.length-1]; },
@@ -20,8 +20,8 @@ const stk = {
 }
 
 //registers
-const init = 0;
-const regs = {
+var init = 0;
+var regs = {
 	ADR: init,
 	ARG: init, //do?
 	BND: init, //temp
@@ -54,7 +54,7 @@ function run(f) {
 function Slip_init(clbs, memSiz) {
 
 	//memory
-	const __DEFAULT_MEM__ = 24;
+	var __DEFAULT_MEM__ = 24;
 	memSiz = 0x1 << (memSiz||__DEFAULT_MEM__);
 	var buffer = new ArrayBuffer(memSiz);
 	mem = MEMORY(window, {heapSize: memSiz}, buffer);
@@ -85,8 +85,8 @@ function Slip_init(clbs, memSiz) {
 
 /* --- REPL --- */
 
-const __WELCOME_TEXT__ = "Welcome to the Slip.js REPL";
-const __PROMPT_TEXT__ = "> ";
+var __WELCOME_TEXT__ = "Welcome to the Slip.js REPL";
+var __PROMPT_TEXT__ = "> ";
 
 function Slip_REPL() {
 	config.printline(__WELCOME_TEXT__);
@@ -131,7 +131,7 @@ function c3_repl() {
 
 /* --- MEMORY MANAGEMENT --- */
 
-const __MARGIN__ = 64;
+var __MARGIN__ = 64;
 
 function claim() {
 
@@ -189,8 +189,8 @@ function reclaim() {
 
 /* --- ERROR MANAGEMENT --- */
 
-const __ERROR_PREFIX__ = "** ERROR: ";
-const __FATAL_PREFIX__ = "** FATAL ERROR: ";
+var __ERROR_PREFIX__ = "** ERROR: ";
+var __FATAL_PREFIX__ = "** FATAL ERROR: ";
 
 function error() {
 
@@ -211,4 +211,4 @@ function fatalError() {
 }
 
 //fix old dependencies
-const vm = window;
+var vm = window;

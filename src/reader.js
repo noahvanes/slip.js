@@ -120,7 +120,7 @@ function READER() {
 		}
 	}
 
-	const reader = SchemeReader();
+	var reader = SchemeReader();
 
 	/* --- READ --- */
 
