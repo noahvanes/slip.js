@@ -461,7 +461,7 @@ function NATIVES() {
 				return error;
 		}
 
-		regs.VAL = (regs.VAL === regs.ARG ? ag.__TRUE__ : ag.__FALSE__);
+		regs.VAL = (regs.VAL === regs.ARG ? __TRUE__ : __FALSE__);
 		return regs.KON;
 	}
 
@@ -502,7 +502,7 @@ function NATIVES() {
 				return error;
 		}
 
-		regs.VAL = (regs.VAL < regs.ARG ? ag.__TRUE__ : ag.__FALSE__);
+		regs.VAL = (regs.VAL < regs.ARG ? __TRUE__ : __FALSE__);
 		return regs.KON;
 	}
 
@@ -543,7 +543,7 @@ function NATIVES() {
 				return error;
 		}
 
-		regs.VAL = (regs.VAL > regs.ARG ? ag.__TRUE__ : ag.__FALSE__);
+		regs.VAL = (regs.VAL > regs.ARG ? __TRUE__ : __FALSE__);
 		return regs.KON;
 	}
 
@@ -584,7 +584,7 @@ function NATIVES() {
 				return error;
 		}
 
-		regs.VAL = (regs.VAL <= regs.ARG ? ag.__TRUE__ : ag.__FALSE__);
+		regs.VAL = (regs.VAL <= regs.ARG ? __TRUE__ : __FALSE__);
 		return regs.KON;
 	}
 
@@ -625,7 +625,7 @@ function NATIVES() {
 				return error;
 		}
 
-		regs.VAL = (regs.VAL >= regs.ARG ? ag.__TRUE__ : ag.__FALSE__);
+		regs.VAL = (regs.VAL >= regs.ARG ? __TRUE__ : __FALSE__);
 		return regs.KON;
 	}
 
@@ -653,7 +653,7 @@ function NATIVES() {
 			regs.LST = cdr(regs.LST);
 		}
 
-		regs.VAL = ag.__FALSE__;
+		regs.VAL = __FALSE__;
 		return regs.KON;
 	}
 
@@ -674,12 +674,12 @@ function NATIVES() {
 		regs.LST = car(cdr(regs.ARG));
 
 		if (ag.isNull(regs.LST)) {
-			regs.VAL = ag.__NULL__;
+			regs.VAL = __NULL__;
 			return regs.KON;
 		}
 
 		vm.claim();
-		regs.ARG = ag.makePair(car(regs.LST), ag.__NULL__);
+		regs.ARG = ag.makePair(car(regs.LST), __NULL__);
 		regs.LST = cdr(regs.LST);
 		stk.save(regs.KON);
 		stk.save(0);
@@ -699,7 +699,7 @@ function NATIVES() {
 
 		regs.LEN = stk.restore();
 		claimSiz(8*regs.LEN);
-		regs.VAL = ag.makePair(regs.VAL, ag.__NULL__);
+		regs.VAL = ag.makePair(regs.VAL, __NULL__);
 		while(regs.LEN--)
 				regs.VAL = ag.makePair(mem.pop(), regs.VAL);
 		regs.KON = stk.restore();
@@ -717,7 +717,7 @@ function NATIVES() {
 
 		claim();
 		regs.VAL = regs.EXP; //regs.PRC
-		regs.ARG = ag.makePair(car(regs.LST), ag.__NULL__);
+		regs.ARG = ag.makePair(car(regs.LST), __NULL__);
 		regs.LST = cdr(regs.LST);
 		regs.LEN = 1;
 
@@ -848,7 +848,7 @@ function NATIVES() {
 		}
 		regs.TXT = printExp(car(regs.ARG));
 		config.printlog(regs.TXT);
-		regs.VAL = ag.__VOID__;
+		regs.VAL = __VOID__;
 		return regs.KON;
 	}
 
@@ -857,7 +857,7 @@ function NATIVES() {
 	function newline() {
 
 		config.printline('');
-		regs.VAL = ag.__VOID__;
+		regs.VAL = __VOID__;
 		return regs.KON;
 	}
 
@@ -888,10 +888,10 @@ function NATIVES() {
 
 		claimSiz(regs.LEN);
 		if (ag.isNull(regs.LST)) {
-			regs.VAL = ag.makeVector(regs.LEN);
+			regs.VAL = ag.fillVector(regs.LEN, __VOID__);
 		} else {
 			regs.VAL = car(regs.LST);
-			regs.VAL = ag.makeVector(regs.LEN, regs.VAL);
+			regs.VAL = ag.fillVector(regs.LEN, regs.VAL);
 		}
 
 		return regs.KON;
@@ -1000,7 +1000,7 @@ function NATIVES() {
 		}
 
 		regs.VAL = (car(regs.ARG) === car(cdr(regs.ARG)) ?
-					 ag.__TRUE__ : ag.__FALSE__);
+					 __TRUE__ : __FALSE__);
 		return regs.KON;
 	}
 
@@ -1023,7 +1023,7 @@ function NATIVES() {
 		//different types => #f
 		regs.TAG = ag.tag(regs.EXP);
 		if(regs.TAG !== ag.tag(regs.ARG)) {
-			regs.VAL = ag.__FALSE__;
+			regs.VAL = __FALSE__;
 			return regs.KON;
 		}
 
@@ -1033,7 +1033,7 @@ function NATIVES() {
 			case __PAIR_TAG__: return comparePair;
 			case __VECTOR_TAG__: return compareVector;
 			default:
-				regs.VAL = (regs.ARG === regs.EXP ? ag.__TRUE__ : ag.__FALSE__);
+				regs.VAL = (regs.ARG === regs.EXP ? __TRUE__ : __FALSE__);
 				return regs.KON;
 		}
 	}
@@ -1042,7 +1042,7 @@ function NATIVES() {
 
 		regs.ARG = ag.floatNumber(regs.ARG);
 		regs.EXP = ag.floatNumber(regs.EXP);
-		regs.VAL = (regs.ARG === regs.EXP ? ag.__TRUE__ : ag.__FALSE__);
+		regs.VAL = (regs.ARG === regs.EXP ? __TRUE__ : __FALSE__);
 		return regs.KON;
 	}
 
@@ -1050,18 +1050,18 @@ function NATIVES() {
 
 		regs.LEN = ag.stringLength(regs.ARG);
 		if(ag.stringLength(regs.EXP) !== regs.LEN) {
-			regs.VAL = ag.__FALSE__;
+			regs.VAL = __FALSE__;
 			return regs.KON;
 		}
 
 		while(regs.LEN--) {
 			if(ag.stringAt(regs.ARG, regs.LEN) !== ag.stringAt(regs.EXP, regs.LEN)) {
-				regs.VAL = ag.__FALSE__;
+				regs.VAL = __FALSE__;
 				return regs.KON;
 			}
 		}
 
-		regs.VAL = ag.__TRUE__;
+		regs.VAL = __TRUE__;
 		return regs.KON;
 	}
 
@@ -1081,7 +1081,7 @@ function NATIVES() {
 
 		regs.KON = stk.restore();
 
-		if (regs.VAL === ag.__FALSE__) {
+		if (regs.VAL === __FALSE__) {
 			mem.zap(); //zap cdr(ARG)
 			mem.zap(); //zap cdr(EXP)
 			return regs.KON;
@@ -1096,12 +1096,12 @@ function NATIVES() {
 
 		regs.LEN = ag.vectorLength(regs.ARG);
 		if(ag.vectorLength(regs.EXP) !== regs.LEN) {
-			regs.VAL = ag.__FALSE__;
+			regs.VAL = __FALSE__;
 			return regs.KON;
 		}
 
 		if(regs.LEN === 0) {
-			regs.VAL = ag.__TRUE__;
+			regs.VAL = __TRUE__;
 			return regs.KON;
 		}
 
@@ -1120,7 +1120,7 @@ function NATIVES() {
 
 	function c_compareVector() {
 
-		if (regs.VAL === ag.__FALSE__) {
+		if (regs.VAL === __FALSE__) {
 			mem.zap(); //zap vector ARG
 			mem.zap(); //zap vector EXP
 			stk.zap(); //discard count
@@ -1158,25 +1158,25 @@ function NATIVES() {
 				return error;
 			}
 			regs.TAG = ag.tag(car(regs.ARG));
-			regs.VAL = (regs.TAG === tag ? ag.__TRUE__ : ag.__FALSE__);
+			regs.VAL = (regs.TAG === tag ? __TRUE__ : __FALSE__);
 			return regs.KON;
 		}
 	}
 
 	var __IS_PAIR_PTR__ = 20;
-	var isPair = makeTypeCheck(ag.__PAIR_TAG__);
+	var isPair = makeTypeCheck(__PAIR_TAG__);
 
 	var __IS_NULL_PTR__ = 21;
-	var isNull = makeTypeCheck(ag.__NULL_TAG__);
+	var isNull = makeTypeCheck(__NULL_TAG__);
 
 	var __IS_SYMBOL_PTR__ = 22;
-	var isSymbol = makeTypeCheck(ag.__SYMBOL_TAG__);
+	var isSymbol = makeTypeCheck(__SYMBOL_TAG__);
 
 	var __IS_VECTOR_PTR__ = 32;
-	var isVector = makeTypeCheck(ag.__VECTOR_TAG__);
+	var isVector = makeTypeCheck(__VECTOR_TAG__);
 
 	var __IS_STRING_PTR__ = 35;
-	var isString = makeTypeCheck(ag.__STRING_TAG__);
+	var isString = makeTypeCheck(__STRING_TAG__);
 
 	/* --- STRINGS --- */
 
@@ -1281,9 +1281,9 @@ function NATIVES() {
 		return regs.KON;
 	}
 
-	var __JS_PTR__ = 40;
-
 	/* --- JS FFI --- */
+
+	var __JS_PTR__ = 40;
 
 	function js_exec() {
 
@@ -1298,8 +1298,8 @@ function NATIVES() {
 			return error;
 		}
 
-		eval(ag.stringText(regs.ARG));
-		regs.VAL = ag.__VOID__;
+		config.evalJS(ag.stringText(regs.ARG));
+		regs.VAL = __VOID__;
 		return regs.KON;
 	}
 
@@ -1343,13 +1343,15 @@ function NATIVES() {
 				return error;
 		}
 
-		setTimeout(c_sleep, regs.VAL);
-		return false;
+		//temp fix: setTimeout not in ECMA5-specification
+		//setTimeout(c_sleep, regs.VAL);
+		regs.VAL = __VOID__;
+		return regs.KON;
 	}
 
 	function c_sleep() {
 
-		regs.VAL = ag.__VOID__;
+		regs.VAL = __VOID__;
 		run(regs.KON);
 	}
 

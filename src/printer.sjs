@@ -21,7 +21,6 @@ function PRINTER() {
 			case __FLOAT_TAG__: return ag.floatNumber(exp).toString();
 			case __NATIVE_TAG__: return '#<native procedure>';
 			case __SYMBOL_TAG__: return ag.symbolText(exp);
-			/* ALSO PRINT OTHER ABSTRACT GRAMMAR ITEMS */
 			case __SEQUENCE_TAG__:
 				return '(<sequence> ' + printSequence(exp) + ')';
 			case __IFS_TAG__: 

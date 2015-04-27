@@ -37,18 +37,16 @@
 <script src="http://code.jquery.com/jquery-1.11.2.min.js"></script>
 
 <!-- INTERPRETER COMPONENTS -->
-<script src="src/memory.js"></script>
-<script src="src/ag.js"></script>
-<script src="src/pool.js"></script>
-<script src="src/printer.js"></script>
-<script src="src/reader.js"></script>
-<script src="src/compile.js"></script>
-<script src="src/eval.js"></script>
-<script src="src/natives.js"></script>
-<script src="src/main.js"></script>
+<script src="compiled/memory.js"></script>
+<script src="compiled/pool.js"></script>
+<script src="compiled/printer.js"></script>
+<script src="compiled/reader.js"></script>
+<script src="compiled/compile.js"></script>
+<script src="compiled/eval.js"></script>
+<script src="compiled/natives.js"></script>
+<script src="compiled/main.js"></script>
 
 </head>
-
 <body>
 
 <div id="terminal" style="width:100%"> </div>
@@ -134,20 +132,26 @@
 
 	/* --- START SLIP.JS REPL --- */
 
-	Slip_init({
-		readExpression: readExpression,
-		load: loadFile,
-		print: printOut,
-		printline: printLine,
-		printerror: function(err) {
-			printLine(err, 'error');
-		},
-		printlog: function(log) {
-			printOut(log, 'log');
-		}
-	});
+	function init() {
 
-	Slip_REPL();
+		Slip_init({
+			readExpression: readExpression,
+			load: loadFile,
+			print: printOut,
+			printline: printLine,
+			printerror: function(err) {
+				printLine(err, 'error');
+			},
+			printlog: function(log) {
+				printOut(log, 'log');
+			},
+			evalJS: eval
+		});
+
+		Slip_REPL();
+	}
+
+	init();
 
 </script>
 </body>

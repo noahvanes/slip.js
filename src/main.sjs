@@ -2,9 +2,8 @@
 "use strict";
 
 /* --- MODULES --- */
-var mem, ag, config,
-pool, reader, compiler, evaluator,
-natives, printExp;
+var mem, ag, config, pool, reader, 
+compiler, evaluator, natives, printExp;
 
 /* --- VM ARCHITECTURE --- */
 
@@ -55,21 +54,18 @@ function Slip_init(clbs, memSiz) {
 
 	//memory
 	var __DEFAULT_MEM__ = 24;
-	memSiz = 0x1 << (memSiz||__DEFAULT_MEM__);
-	var buffer = new ArrayBuffer(memSiz);
-	mem = MEMORY(window, {heapSize: memSiz}, buffer);
+	ag = mem = MEMORY(memSiz || __DEFAULT_MEM__);
 
 	//callbacks
 	config = clbs;
 
 	//setup other components
-	ag = GRAMMAR();
-	regs.FRM = ag.__NULL__;
-	regs.ENV = ag.__NULL__;
-	regs.GLB = ag.__NULL__;
-	regs.EXP = ag.__NULL__;
-	regs.VAL = ag.__NULL__;
-	regs.LST = ag.__NULL__;
+	regs.FRM = __NULL__;
+	regs.ENV = __NULL__;
+	regs.GLB = __NULL__;
+	regs.EXP = __NULL__;
+	regs.VAL = __NULL__;
+	regs.LST = __NULL__;
 
 	pool = POOL();
 	reader = READER();
@@ -197,7 +193,7 @@ function error() {
 	regs.TXT = __ERROR_PREFIX__ + regs.TXT;
 	config.printerror(regs.TXT);
 	regs.FRM = regs.GLB;
-	regs.ENV = ag.__NULL__;
+	regs.ENV = __NULL__;
 	mem.emptyStk();
 	stk.empty();
 	return REPL;

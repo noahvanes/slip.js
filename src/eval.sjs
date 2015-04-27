@@ -126,7 +126,7 @@ function EVALUATOR() {
 		regs.PAR = ag.dffArguments(regs.EXP);
 		regs.SEQ = ag.dffBody(regs.EXP);
 
-		regs.BND = ag.makePair(regs.PAT, ag.__NULL__);
+		regs.BND = ag.makePair(regs.PAT, __NULL__);
 		regs.FRM = ag.makePair(regs.BND, regs.FRM);
 		regs.ENV = ag.makePair(regs.FRM, regs.ENV);
 		regs.VAL = ag.makeProcedure(regs.PAR, regs.SEQ, regs.ENV);
@@ -268,11 +268,11 @@ function EVALUATOR() {
 				regs.KON = c_return;
 			}
 			regs.ENV = ag.makePair(regs.FRM, regs.ENV);
-			regs.FRM = ag.__NULL__;
+			regs.FRM = __NULL__;
 			return _eval;
 		}
 
-		regs.VAL = ag.__VOID__;
+		regs.VAL = __VOID__;
 		regs.KON = stk.restore();
 		return regs.KON;
 	}
@@ -300,7 +300,7 @@ function EVALUATOR() {
 			regs.KON = c_return;
 		}
 		regs.ENV = ag.makePair(regs.FRM, regs.ENV);
-		regs.FRM = ag.__NULL__;
+		regs.FRM = __NULL__;
 
 		if (ag.isFalse(regs.VAL))
 			regs.EXP = ag.iffAlternative(regs.EXP);
@@ -341,7 +341,7 @@ function EVALUATOR() {
 
 		if (regs.LEN === 0) {
 			mem.zap(); //skips empty vec
-			regs.ARG = ag.__NULL__;
+			regs.ARG = __NULL__;
 			regs.LEN = 0;
 			regs.KON = stk.restore(); 
 			return apply;
@@ -384,7 +384,7 @@ function EVALUATOR() {
 
 		regs.LEN = regs.IDX = stk.restore();
 		vm.claimSiz(3*regs.LEN); //sizeof(pair) = 3
-		regs.ARG = ag.makePair(regs.VAL, ag.__NULL__);
+		regs.ARG = ag.makePair(regs.VAL, __NULL__);
 		while (--regs.IDX) 
 			regs.ARG = ag.makePair(mem.pop(), regs.ARG);
 		regs.VAL = mem.pop();
@@ -413,7 +413,7 @@ function EVALUATOR() {
 			regs.EXP = ag.procedureBdy(regs.VAL);
 			regs.PAR = ag.procedurePar(regs.VAL);
 			regs.ENV = ag.procedureEnv(regs.VAL);
-			regs.FRM = ag.__NULL__;
+			regs.FRM = __NULL__;
 
 			return bind;
 		}

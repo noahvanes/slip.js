@@ -5,11 +5,11 @@ function POOL() {
 	var __POOL_TOP__ = 1;
 	var __POOL_SIZ__ = 64;
 	var __POOL_INC__ = 32;
-	regs.SYM = ag.makeVector(__POOL_SIZ__);
+	regs.SYM = ag.fillVector(__POOL_SIZ__, __VOID__);
 
 	function insertPool(str) {
 
-		var sym = ag.makeSymbol(str);
+		var sym = ag.buildSymbol(str);
 		__POOL__[str] = __POOL_TOP__;
 		ag.vectorSet(regs.SYM, __POOL_TOP__++, sym);
 		return sym;
@@ -37,7 +37,7 @@ function POOL() {
 			regs.SYM = newPool;
 		}
 		//add the symbol
-		sym = ag.makeSymbol(str);
+		sym = ag.buildSymbol(str);
 		__POOL__[str] = __POOL_TOP__;
 		ag.vectorSet(regs.SYM, __POOL_TOP__++, sym);
 		return sym;

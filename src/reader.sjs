@@ -71,9 +71,17 @@ function READER() {
 
 		function readSymbol() {
 
-			hold = position; 									//remember start position
-			while(!isTerminator(program.charAt(++position))); 	//skip until end of word
+			hold = position;
+			while(!isTerminator(program.charAt(++position)));
 			return pool.enterPool(program.substring(hold, position));
+		}
+
+		function extractString(from, to) {
+			var len = to - from;
+			var str = ag.makeString(len);
+			for(var i = 0; i < len; ++i)
+				ag.stringSet(str, i, program.charCodeAt(from+i));
+			return str;
 		}
 
 		function readString() {
@@ -81,7 +89,7 @@ function READER() {
 			claim();
 			hold = position;
 			while(program.charAt(++position) != '\"');
-			return ag.makeString(program.substring(hold+1, position++));
+			return extractString(hold+1, position++);
 		}
 
 		function readNumber() {
@@ -154,7 +162,7 @@ function READER() {
 
 		if (reader.peek() === ')') {
 			reader.skip();
-			regs.VAL = ag.__NULL__;
+			regs.VAL = __NULL__;
 			return regs.KON;
 		}
 
@@ -170,7 +178,7 @@ function READER() {
 
 		if (reader.peek() === ')') {
 			reader.skip();
-			regs.VAL = ag.makePair(regs.VAL, ag.__NULL__);
+			regs.VAL = ag.makePair(regs.VAL, __NULL__);
 			return c3_LBR;
 		}
 
@@ -219,7 +227,7 @@ function READER() {
 	function c_QUO() {
 
 		claim();
-		regs.VAL = ag.makePair(regs.VAL, ag.__NULL__);
+		regs.VAL = ag.makePair(regs.VAL, __NULL__);
 		regs.VAL = ag.makePair(__QUO_SYM__, regs.VAL);
 		regs.KON = stk.restore();
 		return regs.KON;
@@ -235,11 +243,11 @@ function READER() {
 
 			case 't': 
 				/* READ TRUE */
-				regs.VAL = ag.__TRUE__;
+				regs.VAL = __TRUE__;
 				return regs.KON;
 			case 'f': 
 				/* READ FALSE */
-				regs.VAL = ag.__FALSE__;
+				regs.VAL = __FALSE__;
 				return regs.KON;
 			case '\\': 
 				/* READ CHARACTER */

@@ -74,7 +74,7 @@ function COMPILER() {
 
 		//empty sequence
 		if (ag.isNull(regs.LST)) {
-			regs.VAL = ag.__VOID__;
+			regs.VAL = __VOID__;
 			return regs.KON;
 		}
 
