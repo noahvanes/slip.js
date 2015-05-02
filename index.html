@@ -115,9 +115,7 @@
 	}
 
 	function loadFile(url, clb, err) {
-
-		console.log("GIVEN: " + url);
-
+		
 		$.ajax(url, {
 			datatype: 'text',
 			success: clb,

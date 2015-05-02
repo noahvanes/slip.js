@@ -2640,12 +2640,12 @@ function SLIP(callbacks, size) {
         function _N_c1_load() {
             EXP = VAL;
             KON = 107;
-            return KON | 0;
+            return 53;
         }
         function _N_c2_load() {
             EXP = VAL;
             KON = immediateVal(pop() | 0) | 0;
-            return KON | 0;
+            return 77;
         }
         function _N_compare() {
             TMP = tag(EXP) | 0;

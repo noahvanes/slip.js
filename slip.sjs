@@ -3345,14 +3345,14 @@ function SLIP(callbacks, size) {
 
 				EXP = VAL;
 				KON = N_c2_load;
-				goto KON|0;
+				goto C_compile;
 			}
 
 			N_c2_load {
 
 				EXP = VAL;
 				KON = immediateVal(pop()|0)|0;
-				goto KON|0;
+				goto E_eval;
 			}
 
 			N_compare {
