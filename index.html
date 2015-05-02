@@ -34,17 +34,10 @@
 </style>
 
 <!-- JQUERY -->
-<script src="http://code.jquery.com/jquery-1.11.2.min.js"></script>
+<script src="lib/jquery.js"></script>
 
 <!-- INTERPRETER COMPONENTS -->
-<script src="compiled/memory.js"></script>
-<script src="compiled/pool.js"></script>
-<script src="compiled/printer.js"></script>
-<script src="compiled/reader.js"></script>
-<script src="compiled/compile.js"></script>
-<script src="compiled/eval.js"></script>
-<script src="compiled/natives.js"></script>
-<script src="compiled/main.js"></script>
+<script src="slip.js" async onload='init()'></script>
 
 </head>
 <body>
@@ -123,6 +116,8 @@
 
 	function loadFile(url, clb, err) {
 
+		console.log("GIVEN: " + url);
+
 		$.ajax(url, {
 			datatype: 'text',
 			success: clb,
@@ -134,7 +129,7 @@
 
 	function init() {
 
-		Slip_init({
+		var slip = SLIP({
 			readExpression: readExpression,
 			load: loadFile,
 			print: printOut,
@@ -148,10 +143,8 @@
 			evalJS: eval
 		});
 
-		Slip_REPL();
+		slip.Slip_REPL();
 	}
-
-	init();
 
 </script>
 </body>
