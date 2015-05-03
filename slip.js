@@ -3636,7 +3636,7 @@ function SLIP(callbacks, size) {
         initREPL: io.initREPL
     };
     var //asm module
-    asm = SLIP_ASM(window, foreign, buffer);
+    asm = SLIP_ASM(callbacks.stdlib, foreign, buffer);
     asm.makeNumber = asm.makeImmediate;
     asm.numberVal = asm.immediateVal;
     asm.stringText = function (chk) {

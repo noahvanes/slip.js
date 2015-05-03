@@ -4395,7 +4395,7 @@ function SLIP(callbacks, size) {
 	};
 
 	//asm module
-	var asm = SLIP_ASM(window, foreign, buffer);
+	var asm = SLIP_ASM(callbacks.stdlib, foreign, buffer);
 	asm.makeNumber = asm.makeImmediate;
 	asm.numberVal = asm.immediateVal;
 	asm.stringText = function(chk) {
