@@ -2245,9 +2245,9 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				loadFile(ARG|0);
 				push(makeImmediate(KON)|0);
 				KON = N_c1_load;
+				loadFile(ARG|0);
 				halt;
 			}
 

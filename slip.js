@@ -1747,9 +1747,9 @@ function SLIP(callbacks, size) {
                 err_invalidArgument(ARG | 0);
                 return 120;
             }
-            loadFile(ARG | 0);
             push(makeImmediate(KON) | 0);
             KON = 107;
+            loadFile(ARG | 0);
             return 0;
         }
         function _R_read() {
