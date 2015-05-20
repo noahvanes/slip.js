@@ -20,21 +20,27 @@ function scanBrackets(txt) {
 function readExpression(clb) { 
 
 	var txt = '';
-	do {
+	do
 		txt += readline();
-	} while(scanBrackets(txt));
+	while(scanBrackets(txt));
 	clb(txt);
 }
 
 function readFile(path, clb) {
 	var str = read(path);
-	clb(path);
+	clb(str);
 }
 
 // MAIN
 
-var stdlib = {Math: Math, Uint32Array: Uint32Array, Uint8Array: Uint8Array, Float32Array: Float32Array}
 load("./slip.js");
+
+var stdlib = {
+	Math: Math, 
+	Uint32Array: Uint32Array, 
+	Uint8Array: Uint8Array, 
+	Float32Array: Float32Array
+}
 
 var slip = SLIP({
 	stdlib: stdlib,
