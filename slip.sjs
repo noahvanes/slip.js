@@ -185,6 +185,9 @@ function SLIP(callbacks, size) {
 		var loadFile = foreign.loadFile;
 		var initREPL = foreign.initREPL;
 
+		//custom
+		var random = foreign.random;
+
 		//other
 		var __EMPTY_VEC__ = 0;
 
@@ -1134,6 +1137,7 @@ function SLIP(callbacks, size) {
 
 		function initNatives() {
 			addNative(loadLoa()|0, N_load);
+			addNative(loadRnd()|0, N_random);
 			addNative(loadSle()|0, N_stringLength);
 			addNative(loadSse()|0, N_stringSet);
 			addNative(loadSre()|0, N_stringRef);
@@ -2214,6 +2218,18 @@ function SLIP(callbacks, size) {
 				VAL = makeImmediate(textLength(ARG)|0)|0;
 				goto KON|0;
 
+			}
+
+			N_random {
+
+				if(LEN|0) {
+					err_invalidParamCount();
+					goto error;
+				}
+
+				claim();
+				VAL = makeFloat(fround(+random()))|0;
+				goto KON|0;
 			}
 
 			N_load {
@@ -4342,7 +4358,6 @@ function SLIP(callbacks, size) {
 		loadCol: pool.loadCol,
 		loadClk: pool.loadClk,
 		loadSlp: pool.loadSlp,
-		loadRnd: pool.loadRnd,
 		loadErr: pool.loadErr,
 		loadSre: pool.loadSre,
 		loadSse: pool.loadSse,
@@ -4366,6 +4381,7 @@ function SLIP(callbacks, size) {
 		loadNew: pool.loadNew,
 		loadRst: pool.loadRst,
 		loadCcc: pool.loadCcc,
+		loadRnd: pool.loadRnd,
 		clock: timer.getTime,
 		reset: timer.reset,
 		expectedRBR: errors.expectedRBR,
@@ -4391,7 +4407,8 @@ function SLIP(callbacks, size) {
 		promptInput: io.promptInput,
 		printLog: io.printLog,
 		loadFile: io.loadFile,
-		initREPL: io.initREPL
+		initREPL: io.initREPL,
+		random: Math.random
 	};
 
 	//asm module
