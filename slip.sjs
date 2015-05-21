@@ -1253,7 +1253,6 @@ function SLIP(callbacks, size) {
 
 			collectGarbage();
 
-			loadSymbols();
 			__EMPTY_VEC__ = pop()|0;
 			EXP = pop()|0;
 			VAL = pop()|0;
@@ -1263,6 +1262,7 @@ function SLIP(callbacks, size) {
 			FRM = pop()|0;
 			GLB = pop()|0;
 			SYM = pop()|0;
+			loadSymbols();
 		}
 
 // **********************************************************************
