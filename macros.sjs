@@ -24,7 +24,7 @@ macro makeLabel {
     }
 }
 
-macro instructions { 
+macro instructions {
     case {
       _ {
         $($lab {
@@ -40,10 +40,10 @@ macro instructions {
         }
         var len = #{$lab ...}.length;
         var numbers = new Array(len);
-        for(var i = 0; i < len;) 
+        for(var i = 0; i < len;)
             numbers[i] = (makeValue(++i, #{here}));
         letstx $nbr ... = numbers;
-        len = nextPowTwo(len);
+        len = nextPowTwo(len+1);
         var diff = len - (i+1);
         var nops = new Array(diff);
         while(diff--)
