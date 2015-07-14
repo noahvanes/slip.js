@@ -1698,7 +1698,7 @@ function SLIP(callbacks, size) {
 			addNative(loadNew()|0, N_newline);
 			addNative(loadDis()|0, N_display);
 			addNative(loadEva()|0, N_eval);
-			addNative(loadApl()|0, N_apply);
+			addNative(loadApl()|0, N_applyNat);
 			addNative(loadMap()|0, N_map);
 			addNative(loadAss()|0, N_assoc);
 			addNative(loadVec()|0, N_vector);
@@ -2343,9 +2343,8 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				LEN = 1;
-				VAL = pairCar(ARG)|0;
-				LST = pairCar(pairCdr(ARG)|0)|0;
+				VAL = vectorRef(PAR, 1)|0;
+				LST = vectorRef(PAR, 2)|0;
 
 				if(isNull(LST)|0) {
 					VAL = __NULL__;
@@ -2366,7 +2365,7 @@ function SLIP(callbacks, size) {
 					KON = N_c2_map;
 				}
 
-				goto E_eval;
+				goto N_apply;
 			}
 
 			N_eval {
@@ -2383,24 +2382,17 @@ function SLIP(callbacks, size) {
 				goto C_compile;
 			}
 
-			N_apply {
+			N_applyNat {
 
 				if((LEN|0) != 2) {
 					err_invalidParamCount();
 					goto error;
 				}
 
-				VAL = pairCar(ARG)|0;
-				ARG = pairCar(pairCdr(ARG)|0)|0;
-
-				for(LST=ARG, LEN=0; isPair(LST)|0; LEN=(LEN+1)|0)
-					LST = pairCdr(LST)|0;
-				if(!(isNull(LST)|0)) {
-					err_invalidArgument(ARG|0);
-					goto error;
-				}
-
-				goto E_eval;
+				VAL = vectorRef(PAR, 1)|0;
+				ARG = vectorRef(PAR, 2)|0;
+				
+				goto N_apply;
 			}
 
 			N_display {
@@ -2662,19 +2654,21 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				VAL = vectorRef(PAR,1)|0;
-				if(!(isPrc(VAL)|0)) {
-					err_invalidArgument(VAL|0);
-					goto error;
+				VAL = vectorRef(PAR, 1)|0;
+
+				switch(tag(VAL)|0) {
+					case __PRC_TAG__:
+					case __PRZ_TAG__:
+					case __NAT_TAG__:
+					case __CNT_TAG__:
+						ARG = currentStack()|0;
+						ARG = makeContinuation(makeImmediate(KON)|0, FRM, ENV, ARG)|0;
+						ARG = makePair(ARG, __NULL__)|0;
+						goto N_apply;
 				}
 
-				ARG = currentStack()|0;
-				ARG = makeContinuation(makeImmediate(KON)|0, FRM, ENV, ARG)|0;
-				//TODO: apply properly 
-				ARG = makePair(ARG, __NULL__)|0;
-				LEN = 1;
-
-				goto E_eval;
+				err_invalidArgument(VAL|0);
+				goto error;
 			}
 
 			N_stringRef {
@@ -3814,9 +3808,10 @@ function SLIP(callbacks, size) {
 						LEN = 0;
 						PAR = __EMPTY_VEC__;
 						goto nativePtr(VAL)|0;
-				/*
+				
 					case __CNT_TAG__:
-				*/
+						err_invalidParamCount();
+						goto error;
 				}
 
 				err_invalidOperator(VAL|0);
@@ -3917,13 +3912,72 @@ function SLIP(callbacks, size) {
 						claimSiz(LEN);
 						PAR = fillVector(LEN, __VOID__)|0;
 						goto E_nativeArgs;
-				/*
+				
 					case __CNT_TAG__:
-				*/
+						LEN = vectorLength(ARG)|0;
+						if((LEN|0)!=1) {
+							err_invalidParamCount();
+							goto error;
+						}
+						EXP = vectorRef(ARG,1)|0;
+						goto E_continuationArg;
 				}
 
 				err_invalidOperator(VAL|0);
 				goto error;
+			}
+
+			// ARGUMENT (CNT)
+
+			E_continuationArg {
+
+				switch(tag(EXP)|0) {
+					case __NUL_TAG__: case __VOI_TAG__:
+					case __TRU_TAG__: case __FLS_TAG__:
+					case __NBR_TAG__: case __CHR_TAG__:
+					case __PAI_TAG__: case __PRC_TAG__:
+					case __VCT_TAG__: case __STR_TAG__:
+					case __FLT_TAG__: case __NAT_TAG__:
+					case __CNT_TAG__: case __PRZ_TAG__:
+						break;
+					case __QUO_TAG__:
+						EXP = quoExpression(EXP)|0;
+						break;
+					case __LCL_TAG__:
+						EXP = lookupLocal(EXP)|0;
+						break;
+					case __GLB_TAG__:
+						EXP = lookupGlobal(EXP)|0;
+						break;
+					case __LMB_TAG__:
+						EXP = capturePrc(EXP)|0;
+						break;
+					case __LMZ_TAG__:
+						EXP = capturePrz(EXP)|0;
+						break;
+					default:
+						claim();
+						push(VAL);
+						KON = E_c_continuationArg;
+						goto E_eval;
+				}
+
+				KON = immediateVal(continuationKon(VAL)|0)|0;
+				restoreStack(continuationStk(VAL)|0);
+				FRM = continuationFrm(VAL)|0;
+				ENV = continuationEnv(VAL)|0;
+				VAL = EXP;
+				goto KON|0;
+			}
+
+			E_c_continuationArg {
+
+				EXP = pop()|0;
+				KON = immediateVal(continuationKon(EXP)|0)|0;
+				restoreStack(continuationStk(EXP)|0);
+				FRM = continuationFrm(EXP)|0;
+				ENV = continuationEnv(EXP)|0;
+				goto KON|0;
 			}
 
 			// ARGUMENTS (NAT)
@@ -4569,9 +4623,8 @@ function SLIP(callbacks, size) {
 				LEN = immediateVal(pop()|0)|0;
 				claimSiz(imul(3,LEN)|0);
 				VAL = makePair(VAL, __NULL__)|0;
-				for(;LEN;LEN=(LEN-1)|0) {
+				for(;LEN;LEN=(LEN-1)|0)
 					VAL = makePair(pop()|0, VAL)|0;
-				}
 				KON = immediateVal(pop()|0)|0;
 				goto KON|0;
 			}
@@ -4589,7 +4642,6 @@ function SLIP(callbacks, size) {
 				VAL = EXP;
 				ARG = makePair(pairCar(LST)|0, __NULL__)|0;
 				LST = pairCdr(LST)|0;
-				LEN = 1;
 
 				if(isNull(LST)|0) {
 					KON = N_c1_map;
@@ -4599,7 +4651,91 @@ function SLIP(callbacks, size) {
 					KON = N_c2_map;
 				}
 
-				goto E_eval;
+				goto N_apply;
+			}
+
+			N_apply {
+
+				switch(tag(VAL)|0) {
+
+					case __PRC_TAG__:
+						LEN = immediateVal(prcArgc(VAL)|0)|0; 
+						SIZ = immediateVal(prcFrmSiz(VAL)|0)|0;
+						claimSiz(SIZ);
+						preserveEnv();
+						FRM = fillVector(SIZ, __VOID__)|0;
+						for(IDX=1; (IDX|0)<=(LEN|0); IDX=(IDX+1)|0) {
+							if(!(isPair(ARG)|0)) {
+								err_invalidParamCount();
+								goto error;
+							}
+							TMP = pairCar(ARG)|0;
+							ARG = pairCdr(ARG)|0;
+							vectorSet(FRM, IDX, TMP);
+						}
+						if(!(isNull(ARG)|0)) {
+							err_invalidParamCount();
+							goto error;
+						}
+						ENV = prcEnv(VAL)|0;
+						EXP = prcBdy(VAL)|0;
+						goto E_eval;
+
+					case __PRZ_TAG__:
+						LEN = immediateVal(przArgc(VAL)|0)|0; 
+						SIZ = immediateVal(przFrmSiz(VAL)|0)|0;
+						claimSiz(SIZ);
+						preserveEnv();
+						FRM = fillVector(SIZ, __VOID__)|0;
+						for(IDX=1; (IDX|0)<=(LEN|0); IDX=(IDX+1)|0) {
+							if(!(isPair(ARG)|0)) {
+								err_invalidParamCount();
+								goto error;
+							}
+							TMP = pairCar(ARG)|0;
+							ARG = pairCdr(ARG)|0;
+							vectorSet(FRM, IDX, TMP);
+						}						
+						vectorSet(FRM, IDX, ARG);
+						ENV = przEnv(VAL)|0;
+						EXP = przBdy(VAL)|0;
+						goto E_eval;
+
+					case __NAT_TAG__: 
+						for(LEN=0,LST=ARG;isPair(LST)|0;LEN=(LEN+1)|0)
+							LST = pairCdr(LST)|0;
+						if(!(isNull(LST)|0)) {
+							err_invalidArgument(ARG|0);
+							goto error;
+						}
+						claimSiz(LEN);
+						PAR = makeVector(LEN)|0;
+						for(IDX=1;(IDX|0)<=(LEN|0);IDX=(IDX+1)|0) {
+							TMP = pairCar(ARG)|0;
+							ARG = pairCdr(ARG)|0;
+							vectorSet(PAR, IDX, TMP);
+						}
+						goto nativePtr(VAL)|0;
+				
+					case __CNT_TAG__: 
+						if(!(isPair(ARG)|0)) {
+							err_invalidParamCount();
+							goto error;
+						}
+						if(!(isNull(pairCdr(ARG)|0)|0)) {
+							err_invalidParamCount();
+							goto error;
+						}
+						KON = immediateVal(continuationKon(VAL)|0)|0;
+						restoreStack(continuationStk(VAL)|0);
+						FRM = continuationFrm(VAL)|0;
+						ENV = continuationStk(VAL)|0; 
+						VAL = pairCar(ARG)|0;
+						goto KON|0;
+				}
+
+				err_invalidOperator(VAL|0);
+				goto error;
 			}
 
 			N_c_eval {
