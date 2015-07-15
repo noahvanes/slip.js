@@ -1395,7 +1395,7 @@ function SLIP(callbacks, size) {
         }
         function Slip_REPL() {
             initREPL();
-            run(138);
+            run(139);
         }
         function inputReady() {
             run(45);
@@ -1460,7 +1460,7 @@ function SLIP(callbacks, size) {
                     return 122;
                 default:
                     err_invalidArgument(EXP | 0);
-                    return 142;
+                    return 143;
                 }
             }
             VAL = makeImmediate(VAL) | 0;
@@ -1469,7 +1469,7 @@ function SLIP(callbacks, size) {
         function _N_sub() {
             if (!LEN) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             VAL = vectorRef(PAR, 1) | 0;
             if ((LEN | 0) == 1) {
@@ -1483,7 +1483,7 @@ function SLIP(callbacks, size) {
                     return KON | 0;
                 default:
                     err_invalidArgument(VAL | 0);
-                    return 142;
+                    return 143;
                 }
             }
             IDX = 1;
@@ -1502,7 +1502,7 @@ function SLIP(callbacks, size) {
                         return 123;
                     default:
                         err_invalidArgument(EXP | 0);
-                        return 142;
+                        return 143;
                     }
                 }
                 VAL = makeImmediate(VAL) | 0;
@@ -1512,7 +1512,7 @@ function SLIP(callbacks, size) {
                 return 123;
             }
             err_invalidArgument(VAL | 0);
-            return 142;
+            return 143;
         }
         function _N_multiply() {
             VAL = 1;
@@ -1529,7 +1529,7 @@ function SLIP(callbacks, size) {
                     return 124;
                 default:
                     err_invalidArgument(EXP | 0);
-                    return 142;
+                    return 143;
                 }
             }
             VAL = makeImmediate(VAL) | 0;
@@ -1538,7 +1538,7 @@ function SLIP(callbacks, size) {
         function _N_div() {
             if (!LEN) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             claim();
             VAL = vectorRef(PAR, 1) | 0;
@@ -1552,7 +1552,7 @@ function SLIP(callbacks, size) {
                     return KON | 0;
                 default:
                     err_invalidArgument(VAL | 0);
-                    return 142;
+                    return 143;
                 }
             }
             switch (tag(VAL) | 0) {
@@ -1564,7 +1564,7 @@ function SLIP(callbacks, size) {
                 break;
             default:
                 err_invalidArgument(VAL | 0);
-                return 142;
+                return 143;
             }
             for (IDX = 2; (IDX | 0) <= (LEN | 0); IDX = IDX + 1 | 0) {
                 EXP = vectorRef(PAR, IDX) | 0;
@@ -1577,7 +1577,7 @@ function SLIP(callbacks, size) {
                     break;
                 default:
                     err_invalidArgument(EXP | 0);
-                    return 142;
+                    return 143;
                 }
             }
             VAL = makeFloat(FLT) | 0;
@@ -1586,7 +1586,7 @@ function SLIP(callbacks, size) {
         function _N_cons() {
             if ((LEN | 0) != 2) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             claim();
             VAL = makePair(vectorRef(PAR, 1) | 0, vectorRef(PAR, 2) | 0) | 0;
@@ -1595,7 +1595,7 @@ function SLIP(callbacks, size) {
         function _N_car() {
             if ((LEN | 0) != 1) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             ARG = vectorRef(PAR, 1) | 0;
             if (isPair(ARG) | 0) {
@@ -1603,12 +1603,12 @@ function SLIP(callbacks, size) {
                 return KON | 0;
             }
             err_invalidArgument(ARG | 0);
-            return 142;
+            return 143;
         }
         function _N_cdr() {
             if ((LEN | 0) != 1) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             ARG = vectorRef(PAR, 1) | 0;
             if (isPair(ARG) | 0) {
@@ -1616,12 +1616,12 @@ function SLIP(callbacks, size) {
                 return KON | 0;
             }
             err_invalidArgument(ARG | 0);
-            return 142;
+            return 143;
         }
         function _N_sca() {
             if ((LEN | 0) != 2) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             ARG = vectorRef(PAR, 1) | 0;
             VAL = vectorRef(PAR, 2) | 0;
@@ -1630,12 +1630,12 @@ function SLIP(callbacks, size) {
                 return KON | 0;
             }
             err_invalidArgument(ARG | 0);
-            return 142;
+            return 143;
         }
         function _N_scd() {
             if ((LEN | 0) != 2) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             ARG = vectorRef(PAR, 1) | 0;
             VAL = vectorRef(PAR, 2) | 0;
@@ -1644,7 +1644,7 @@ function SLIP(callbacks, size) {
                 return KON | 0;
             }
             err_invalidArgument(ARG | 0);
-            return 142;
+            return 143;
         }
         function _N_list() {
             claimSiz(imul(3, LEN) | 0);
@@ -1655,7 +1655,7 @@ function SLIP(callbacks, size) {
         function _N_nbrEq() {
             if ((LEN | 0) != 2) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             ARG = vectorRef(PAR, 1) | 0;
             EXP = vectorRef(PAR, 2) | 0;
@@ -1670,7 +1670,7 @@ function SLIP(callbacks, size) {
                     return KON | 0;
                 }
                 err_invalidArgument(EXP | 0);
-                return 142;
+                return 143;
             case 1:
                 switch (tag(EXP) | 0) {
                 case 69:
@@ -1681,15 +1681,15 @@ function SLIP(callbacks, size) {
                     return KON | 0;
                 }
                 err_invalidArgument(EXP | 0);
-                return 142;
+                return 143;
             }
             err_invalidArgument(ARG | 0);
-            return 142;
+            return 143;
         }
         function _N_seq() {
             if ((LEN | 0) != 2) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             ARG = vectorRef(PAR, 1) | 0;
             EXP = vectorRef(PAR, 2) | 0;
@@ -1704,7 +1704,7 @@ function SLIP(callbacks, size) {
                     return KON | 0;
                 }
                 err_invalidArgument(EXP | 0);
-                return 142;
+                return 143;
             case 1:
                 switch (tag(EXP) | 0) {
                 case 69:
@@ -1715,15 +1715,15 @@ function SLIP(callbacks, size) {
                     return KON | 0;
                 }
                 err_invalidArgument(EXP | 0);
-                return 142;
+                return 143;
             }
             err_invalidArgument(ARG | 0);
-            return 142;
+            return 143;
         }
         function _N_leq() {
             if ((LEN | 0) != 2) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             ARG = vectorRef(PAR, 1) | 0;
             EXP = vectorRef(PAR, 2) | 0;
@@ -1738,7 +1738,7 @@ function SLIP(callbacks, size) {
                     return KON | 0;
                 }
                 err_invalidArgument(EXP | 0);
-                return 142;
+                return 143;
             case 1:
                 switch (tag(EXP) | 0) {
                 case 69:
@@ -1749,15 +1749,15 @@ function SLIP(callbacks, size) {
                     return KON | 0;
                 }
                 err_invalidArgument(EXP | 0);
-                return 142;
+                return 143;
             }
             err_invalidArgument(ARG | 0);
-            return 142;
+            return 143;
         }
         function _N_sma() {
             if ((LEN | 0) != 2) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             ARG = vectorRef(PAR, 1) | 0;
             EXP = vectorRef(PAR, 2) | 0;
@@ -1772,7 +1772,7 @@ function SLIP(callbacks, size) {
                     return KON | 0;
                 }
                 err_invalidArgument(EXP | 0);
-                return 142;
+                return 143;
             case 1:
                 switch (tag(EXP) | 0) {
                 case 69:
@@ -1783,15 +1783,15 @@ function SLIP(callbacks, size) {
                     return KON | 0;
                 }
                 err_invalidArgument(EXP | 0);
-                return 142;
+                return 143;
             }
             err_invalidArgument(ARG | 0);
-            return 142;
+            return 143;
         }
         function _N_lrg() {
             if ((LEN | 0) != 2) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             ARG = vectorRef(PAR, 1) | 0;
             EXP = vectorRef(PAR, 2) | 0;
@@ -1806,7 +1806,7 @@ function SLIP(callbacks, size) {
                     return KON | 0;
                 }
                 err_invalidArgument(EXP | 0);
-                return 142;
+                return 143;
             case 1:
                 switch (tag(EXP) | 0) {
                 case 69:
@@ -1817,15 +1817,15 @@ function SLIP(callbacks, size) {
                     return KON | 0;
                 }
                 err_invalidArgument(EXP | 0);
-                return 142;
+                return 143;
             }
             err_invalidArgument(ARG | 0);
-            return 142;
+            return 143;
         }
         function _N_assoc() {
             if ((LEN | 0) != 2) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             PAT = vectorRef(PAR, 1) | 0;
             LST = vectorRef(PAR, 2) | 0;
@@ -1833,7 +1833,7 @@ function SLIP(callbacks, size) {
                 VAL = pairCar(LST) | 0;
                 if (!(isPair(VAL) | 0)) {
                     err_invalidArgument(LST | 0);
-                    return 142;
+                    return 143;
                 }
                 if ((pairCar(VAL) | 0) == (PAT | 0))
                     return KON | 0;
@@ -1845,7 +1845,7 @@ function SLIP(callbacks, size) {
         function _N_map() {
             if ((LEN | 0) != 2) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             VAL = vectorRef(PAR, 1) | 0;
             LST = vectorRef(PAR, 2) | 0;
@@ -1870,18 +1870,22 @@ function SLIP(callbacks, size) {
         function _N_eval() {
             if ((LEN | 0) != 1) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             claim();
             EXP = vectorRef(PAR, 1) | 0;
             push(makeImmediate(KON) | 0);
+            push(ENV);
+            push(FRM);
+            FRM = GLB;
+            ENV = __EMPTY_VEC__;
             KON = 128;
             return 54;
         }
         function _N_applyNat() {
             if ((LEN | 0) != 2) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             VAL = vectorRef(PAR, 1) | 0;
             ARG = vectorRef(PAR, 2) | 0;
@@ -1890,7 +1894,7 @@ function SLIP(callbacks, size) {
         function _N_display() {
             if ((LEN | 0) != 1) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             printLog(vectorRef(PAR, 1) | 0);
             VAL = 2147483647;
@@ -1908,7 +1912,7 @@ function SLIP(callbacks, size) {
         function _N_isPair() {
             if ((LEN | 0) != 1) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             VAL = (tag(vectorRef(PAR, 1) | 0) | 0) == 0 ? 2147483643 : 2147483641;
             return KON | 0;
@@ -1916,7 +1920,7 @@ function SLIP(callbacks, size) {
         function _N_isNull() {
             if ((LEN | 0) != 1) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             VAL = (tag(vectorRef(PAR, 1) | 0) | 0) == 68 ? 2147483643 : 2147483641;
             return KON | 0;
@@ -1924,7 +1928,7 @@ function SLIP(callbacks, size) {
         function _N_isSymbol() {
             if ((LEN | 0) != 1) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             VAL = (tag(vectorRef(PAR, 1) | 0) | 0) == 3 ? 2147483643 : 2147483641;
             return KON | 0;
@@ -1932,7 +1936,7 @@ function SLIP(callbacks, size) {
         function _N_isVector() {
             if ((LEN | 0) != 1) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             VAL = (tag(vectorRef(PAR, 1) | 0) | 0) == 2 ? 2147483643 : 2147483641;
             return KON | 0;
@@ -1940,7 +1944,7 @@ function SLIP(callbacks, size) {
         function _N_isString() {
             if ((LEN | 0) != 1) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             VAL = (tag(vectorRef(PAR, 1) | 0) | 0) == 5 ? 2147483643 : 2147483641;
             return KON | 0;
@@ -1948,17 +1952,17 @@ function SLIP(callbacks, size) {
         function _N_makeVector() {
             if (!LEN) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             ARG = vectorRef(PAR, 1) | 0;
             if (!(isNumber(ARG) | 0)) {
                 err_invalidArgument(ARG | 0);
-                return 142;
+                return 143;
             }
             LEN = immediateVal(ARG) | 0;
             if ((LEN | 0) < 0) {
                 err_invalidLength(LEN | 0);
-                return 142;
+                return 143;
             }
             claimSiz(LEN);
             VAL = LEN ? 1 : vectorRef(PAR, 2) | 0;
@@ -1968,17 +1972,17 @@ function SLIP(callbacks, size) {
         function _N_vectorRef() {
             if ((LEN | 0) != 2) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             ARG = vectorRef(PAR, 1) | 0;
             EXP = vectorRef(PAR, 2) | 0;
             if (!(isVector(ARG) | 0)) {
                 err_invalidArgument(ARG | 0);
-                return 142;
+                return 143;
             }
             if (!(isNumber(EXP) | 0)) {
                 err_invalidArgument(EXP | 0);
-                return 142;
+                return 143;
             }
             IDX = immediateVal(EXP) | 0;
             LEN = vectorLength(ARG) | 0;
@@ -1987,23 +1991,23 @@ function SLIP(callbacks, size) {
                 return KON | 0;
             }
             err_invalidRange(IDX | 0, 0, LEN - 1 | 0);
-            return 142;
+            return 143;
         }
         function _N_vectorSet() {
             if ((LEN | 0) != 3) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             ARG = vectorRef(PAR, 1) | 0;
             EXP = vectorRef(PAR, 2) | 0;
             VAL = vectorRef(PAR, 3) | 0;
             if (!(isVector(ARG) | 0)) {
                 err_invalidArgument(ARG | 0);
-                return 142;
+                return 143;
             }
             if (!(isNumber(EXP) | 0)) {
                 err_invalidArgument(EXP | 0);
-                return 142;
+                return 143;
             }
             IDX = immediateVal(EXP) | 0;
             LEN = vectorLength(ARG) | 0;
@@ -2012,17 +2016,17 @@ function SLIP(callbacks, size) {
                 return KON | 0;
             }
             err_invalidRange(IDX | 0, 0, LEN - 1 | 0);
-            return 142;
+            return 143;
         }
         function _N_vectorLength() {
             if ((LEN | 0) != 1) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             ARG = vectorRef(PAR, 1) | 0;
             if (!(isVector(ARG) | 0)) {
                 err_invalidArgument(ARG | 0);
-                return 142;
+                return 143;
             }
             LEN = vectorLength(ARG) | 0;
             VAL = makeImmediate(LEN) | 0;
@@ -2035,7 +2039,7 @@ function SLIP(callbacks, size) {
         function _N_clock() {
             if (LEN) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             VAL = makeImmediate(clock() | 0) | 0;
             return KON | 0;
@@ -2043,7 +2047,7 @@ function SLIP(callbacks, size) {
         function _N_reset() {
             if (LEN) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             reset();
             VAL = 2147483647;
@@ -2052,7 +2056,7 @@ function SLIP(callbacks, size) {
         function _N_eq() {
             if ((LEN | 0) != 2) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             VAL = (vectorRef(PAR, 1) | 0) == (vectorRef(PAR, 2) | 0) ? 2147483643 : 2147483641;
             return KON | 0;
@@ -2060,11 +2064,11 @@ function SLIP(callbacks, size) {
         function _N_equal() {
             if ((LEN | 0) != 2) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             EXP = vectorRef(PAR, 1) | 0;
             ARG = vectorRef(PAR, 2) | 0;
-            return 131;
+            return 132;
         }
         function _N_collect() {
             reclaim();
@@ -2078,7 +2082,7 @@ function SLIP(callbacks, size) {
         function _N_callcc() {
             if ((LEN | 0) != 1) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             VAL = vectorRef(PAR, 1) | 0;
             switch (tag(VAL) | 0) {
@@ -2092,22 +2096,22 @@ function SLIP(callbacks, size) {
                 return 127;
             }
             err_invalidArgument(VAL | 0);
-            return 142;
+            return 143;
         }
         function _N_stringRef() {
             if ((LEN | 0) != 2) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             ARG = vectorRef(PAR, 1) | 0;
             EXP = vectorRef(PAR, 2) | 0;
             if (!(isString(ARG) | 0)) {
                 err_invalidArgument(ARG | 0);
-                return 142;
+                return 143;
             }
             if (!(isNumber(EXP) | 0)) {
                 err_invalidArgument(EXP | 0);
-                return 142;
+                return 143;
             }
             IDX = immediateVal(EXP) | 0;
             LEN = textLength(ARG) | 0;
@@ -2116,27 +2120,27 @@ function SLIP(callbacks, size) {
                 return KON | 0;
             }
             err_invalidRange(IDX | 0, 0, LEN - 1 | 0);
-            return 142;
+            return 143;
         }
         function _N_stringSet() {
             if ((LEN | 0) != 3) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             ARG = vectorRef(PAR, 1) | 0;
             EXP = vectorRef(PAR, 2) | 0;
             VAL = vectorRef(PAR, 3) | 0;
             if (!(isString(ARG) | 0)) {
                 err_invalidArgument(ARG | 0);
-                return 142;
+                return 143;
             }
             if (!(isNumber(EXP) | 0)) {
                 err_invalidArgument(EXP | 0);
-                return 142;
+                return 143;
             }
             if (!(isChar(VAL) | 0)) {
                 err_invalidArgument(VAL | 0);
-                return 142;
+                return 143;
             }
             IDX = immediateVal(EXP) | 0;
             LEN = textLength(ARG) | 0;
@@ -2145,17 +2149,17 @@ function SLIP(callbacks, size) {
                 return KON | 0;
             }
             err_invalidRange(IDX | 0, 0, LEN - 1 | 0);
-            return 142;
+            return 143;
         }
         function _N_stringLength() {
             if ((LEN | 0) != 1) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             ARG = vectorRef(PAR, 1) | 0;
             if (!(isString(ARG) | 0)) {
                 err_invalidArgument(ARG | 0);
-                return 142;
+                return 143;
             }
             VAL = makeImmediate(textLength(ARG) | 0) | 0;
             return KON | 0;
@@ -2163,7 +2167,7 @@ function SLIP(callbacks, size) {
         function _N_random() {
             if (LEN | 0) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             claim();
             VAL = makeFloat(fround(+random())) | 0;
@@ -2172,16 +2176,16 @@ function SLIP(callbacks, size) {
         function _N_load() {
             if ((LEN | 0) != 1) {
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             ARG = vectorRef(PAR, 1) | 0;
             if (!(isString(ARG) | 0)) {
                 err_invalidArgument(ARG | 0);
-                return 142;
+                return 143;
             }
             claim();
             push(makeImmediate(KON) | 0);
-            KON = 129;
+            KON = 130;
             loadFile(ARG | 0);
             return 0;
         }
@@ -2245,7 +2249,7 @@ function SLIP(callbacks, size) {
         function _R_c2_LBR() {
             if ((look() | 0) != 41) {
                 err_expectedRBR(look() | 0);
-                return 142 | 0;
+                return 143 | 0;
             }
             skip();
             return 49;
@@ -2294,7 +2298,7 @@ function SLIP(callbacks, size) {
                 return 45;
             }
             err_invalidSyntax();
-            return 142;
+            return 143;
         }
         function _R_c_vector() {
             if ((look() | 0) == 41) {
@@ -2354,7 +2358,7 @@ function SLIP(callbacks, size) {
                 return KON | 0;
             }
             err_undefinedVariable(PAT | 0);
-            return 142;
+            return 143;
         }
         function _C_compileSequence() {
             if (isNull(LST) | 0) {
@@ -2363,7 +2367,7 @@ function SLIP(callbacks, size) {
             }
             if (!(isPair(LST) | 0)) {
                 err_invalidSequence();
-                return 142;
+                return 143;
             }
             EXP = pairCar(LST) | 0;
             LST = pairCdr(LST) | 0;
@@ -2383,7 +2387,7 @@ function SLIP(callbacks, size) {
             push(makeImmediate(LEN + 1 | 0) | 0);
             if (!(isPair(LST) | 0)) {
                 err_invalidSequence();
-                return 142;
+                return 143;
             }
             EXP = pairCar(LST) | 0;
             LST = pairCdr(LST) | 0;
@@ -2411,7 +2415,7 @@ function SLIP(callbacks, size) {
         function _C_compileQuote() {
             if (!(isPair(LST) | 0)) {
                 err_invalidQuote();
-                return 142;
+                return 143;
             }
             EXP = pairCar(LST) | 0;
             LST = pairCdr(LST) | 0;
@@ -2421,7 +2425,7 @@ function SLIP(callbacks, size) {
                 return KON | 0;
             }
             err_invalidQuote();
-            return 142;
+            return 143;
         }
         function _C_compileInline() {
             claim();
@@ -2448,13 +2452,13 @@ function SLIP(callbacks, size) {
         function _C_compileIf() {
             if (!(isPair(LST) | 0)) {
                 err_invalidIf();
-                return 142;
+                return 143;
             }
             EXP = pairCar(LST) | 0;
             LST = pairCdr(LST) | 0;
             if (!(isPair(LST) | 0)) {
                 err_invalidIf();
-                return 142;
+                return 143;
             }
             claim();
             push(makeImmediate(KON) | 0);
@@ -2478,7 +2482,7 @@ function SLIP(callbacks, size) {
                 return 60;
             }
             err_invalidIf();
-            return 142;
+            return 143;
         }
         function _C_c2_if() {
             claim();
@@ -2493,7 +2497,7 @@ function SLIP(callbacks, size) {
             poke(VAL);
             if (!(isNull(LST) | 0)) {
                 err_invalidIf();
-                return 142;
+                return 143;
             }
             KON = 66;
             return 60;
@@ -2510,7 +2514,7 @@ function SLIP(callbacks, size) {
                 PAT = pairCar(LST) | 0;
                 if (!(isSymbol(PAT) | 0)) {
                     err_invalidParameter();
-                    return 142;
+                    return 143;
                 }
                 claim();
                 defineVar() | 0;
@@ -2521,7 +2525,7 @@ function SLIP(callbacks, size) {
             claim();
             if (!(isPair(LST) | 0)) {
                 err_invalidDefine();
-                return 142;
+                return 143;
             }
             PAT = pairCar(LST) | 0;
             LST = pairCdr(LST) | 0;
@@ -2530,13 +2534,13 @@ function SLIP(callbacks, size) {
             case 3:
                 if (!(isPair(LST) | 0)) {
                     err_invalidDefine();
-                    return 142;
+                    return 143;
                 }
                 EXP = pairCar(LST) | 0;
                 LST = pairCdr(LST) | 0;
                 if (!(isNull(LST) | 0)) {
                     err_invalidDefine();
-                    return 142;
+                    return 143;
                 }
                 OFS = defineVar() | 0;
                 push(makeImmediate(OFS) | 0);
@@ -2547,7 +2551,7 @@ function SLIP(callbacks, size) {
                 PAT = pairCar(PAT) | 0;
                 if (!(isSymbol(PAT) | 0)) {
                     err_invalidDefine();
-                    return 142;
+                    return 143;
                 }
                 OFS = defineVar() | 0;
                 push(makeImmediate(OFS) | 0);
@@ -2557,7 +2561,7 @@ function SLIP(callbacks, size) {
                 return 67;
             }
             err_invalidDefine();
-            return 142;
+            return 143;
         }
         function _C_c1_define() {
             claim();
@@ -2584,7 +2588,7 @@ function SLIP(callbacks, size) {
                 return 56;
             }
             err_invalidDefine();
-            return 142;
+            return 143;
         }
         function _C_c3_define() {
             claim();
@@ -2614,23 +2618,23 @@ function SLIP(callbacks, size) {
             claim();
             if (!(isPair(LST) | 0)) {
                 err_invalidAssignment();
-                return 142;
+                return 143;
             }
             PAT = pairCar(LST) | 0;
             if (!(isSymbol(PAT) | 0)) {
                 err_invalidAssignment();
-                return 142;
+                return 143;
             }
             LST = pairCdr(LST) | 0;
             if (!(isPair(LST) | 0)) {
                 err_invalidAssignment();
-                return 142;
+                return 143;
             }
             EXP = pairCar(LST) | 0;
             LST = pairCdr(LST) | 0;
             if (!(isNull(LST) | 0)) {
                 err_invalidAssignment();
-                return 142;
+                return 143;
             }
             //NOTE: original C implementation first compiles expression...
             //... then looks up the pattern, so that statements such as:
@@ -2656,12 +2660,12 @@ function SLIP(callbacks, size) {
                 return KON | 0;
             }
             err_undefinedVariable(PAT | 0);
-            return 142;
+            return 143;
         }
         function _C_compileLambda() {
             if (!(isPair(LST) | 0)) {
                 err_invalidLambda();
-                return 142;
+                return 143;
             }
             claim();
             enterScope();
@@ -2689,7 +2693,7 @@ function SLIP(callbacks, size) {
                 return 56;
             }
             err_invalidLambda();
-            return 142;
+            return 143;
         }
         function _C_c2_lambda() {
             claim();
@@ -2731,7 +2735,7 @@ function SLIP(callbacks, size) {
             poke(VAL);
             if (!(isPair(ARG) | 0)) {
                 err_invalidApplication();
-                return 142;
+                return 143;
             }
             EXP = pairCar(ARG) | 0;
             ARG = pairCdr(ARG) | 0;
@@ -2811,7 +2815,7 @@ function SLIP(callbacks, size) {
                 return 102;
             }
             err_invalidExpression(EXP | 0);
-            return 142;
+            return 143;
         }
         function _E_setLocal() {
             claim();
@@ -2867,7 +2871,6 @@ function SLIP(callbacks, size) {
         function _E_evalDfz() {
             claim();
             VAL = makePrz(dfzArgc(EXP) | 0, dfzFrmSiz(EXP) | 0, dfzBdy(EXP) | 0, extendEnv() | 0) | 0;
-            vectorSet(FRM, dfzOfs(EXP) | 0, VAL);
             OFS = immediateVal(dfzOfs(EXP) | 0) | 0;
             vectorSet(FRM, OFS, VAL);
             return KON | 0;
@@ -2950,7 +2953,7 @@ function SLIP(callbacks, size) {
                 LEN = immediateVal(prcArgc(VAL) | 0) | 0;
                 if (LEN) {
                     err_invalidParamCount();
-                    return 142;
+                    return 143;
                 }
                 SIZ = immediateVal(prcFrmSiz(VAL) | 0) | 0;
                 claimSiz(SIZ);
@@ -2964,7 +2967,7 @@ function SLIP(callbacks, size) {
                 LEN = immediateVal(przArgc(VAL) | 0) | 0;
                 if (LEN) {
                     err_invalidParamCount();
-                    return 142;
+                    return 143;
                 }
                 SIZ = immediateVal(przFrmSiz(VAL) | 0) | 0;
                 claimSiz(SIZ);
@@ -2990,7 +2993,7 @@ function SLIP(callbacks, size) {
                 SIZ = immediateVal(prcFrmSiz(VAL) | 0) | 0;
                 if (LEN) {
                     err_invalidParamCount();
-                    return 142;
+                    return 143;
                 }
                 claimSiz(SIZ);
                 preserveEnv();
@@ -3003,7 +3006,7 @@ function SLIP(callbacks, size) {
                 SIZ = immediateVal(przFrmSiz(VAL) | 0) | 0;
                 if (LEN) {
                     err_invalidParamCount();
-                    return 142;
+                    return 143;
                 }
                 claimSiz(SIZ);
                 preserveEnv();
@@ -3017,10 +3020,10 @@ function SLIP(callbacks, size) {
                 return nativePtr(VAL) | 0;
             case 24:
                 err_invalidParamCount();
-                return 142;
+                return 143;
             }
             err_invalidOperator(VAL | 0);
-            return 142;
+            return 143;
         }
         function _E_evalApl() {
             VAL = aplOpr(EXP) | 0;
@@ -3038,7 +3041,7 @@ function SLIP(callbacks, size) {
                 SIZ = immediateVal(prcFrmSiz(VAL) | 0) | 0;
                 if ((LEN | 0) != (vectorLength(ARG) | 0)) {
                     err_invalidParamCount();
-                    return 142;
+                    return 143;
                 }
                 claimSiz(SIZ);
                 PAR = fillVector(SIZ, 2147483647) | 0;
@@ -3049,7 +3052,7 @@ function SLIP(callbacks, size) {
                 SIZ = immediateVal(prcFrmSiz(VAL) | 0) | 0;
                 if ((LEN | 0) > (vectorLength(ARG) | 0)) {
                     err_invalidParamCount();
-                    return 142;
+                    return 143;
                 }
                 claimSiz(SIZ);
                 PAR = fillVector(SIZ, 2147483645) | 0;
@@ -3078,7 +3081,7 @@ function SLIP(callbacks, size) {
                 SIZ = immediateVal(prcFrmSiz(VAL) | 0) | 0;
                 if ((LEN | 0) != (vectorLength(ARG) | 0)) {
                     err_invalidParamCount();
-                    return 142;
+                    return 143;
                 }
                 claimSiz(SIZ);
                 PAR = fillVector(SIZ, 2147483647) | 0;
@@ -3088,7 +3091,7 @@ function SLIP(callbacks, size) {
                 SIZ = immediateVal(przFrmSiz(VAL) | 0) | 0;
                 if ((LEN | 0) > (vectorLength(ARG) | 0)) {
                     err_invalidParamCount();
-                    return 142;
+                    return 143;
                 }
                 claimSiz(SIZ);
                 PAR = fillVector(SIZ, 2147483645) | 0;
@@ -3106,13 +3109,13 @@ function SLIP(callbacks, size) {
                 LEN = vectorLength(ARG) | 0;
                 if ((LEN | 0) != 1) {
                     err_invalidParamCount();
-                    return 142;
+                    return 143;
                 }
                 EXP = vectorRef(ARG, 1) | 0;
                 return 105;
             }
             err_invalidOperator(VAL | 0);
-            return 142;
+            return 143;
         }
         function _E_continuationArg() {
             switch (tag(EXP) | 0) {
@@ -3745,7 +3748,7 @@ function SLIP(callbacks, size) {
                     break;
                 default:
                     err_invalidArgument(EXP | 0);
-                    return 142;
+                    return 143;
                 }
             }
             claim();
@@ -3765,7 +3768,7 @@ function SLIP(callbacks, size) {
                     break;
                 default:
                     err_invalidArgument(EXP | 0);
-                    return 142;
+                    return 143;
                 }
             }
             claim();
@@ -3785,7 +3788,7 @@ function SLIP(callbacks, size) {
                     break;
                 default:
                     err_invalidArgument(EXP | 0);
-                    return 142;
+                    return 143;
                 }
             }
             claim();
@@ -3832,7 +3835,7 @@ function SLIP(callbacks, size) {
                 for (IDX = 1; (IDX | 0) <= (LEN | 0); IDX = IDX + 1 | 0) {
                     if (!(isPair(ARG) | 0)) {
                         err_invalidParamCount();
-                        return 142;
+                        return 143;
                     }
                     TMP = pairCar(ARG) | 0;
                     ARG = pairCdr(ARG) | 0;
@@ -3840,7 +3843,7 @@ function SLIP(callbacks, size) {
                 }
                 if (!(isNull(ARG) | 0)) {
                     err_invalidParamCount();
-                    return 142;
+                    return 143;
                 }
                 ENV = prcEnv(VAL) | 0;
                 EXP = prcBdy(VAL) | 0;
@@ -3854,7 +3857,7 @@ function SLIP(callbacks, size) {
                 for (IDX = 1; (IDX | 0) <= (LEN | 0); IDX = IDX + 1 | 0) {
                     if (!(isPair(ARG) | 0)) {
                         err_invalidParamCount();
-                        return 142;
+                        return 143;
                     }
                     TMP = pairCar(ARG) | 0;
                     ARG = pairCdr(ARG) | 0;
@@ -3869,7 +3872,7 @@ function SLIP(callbacks, size) {
                     LST = pairCdr(LST) | 0;
                 if (!(isNull(LST) | 0)) {
                     err_invalidArgument(ARG | 0);
-                    return 142;
+                    return 143;
                 }
                 claimSiz(LEN);
                 PAR = makeVector(LEN) | 0;
@@ -3882,11 +3885,11 @@ function SLIP(callbacks, size) {
             case 24:
                 if (!(isPair(ARG) | 0)) {
                     err_invalidParamCount();
-                    return 142;
+                    return 143;
                 }
                 if (!(isNull(pairCdr(ARG) | 0) | 0)) {
                     err_invalidParamCount();
-                    return 142;
+                    return 143;
                 }
                 KON = immediateVal(continuationKon(VAL) | 0) | 0;
                 restoreStack(continuationStk(VAL) | 0);
@@ -3896,16 +3899,22 @@ function SLIP(callbacks, size) {
                 return KON | 0;
             }
             err_invalidOperator(VAL | 0);
-            return 142;
+            return 143;
         }
-        function _N_c_eval() {
+        function _N_c1_eval() {
             EXP = VAL;
-            KON = immediateVal(pop() | 0) | 0;
+            KON = 129;
             return 83;
+        }
+        function _N_c2_eval() {
+            FRM = pop() | 0;
+            ENV = pop() | 0;
+            KON = immediateVal(pop() | 0) | 0;
+            return KON | 0;
         }
         function _N_c1_load() {
             EXP = VAL;
-            KON = 130;
+            KON = 131;
             return 54;
         }
         function _N_c2_load() {
@@ -3921,13 +3930,13 @@ function SLIP(callbacks, size) {
             }
             switch (TMP | 0) {
             case 1:
-                return 132;
-            case 5:
                 return 133;
-            case 0:
+            case 5:
                 return 134;
+            case 0:
+                return 135;
             case 2:
-                return 136;
+                return 137;
             }
             VAL = (ARG | 0) == (EXP | 0) ? 2147483643 : 2147483641;
             return KON | 0;
@@ -3959,8 +3968,8 @@ function SLIP(callbacks, size) {
             EXP = pairCar(EXP) | 0;
             ARG = pairCar(ARG) | 0;
             push(makeImmediate(KON) | 0);
-            KON = 135;
-            return 131;
+            KON = 136;
+            return 132;
         }
         function _N_c_comparePair() {
             KON = immediateVal(pop() | 0) | 0;
@@ -3971,7 +3980,7 @@ function SLIP(callbacks, size) {
             }
             ARG = pop() | 0;
             EXP = pop() | 0;
-            return 131;
+            return 132;
         }
         function _N_compareVector() {
             LEN = vectorLength(ARG) | 0;
@@ -3989,11 +3998,11 @@ function SLIP(callbacks, size) {
                 push(EXP);
                 push(ARG);
                 push(3);
-                KON = 137;
+                KON = 138;
             }
             ARG = vectorRef(ARG, 1) | 0;
             EXP = vectorRef(EXP, 1) | 0;
-            return 131;
+            return 132;
         }
         function _N_c_compareVector() {
             if ((VAL | 0) == 2147483641) {
@@ -4013,38 +4022,38 @@ function SLIP(callbacks, size) {
             } else {
                 push(ARG);
                 push(makeImmediate(IDX) | 0);
-                KON = 137;
+                KON = 138;
             }
             ARG = vectorRef(ARG, IDX) | 0;
             EXP = vectorRef(EXP, IDX) | 0;
-            return 131;
+            return 132;
         }
         function _REPL() {
             dctCheckpoint();
-            KON = 139;
+            KON = 140;
             promptInput();
             return 0;
         }
         function _c1_repl() {
             EXP = VAL;
-            KON = 140;
+            KON = 141;
             return 54;
         }
         function _c2_repl() {
             EXP = VAL;
-            KON = 141;
+            KON = 142;
             return 83;
         }
         function _c3_repl() {
             printOutput(VAL | 0);
-            return 138;
+            return 139;
         }
         function _error() {
             FRM = GLB;
             ENV = 2147483645;
             dctRollback();
             emptyStk();
-            return 138;
+            return 139;
         }
         function nop() {
             return 0;
@@ -4182,7 +4191,8 @@ function SLIP(callbacks, size) {
             _N_c1_map,
             _N_c2_map,
             _N_apply,
-            _N_c_eval,
+            _N_c1_eval,
+            _N_c2_eval,
             _N_c1_load,
             _N_c2_load,
             _N_compare,
@@ -4197,7 +4207,6 @@ function SLIP(callbacks, size) {
             _c2_repl,
             _c3_repl,
             _error,
-            nop,
             nop,
             nop,
             nop,

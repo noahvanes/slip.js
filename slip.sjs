@@ -2378,7 +2378,11 @@ function SLIP(callbacks, size) {
 				claim();
 				EXP = vectorRef(PAR, 1)|0;
 				push(makeImmediate(KON)|0);
-				KON = N_c_eval;
+				push(ENV);
+				push(FRM);
+				FRM = GLB;
+				ENV = __EMPTY_VEC__;
+				KON = N_c1_eval;
 				goto C_compile;
 			}
 
@@ -3628,7 +3632,6 @@ function SLIP(callbacks, size) {
 							  dfzFrmSiz(EXP)|0,
 							  dfzBdy(EXP)|0,
 							  extendEnv()|0)|0;
-				vectorSet(FRM, dfzOfs(EXP)|0, VAL);
 				OFS = immediateVal(dfzOfs(EXP)|0)|0;
 				vectorSet(FRM, OFS, VAL);
 				goto KON|0;
@@ -4738,11 +4741,19 @@ function SLIP(callbacks, size) {
 				goto error;
 			}
 
-			N_c_eval {
+			N_c1_eval {
 
 				EXP = VAL;
-				KON = immediateVal(pop()|0)|0;
+				KON = N_c2_eval;
 				goto E_eval;
+			}
+
+			N_c2_eval {
+
+				FRM = pop()|0;
+				ENV = pop()|0;
+				KON = immediateVal(pop()|0)|0;
+				goto KON|0;
 			}
 
 			N_c1_load {
