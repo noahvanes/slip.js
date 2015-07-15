@@ -1,0 +1,56 @@
+(begin 
+  
+ (define (quicksort vector <?)
+     (define (swap i j)
+         (define keep (vector-ref vector i))
+         (vector-set! vector i (vector-ref vector j))
+         (vector-set! vector j keep))
+     (define (shift-to-right i x)
+       (if (<? (vector-ref vector i) x)
+         (shift-to-right (+ i 1) x)
+         i))
+     (define (shift-to-left j x)
+       (if (<? x (vector-ref vector j))
+         (shift-to-left (- j 1) x)
+         j))
+     (define (partition pivot i j)
+       (define shifted-i (shift-to-right i pivot))
+       (define shifted-j (shift-to-left j pivot))
+         (if (< shifted-i shifted-j)
+             (begin
+                (swap shifted-i shifted-j)
+                (partition pivot shifted-i (- shifted-j 1)))
+              shifted-j))
+     (define (quicksort-main l r)
+       (if (< l r)
+         (begin
+           (if (<? (vector-ref vector r)
+                   (vector-ref vector l))
+             (swap l r))
+           (define m (partition (vector-ref vector l) (+ l 1) (- r 1)))
+           (swap l m)
+           (quicksort-main l (- m 1))
+           (quicksort-main (+ m 1) r))))
+     (quicksort-main 0 (- (vector-length vector) 1))
+    vector)
+ 
+   (define (random-vector size)
+    (define vec (make-vector size))
+    (define (loop i)
+      (if (= i size)
+          vec
+          (begin (vector-set! vec i (* 1000 (random)))
+                 (loop (+ i 1)))))
+    (loop 0))
+   
+   (define p
+     ((lambda (v)
+      (cons
+       (lambda () (set! v (random-vector 1000000)))
+       (lambda () (quicksort v <)))) 'dummy))
+   
+   (run-benchmark "QUICKSORT" 
+                  (cdr p) 
+                  3 
+                  (car p))
+)

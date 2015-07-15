@@ -2378,11 +2378,7 @@ function SLIP(callbacks, size) {
 				claim();
 				EXP = vectorRef(PAR, 1)|0;
 				push(makeImmediate(KON)|0);
-				push(ENV);
-				push(FRM);
-				FRM = GLB;
-				ENV = __EMPTY_VEC__;
-				KON = N_c1_eval;
+				KON = N_c_eval;
 				goto C_compile;
 			}
 
@@ -4667,7 +4663,7 @@ function SLIP(callbacks, size) {
 						claimSiz(SIZ);
 						preserveEnv();
 						FRM = fillVector(SIZ, __VOID__)|0;
-						for(IDX=1; (IDX|0)<=(LEN|0); IDX=(IDX+1)|0) {
+						for(IDX=1;(IDX|0)<=(LEN|0);IDX=(IDX+1)|0) {
 							if(!(isPair(ARG)|0)) {
 								err_invalidParamCount();
 								goto error;
@@ -4690,7 +4686,7 @@ function SLIP(callbacks, size) {
 						claimSiz(SIZ);
 						preserveEnv();
 						FRM = fillVector(SIZ, __VOID__)|0;
-						for(IDX=1; (IDX|0)<=(LEN|0); IDX=(IDX+1)|0) {
+						for(IDX=1;(IDX|0)<=(LEN|0);IDX=(IDX+1)|0) {
 							if(!(isPair(ARG)|0)) {
 								err_invalidParamCount();
 								goto error;
@@ -4741,19 +4737,15 @@ function SLIP(callbacks, size) {
 				goto error;
 			}
 
-			N_c1_eval {
+			N_c_eval {
 
 				EXP = VAL;
-				KON = N_c2_eval;
+				push(ENV);
+				push(FRM);
+				FRM = GLB;
+				ENV = __EMPTY_VEC__;
+				KON = E_c_return;
 				goto E_eval;
-			}
-
-			N_c2_eval {
-
-				FRM = pop()|0;
-				ENV = pop()|0;
-				KON = immediateVal(pop()|0)|0;
-				goto KON|0;
 			}
 
 			N_c1_load {
@@ -4766,7 +4758,11 @@ function SLIP(callbacks, size) {
 			N_c2_load {
 
 				EXP = VAL;
-				KON = immediateVal(pop()|0)|0;
+				push(ENV);
+				push(FRM);
+				FRM = GLB;
+				ENV = __EMPTY_VEC__;
+				KON = E_c_return;
 				goto E_eval;
 			}
 
