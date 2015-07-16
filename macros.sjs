@@ -17,13 +17,6 @@ macro typecheck {
   }
 }
 
-macro makeLabel {
-    case {_($lab)} => {
-        var label = unwrapSyntax(#{$lab});
-        return [makeIdent('_'+label, #{here})];
-    }
-}
-
 macro instructions {
     case {
       _ {
@@ -32,49 +25,43 @@ macro instructions {
           }) ...
       } generate $fun
     } => {
-        function nextPowTwo(x) {
-          var current = 1;
-          while(current < x)
-            current = current<<1;
-          return current;
-        }
         var len = #{$lab ...}.length;
         var numbers = new Array(len);
-        for(var i = 0; i < len;)
-            numbers[i] = (makeValue(++i, #{here}));
+        for(var i = 0; i < len; ++i)
+            numbers[i] = (makeValue(i, #{here}));
         letstx $nbr ... = numbers;
-        len = nextPowTwo(len+1);
-        var diff = len - (i+1);
-        var nops = new Array(diff);
-        while(diff--)
-          nops[diff] = (makeIdent('nop', #{here}));
-        letstx $nop ... = nops;
-        letstx $mask = [makeValue(len-1, #{here})];
+        letstx $opc = [makeIdent('opc', #{$fun})];
         return #{
             $(define $lab $nbr) ...
-            $(function makeLabel($lab)() {
-                 $body ...
-            }) ...
-            function nop() { halt; }
-            function $fun(instr) {
-                instr = instr|0;
-                for(;instr;instr=FUNTAB[instr&$mask]()|0);
+            macro goto {
+             case {_ $f:expr} => {
+                return #{
+                    $opc = $f;
+                    continue dispatch
+                }
+              }
             }
-            var FUNTAB = [nop, $(makeLabel($lab)) (,) ..., $nop (,) ...];
+            macro halt {
+                rule {} => {
+                break dispatch
+                }
+            }
+            function $fun($opc) {
+                $opc = $opc|0;
+                dispatch:
+                while(1) {
+                    switch($opc|0) {
+                        $(case $lab:
+                            $body ...) ...
+                        }
+                    }
+                }
+            }
         }
-     }
- }
-
-macro goto {
-    rule {$f} => {return $f}
-}
-
-macro halt {
-    rule {} => {return 0}
-}
+    }
 
 export define
-export typecheck
 export instructions
+export typecheck
 export goto
 export halt

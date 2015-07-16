@@ -1858,7 +1858,7 @@ function SLIP(callbacks, size) {
 				}
 
 				VAL = makeImmediate(VAL)|0;
-				goto KON|0;
+				goto KON;
 			}
 
 			N_sub {
@@ -1874,11 +1874,11 @@ function SLIP(callbacks, size) {
 					switch(tag(VAL)|0) {
 						case __NBR_TAG__:
 							VAL = makeImmediate(-(immediateVal(VAL)|0)|0)|0;
-							goto KON|0;
+							goto KON;
 						case __FLT_TAG__:
 							claim();
 							VAL = makeFloat(fround(-fround(floatNumber(VAL))))|0;
-							goto KON|0;
+							goto KON;
 						default:
 							err_invalidArgument(VAL|0);
 							goto error;
@@ -1905,7 +1905,7 @@ function SLIP(callbacks, size) {
 							}
 						}
 						VAL = makeImmediate(VAL)|0;
-						goto KON|0;
+						goto KON;
 
 					case __FLT_TAG__:
 						FLT = fround(floatNumber(VAL));
@@ -1936,7 +1936,7 @@ function SLIP(callbacks, size) {
 				}
 
 				VAL = makeImmediate(VAL)|0;
-				goto KON|0;
+				goto KON;
 			}
 
 			N_div {
@@ -1953,10 +1953,10 @@ function SLIP(callbacks, size) {
 					switch(tag(VAL)|0) {
 						case __NBR_TAG__:
 							VAL = makeFloat(fround(fround(1.0)/fround(immediateVal(VAL)|0)))|0;
-							goto KON|0;
+							goto KON;
 						case __FLT_TAG__:
 							VAL = makeFloat(fround(fround(1.0)/fround(floatNumber(VAL))))|0;
-							goto KON|0;
+							goto KON;
 						default:
 							err_invalidArgument(VAL|0);
 							goto error;
@@ -1991,7 +1991,7 @@ function SLIP(callbacks, size) {
 				}
 
 				VAL = makeFloat(FLT)|0;
-				goto KON|0;
+				goto KON;
 			}
 
 			N_cons {
@@ -2004,7 +2004,7 @@ function SLIP(callbacks, size) {
 				claim();
 				VAL = makePair(vectorRef(PAR, 1)|0,
 							   vectorRef(PAR, 2)|0)|0;
-				goto KON|0;
+				goto KON;
 			}
 
 			N_car {
@@ -2017,7 +2017,7 @@ function SLIP(callbacks, size) {
 				ARG = vectorRef(PAR, 1)|0;
 				if(isPair(ARG)|0) {
 					VAL = pairCar(ARG)|0;
-					goto KON|0;
+					goto KON;
 				}
 
 				err_invalidArgument(ARG|0);
@@ -2034,7 +2034,7 @@ function SLIP(callbacks, size) {
 				ARG = vectorRef(PAR, 1)|0;
 				if(isPair(ARG)|0) {
 					VAL = pairCdr(ARG)|0;
-					goto KON|0;
+					goto KON;
 				}
 
 				err_invalidArgument(ARG|0);
@@ -2053,7 +2053,7 @@ function SLIP(callbacks, size) {
 
 				if(isPair(ARG)|0) {
 					pairSetCar(ARG, VAL);
-					goto KON|0;
+					goto KON;
 				}
 
 				err_invalidArgument(ARG|0);
@@ -2072,7 +2072,7 @@ function SLIP(callbacks, size) {
 
 				if(isPair(ARG)|0) {
 					pairSetCdr(ARG, VAL);
-					goto KON|0;
+					goto KON;
 				}
 
 				err_invalidArgument(ARG|0);
@@ -2084,7 +2084,7 @@ function SLIP(callbacks, size) {
 				claimSiz(imul(3,LEN)|0);
 				for(VAL = __NULL__; LEN; LEN = (LEN - 1)|0)
 					VAL = makePair(vectorRef(PAR, LEN)|0, VAL)|0;
-				goto KON|0;
+				goto KON;
 			}
 
 			N_nbrEq {
@@ -2104,11 +2104,11 @@ function SLIP(callbacks, size) {
 							case __NBR_TAG__:
 								VAL = (((immediateVal(ARG)|0) == (immediateVal(EXP)|0)) ?
 											__TRUE__ : __FALSE__);
-								goto KON|0;
+								goto KON;
 							case __FLT_TAG__:
 								VAL = (fround(immediateVal(ARG)|0) == fround(floatNumber(EXP)) ?
 									   		__TRUE__ : __FALSE__);
-								goto KON|0;
+								goto KON;
 						}
 						err_invalidArgument(EXP|0);
 						goto error;
@@ -2118,11 +2118,11 @@ function SLIP(callbacks, size) {
 							case __NBR_TAG__:
 								VAL = (fround(floatNumber(ARG)) == fround(immediateVal(EXP)|0) ?
 											__TRUE__ : __FALSE__);
-								goto KON|0;
+								goto KON;
 							case __FLT_TAG__:
 								VAL = (fround(floatNumber(ARG)) == fround(floatNumber(EXP)) ?
 									   		__TRUE__ : __FALSE__);
-								goto KON|0;
+								goto KON;
 						}
 						err_invalidArgument(EXP|0);
 						goto error;
@@ -2149,11 +2149,11 @@ function SLIP(callbacks, size) {
 							case __NBR_TAG__:
 								VAL = (((immediateVal(ARG)|0) <= (immediateVal(EXP)|0)) ?
 											__TRUE__ : __FALSE__);
-								goto KON|0;
+								goto KON;
 							case __FLT_TAG__:
 								VAL = (fround(immediateVal(ARG)|0) <= fround(floatNumber(EXP)) ?
 									   		__TRUE__ : __FALSE__);
-								goto KON|0;
+								goto KON;
 						}
 						err_invalidArgument(EXP|0);
 						goto error;
@@ -2163,11 +2163,11 @@ function SLIP(callbacks, size) {
 							case __NBR_TAG__:
 								VAL = (fround(floatNumber(ARG)) <= fround(immediateVal(EXP)|0) ?
 											__TRUE__ : __FALSE__);
-								goto KON|0;
+								goto KON;
 							case __FLT_TAG__:
 								VAL = (fround(floatNumber(ARG)) <= fround(floatNumber(EXP)) ?
 									   		__TRUE__ : __FALSE__);
-								goto KON|0;
+								goto KON;
 						}
 						err_invalidArgument(EXP|0);
 						goto error;
@@ -2194,11 +2194,11 @@ function SLIP(callbacks, size) {
 							case __NBR_TAG__:
 								VAL = (((immediateVal(ARG)|0) >= (immediateVal(EXP)|0)) ?
 											__TRUE__ : __FALSE__);
-								goto KON|0;
+								goto KON;
 							case __FLT_TAG__:
 								VAL = (fround(immediateVal(ARG)|0) >= fround(floatNumber(EXP)) ?
 									   		__TRUE__ : __FALSE__);
-								goto KON|0;
+								goto KON;
 						}
 						err_invalidArgument(EXP|0);
 						goto error;
@@ -2208,11 +2208,11 @@ function SLIP(callbacks, size) {
 							case __NBR_TAG__:
 								VAL = (fround(floatNumber(ARG)) >= fround(immediateVal(EXP)|0) ?
 											__TRUE__ : __FALSE__);
-								goto KON|0;
+								goto KON;
 							case __FLT_TAG__:
 								VAL = (fround(floatNumber(ARG)) >= fround(floatNumber(EXP)) ?
 									   		__TRUE__ : __FALSE__);
-								goto KON|0;
+								goto KON;
 						}
 						err_invalidArgument(EXP|0);
 						goto error;
@@ -2239,11 +2239,11 @@ function SLIP(callbacks, size) {
 							case __NBR_TAG__:
 								VAL = (((immediateVal(ARG)|0) < (immediateVal(EXP)|0)) ?
 											__TRUE__ : __FALSE__);
-								goto KON|0;
+								goto KON;
 							case __FLT_TAG__:
 								VAL = (fround(immediateVal(ARG)|0) < fround(floatNumber(EXP)) ?
 									   		__TRUE__ : __FALSE__);
-								goto KON|0;
+								goto KON;
 						}
 						err_invalidArgument(EXP|0);
 						goto error;
@@ -2253,11 +2253,11 @@ function SLIP(callbacks, size) {
 							case __NBR_TAG__:
 								VAL = (fround(floatNumber(ARG)) < fround(immediateVal(EXP)|0) ?
 											__TRUE__ : __FALSE__);
-								goto KON|0;
+								goto KON;
 							case __FLT_TAG__:
 								VAL = (fround(floatNumber(ARG)) < fround(floatNumber(EXP)) ?
 									   		__TRUE__ : __FALSE__);
-								goto KON|0;
+								goto KON;
 						}
 						err_invalidArgument(EXP|0);
 						goto error;
@@ -2284,11 +2284,11 @@ function SLIP(callbacks, size) {
 							case __NBR_TAG__:
 								VAL = (((immediateVal(ARG)|0) > (immediateVal(EXP)|0)) ?
 											__TRUE__ : __FALSE__);
-								goto KON|0;
+								goto KON;
 							case __FLT_TAG__:
 								VAL = (fround(immediateVal(ARG)|0) > fround(floatNumber(EXP)) ?
 									   		__TRUE__ : __FALSE__);
-								goto KON|0;
+								goto KON;
 						}
 						err_invalidArgument(EXP|0);
 						goto error;
@@ -2298,11 +2298,11 @@ function SLIP(callbacks, size) {
 							case __NBR_TAG__:
 								VAL = (fround(floatNumber(ARG)) > fround(immediateVal(EXP)|0) ?
 											__TRUE__ : __FALSE__);
-								goto KON|0;
+								goto KON;
 							case __FLT_TAG__:
 								VAL = (fround(floatNumber(ARG)) > fround(floatNumber(EXP)) ?
 									   		__TRUE__ : __FALSE__);
-								goto KON|0;
+								goto KON;
 						}
 						err_invalidArgument(EXP|0);
 						goto error;
@@ -2328,12 +2328,12 @@ function SLIP(callbacks, size) {
 						goto error;
 					}
 					if((pairCar(VAL)|0) == (PAT|0))
-						goto KON|0;
+						goto KON;
 					LST = pairCdr(LST)|0;
 				}
 
 				VAL = __FALSE__;
-				goto KON|0;
+				goto KON;
 			}
 
 			N_map {
@@ -2348,7 +2348,7 @@ function SLIP(callbacks, size) {
 
 				if(isNull(LST)|0) {
 					VAL = __NULL__;
-					goto KON|0;
+					goto KON;
 				}
 
 				claim();
@@ -2404,14 +2404,14 @@ function SLIP(callbacks, size) {
 
 				printLog(vectorRef(PAR, 1)|0);
 				VAL = __VOID__;
-				goto KON|0;
+				goto KON;
 			}
 
 			N_newline {
 
 				printNewline();
 				VAL = __VOID__;
-				goto KON|0;
+				goto KON;
 			}
 
 			N_read {
@@ -2428,7 +2428,7 @@ function SLIP(callbacks, size) {
 				}
 
 				VAL = ((tag(vectorRef(PAR,1)|0)|0) == __PAI_TAG__? __TRUE__ : __FALSE__ );
-				goto KON|0;
+				goto KON;
 			}
 
 			N_isNull {
@@ -2439,7 +2439,7 @@ function SLIP(callbacks, size) {
 				}
 
 				VAL = ((tag(vectorRef(PAR,1)|0)|0) == __NUL_TAG__ ? __TRUE__ : __FALSE__ );
-				goto KON|0;
+				goto KON;
 			}
 
 			N_isSymbol {
@@ -2450,7 +2450,7 @@ function SLIP(callbacks, size) {
 				}
 
 				VAL = ((tag(vectorRef(PAR,1)|0)|0) == __SYM_TAG__ ? __TRUE__ : __FALSE__ );
-				goto KON|0;
+				goto KON;
 			}
 
 			N_isVector {
@@ -2461,7 +2461,7 @@ function SLIP(callbacks, size) {
 				}
 
 				VAL = ((tag(vectorRef(PAR,1)|0)|0) == __VCT_TAG__ ? __TRUE__ : __FALSE__ );
-				goto KON|0;
+				goto KON;
 			}
 
 			N_isString {
@@ -2472,7 +2472,7 @@ function SLIP(callbacks, size) {
 				}
 
 				VAL = ((tag(vectorRef(PAR,1)|0)|0) == __STR_TAG__ ? __TRUE__ : __FALSE__ );
-				goto KON|0;
+				goto KON;
 			}
 
 			N_makeVector {
@@ -2498,7 +2498,7 @@ function SLIP(callbacks, size) {
 				claimSiz(LEN);
 				VAL = (LEN? __ZERO__:(vectorRef(PAR, 2)|0));
 				VAL = fillVector(LEN, VAL)|0;
-				goto KON|0;
+				goto KON;
 			}
 
 			N_vectorRef {
@@ -2525,7 +2525,7 @@ function SLIP(callbacks, size) {
 				LEN = vectorLength(ARG)|0;
 				if(0 <= (IDX|0) & (IDX|0) < (LEN|0)) {
 					VAL = vectorRef(ARG, (IDX+1)|0)|0;
-					goto KON|0;
+					goto KON;
 				}
 
 				err_invalidRange(IDX|0, 0, (LEN-1)|0);
@@ -2557,7 +2557,7 @@ function SLIP(callbacks, size) {
 				LEN = vectorLength(ARG)|0;
 				if(0 <= (IDX|0) & (IDX|0) < (LEN|0)) {
 					vectorSet(ARG, (IDX+1)|0, VAL);
-					goto KON|0;
+					goto KON;
 				}
 
 				err_invalidRange(IDX|0, 0, (LEN-1)|0);
@@ -2579,13 +2579,13 @@ function SLIP(callbacks, size) {
 
 				LEN = vectorLength(ARG)|0;
 				VAL = makeImmediate(LEN)|0;
-				goto KON|0;
+				goto KON;
 			}
 
 			N_vector {
 
 				VAL = PAR;
-				goto KON|0;
+				goto KON;
 			}
 
 			N_clock {
@@ -2596,7 +2596,7 @@ function SLIP(callbacks, size) {
 				}
 
 				VAL = makeImmediate(clock()|0)|0;
-				goto KON|0;
+				goto KON;
 			}
 
 			N_reset {
@@ -2608,7 +2608,7 @@ function SLIP(callbacks, size) {
 
 				reset();
 				VAL = __VOID__;
-				goto KON|0;
+				goto KON;
 			}
 
 			N_eq {
@@ -2619,7 +2619,7 @@ function SLIP(callbacks, size) {
 				}
 
 				VAL = ((vectorRef(PAR,1)|0)==(vectorRef(PAR,2)|0)? __TRUE__:__FALSE__);
-				goto KON|0;
+				goto KON;
 			}
 
 			N_equal {
@@ -2638,13 +2638,13 @@ function SLIP(callbacks, size) {
 
 				reclaim();
 				VAL = makeImmediate(available()|0)|0;
-				goto KON|0;
+				goto KON;
 			}
 
 			N_available {
 
 				VAL = makeImmediate(available()|0)|0;
-				goto KON|0;
+				goto KON;
 			}
 
 			N_callcc {
@@ -2695,7 +2695,7 @@ function SLIP(callbacks, size) {
 				LEN = textLength(ARG)|0;
 				if(0 <= (IDX|0) & (IDX|0) < (LEN|0)) {
 					VAL = makeChar(textGetChar(ARG, IDX)|0)|0;
-					goto KON|0;
+					goto KON;
 				}
 
 				err_invalidRange(IDX|0, 0, (LEN-1)|0);
@@ -2732,7 +2732,7 @@ function SLIP(callbacks, size) {
 				LEN = textLength(ARG)|0;
 				if(0 <= (IDX|0) & (IDX|0) < (LEN|0)) {
 					textSetChar(ARG, IDX, charCode(VAL)|0);
-					goto KON|0;
+					goto KON;
 				}
 
 				err_invalidRange(IDX|0, 0, (LEN-1)|0);
@@ -2753,8 +2753,7 @@ function SLIP(callbacks, size) {
 				}
 
 				VAL = makeImmediate(textLength(ARG)|0)|0;
-				goto KON|0;
-
+				goto KON;
 			}
 
 			N_random {
@@ -2766,7 +2765,7 @@ function SLIP(callbacks, size) {
 
 				claim();
 				VAL = makeFloat(fround(+random()))|0;
-				goto KON|0;
+				goto KON;
 			}
 
 			N_load {
@@ -2802,17 +2801,17 @@ function SLIP(callbacks, size) {
 					case QUO: goto R_readQUO;
 					case DQU:
 						VAL = readString()|0;
-						goto KON|0;
+						goto KON;
 					case PLS: case MIN: case 48:
 					case 49: case 50: case 51:
 					case 52: case 53: case 54:
 					case 55: case 56: case 57:
 						VAL = readNumber()|0;
-						goto KON|0;
+						goto KON;
 				}
 
 				VAL = readSymbol()|0;
-				goto KON|0;
+				goto KON;
 			}
 
 			R_readLBR {
@@ -2821,7 +2820,7 @@ function SLIP(callbacks, size) {
 				if ((look()|0) == RBR) {
 					skip();
 					VAL = __NULL__;
-					goto KON|0;
+					goto KON;
 				}
 				push(makeImmediate(KON)|0);
 				push(__ZERO__);
@@ -2851,7 +2850,7 @@ function SLIP(callbacks, size) {
 
 				if ((look()|0) != RBR) {
 					err_expectedRBR(look()|0);
-					goto error|0;
+					goto error;
 				}
 
 				skip();
@@ -2864,7 +2863,7 @@ function SLIP(callbacks, size) {
 				for(;IDX; IDX=(IDX-1)|0)
 					VAL = makePair(pop()|0, VAL)|0;
 				KON = immediateVal(pop()|0)|0;
-				goto KON|0;
+				goto KON;
 			}
 
 			R_readQUO {
@@ -2881,7 +2880,7 @@ function SLIP(callbacks, size) {
 				VAL = makePair(VAL, __NULL__)|0;
 				VAL = makePair(__QUO_SYM__, VAL)|0;
 				KON = immediateVal(pop()|0)|0;
-				goto KON|0;
+				goto KON;
 			}
 
 			R_readSHR {
@@ -2890,18 +2889,18 @@ function SLIP(callbacks, size) {
 				switch(read()|0) {
 					case LTT:
 						VAL = __TRUE__;
-						goto KON|0;
+						goto KON;
 					case LTF:
 						VAL = __FALSE__;
-						goto KON|0;
+						goto KON;
 					case SLH:
 						VAL = makeChar(read()|0)|0;
-						goto KON|0;
+						goto KON;
 					case LBR:
 						if ((look()|0) == RBR) {
 							skip();
 							VAL = makePair(__VEC_SYM__, __NULL__)|0;
-							goto KON|0;
+							goto KON;
 						}
 						push(makeImmediate(KON)|0);
 						KON = R_c_vector;
@@ -2924,7 +2923,7 @@ function SLIP(callbacks, size) {
 						VAL = makePair(pop()|0, VAL)|0;
 					VAL = makePair(__VEC_SYM__, VAL)|0;
 					KON = immediateVal(pop()|0)|0;
-					goto KON|0;
+					goto KON;
 				}
 
 				claim();
@@ -2947,28 +2946,30 @@ function SLIP(callbacks, size) {
 
 					if(isSymbol(EXP)|0) {
 
-						if((EXP|0) == (__IFF_SYM__|0))
+						if((EXP|0) == (__IFF_SYM__|0)) {
 							goto C_compileIf;
-						else if((EXP|0) == (__DEF_SYM__|0))
+						} else if((EXP|0) == (__DEF_SYM__|0)){
 							goto C_compileDefine;
-						else if((EXP|0) == (__BEG_SYM__|0))
+						} else if((EXP|0) == (__BEG_SYM__|0)){
 							goto C_compileSequence;
-						else if((EXP|0) == (__LMB_SYM__|0))
+						} else if((EXP|0) == (__LMB_SYM__|0)){
 							goto C_compileLambda;
-						else if((EXP|0) == (__SET_SYM__|0))
+						} else if((EXP|0) == (__SET_SYM__|0)){
 							goto C_compileSet;
-						else if((EXP|0) == (__QUO_SYM__|0))
+						} else if((EXP|0) == (__QUO_SYM__|0)){
 							goto C_compileQuote;
+						}
 					}
 
 					goto C_compileApplication;
 				}
 
-				if(isSymbol(EXP)|0)
+				if(isSymbol(EXP)|0) {
 					goto C_compileSymbol;
+				}
 
 				VAL = EXP;
-				goto KON|0;
+				goto KON;
 			}
 
 			C_compileSymbol {
@@ -2985,7 +2986,7 @@ function SLIP(callbacks, size) {
 					} else {
 						VAL = makeLocal(OFS)|0;
 					}
-					goto KON|0;
+					goto KON;
 				}
 
 				err_undefinedVariable(PAT|0);
@@ -2996,7 +2997,7 @@ function SLIP(callbacks, size) {
 
 				if(isNull(LST)|0) {
 					VAL = __VOID__;
-					goto KON|0;
+					goto KON;
 				}
 
 				if(!(isPair(LST)|0)) {
@@ -3055,7 +3056,7 @@ function SLIP(callbacks, size) {
 				} while ((LEN|0) > 1);
 				VAL = EXP;
 				KON = immediateVal(pop()|0)|0;
-				goto KON|0;
+				goto KON;
 			}
 
 			C_compileQuote {
@@ -3071,7 +3072,7 @@ function SLIP(callbacks, size) {
 				if(isNull(LST)|0) {
 					claim();
 					VAL = makeQuo(EXP)|0;
-					goto KON|0;
+					goto KON;
 				}
 
 				err_invalidQuote();
@@ -3097,7 +3098,7 @@ function SLIP(callbacks, size) {
 					claim();
 					SIZ = makeImmediate(SIZ)|0;
 					VAL = makeThunk(VAL, SIZ)|0;
-					goto KON|0;
+					goto KON;
 				}
 				//default to normal compilation if no locals are used
 				EXP = pop()|0;
@@ -3154,7 +3155,7 @@ function SLIP(callbacks, size) {
 				claim();
 				VAL = makeIfs(pop()|0, VAL)|0;
 				KON = immediateVal(pop()|0)|0;
-				goto KON|0;
+				goto KON;
 			}
 
 			C_c3_if {
@@ -3179,7 +3180,7 @@ function SLIP(callbacks, size) {
 				EXP = pop()|0;
 				VAL = makeIff(pop()|0, EXP, VAL)|0;
 				KON = immediateVal(pop()|0)|0;
-				goto KON|0;
+				goto KON;
 			}
 
 			C_compileParameters {
@@ -3193,7 +3194,7 @@ function SLIP(callbacks, size) {
 						claim();
 						defineVar()|0;
 				}
-				goto KON|0;
+				goto KON;
 			}
 
 			C_compileDefine {
@@ -3252,7 +3253,7 @@ function SLIP(callbacks, size) {
 				OFS = pop()|0;
 				KON = immediateVal(pop()|0)|0;
 				VAL = makeDfv(OFS, VAL)|0;
-				goto KON|0;
+				goto KON;
 			}
 
 			C_c2_define {
@@ -3289,7 +3290,7 @@ function SLIP(callbacks, size) {
 				OFS = pop()|0;							//offset
 				VAL = makeDff(OFS, TMP, SIZ, VAL)|0;
 				KON = immediateVal(pop()|0)|0;
-				goto KON|0;
+				goto KON;
 			}
 
 			C_c4_define {
@@ -3300,7 +3301,7 @@ function SLIP(callbacks, size) {
 				OFS = pop()|0;							//offset
 				VAL = makeDfz(OFS, TMP, SIZ, VAL)|0;
 				KON = immediateVal(pop()|0)|0;
-				goto KON|0;
+				goto KON;
 			}
 
 			C_compileSet {
@@ -3358,7 +3359,7 @@ function SLIP(callbacks, size) {
 						VAL = makeSlc(OFS, VAL)|0;
 					}
 					KON = immediateVal(pop()|0)|0;
-					goto KON|0;
+					goto KON;
 				}
 
 				err_undefinedVariable(PAT|0);
@@ -3414,7 +3415,7 @@ function SLIP(callbacks, size) {
 				TMP = pop()|0;
 				VAL = makeLmb(TMP, SIZ, VAL)|0;
 				KON = immediateVal(pop()|0)|0;
-				goto KON|0;
+				goto KON;
 			}
 
 			C_c3_lambda {
@@ -3424,7 +3425,7 @@ function SLIP(callbacks, size) {
 				TMP = pop()|0;
 				VAL = makeLmz(TMP, SIZ, VAL)|0;
 				KON = immediateVal(pop()|0)|0;
-				goto KON|0;
+				goto KON;
 			}
 
 			C_compileApplication {
@@ -3446,7 +3447,7 @@ function SLIP(callbacks, size) {
 				claim();
 				VAL = makeApz(VAL)|0;
 				KON = immediateVal(pop()|0)|0;
-				goto KON|0;
+				goto KON;
 			}
 
 			C_c2_application {
@@ -3484,7 +3485,7 @@ function SLIP(callbacks, size) {
 		 			vectorSet(EXP, LEN, pop()|0)
 		 		VAL = makeApl(pop()|0, EXP)|0;
 		 		KON = immediateVal(pop()|0)|0;
-		 		goto KON|0;
+		 		goto KON;
 		 	}
 
 // **********************************************************************
@@ -3509,22 +3510,22 @@ function SLIP(callbacks, size) {
 					case __NAT_TAG__:
 					case __CNT_TAG__:
 						VAL = EXP;
-						goto KON|0;
+						goto KON;
 					case __QUO_TAG__:
 						VAL = quoExpression(EXP)|0;
-						goto KON|0;
+						goto KON;
 					case __LCL_TAG__:
 						VAL = lookupLocal(EXP)|0;
-						goto KON|0;
+						goto KON;
 					case __GLB_TAG__:
 						VAL = lookupGlobal(EXP)|0;
-						goto KON|0;
+						goto KON;
 					case __LMB_TAG__:
 						VAL = capturePrc(EXP)|0;
-						goto KON|0;
+						goto KON;
 					case __LMZ_TAG__:
 						VAL = capturePrz(EXP)|0;
-						goto KON|0;
+						goto KON;
 					case __SLC_TAG__:
 						goto E_setLocal;
 					case __SGL_TAG__:
@@ -3568,7 +3569,7 @@ function SLIP(callbacks, size) {
 				OFS = immediateVal(pop()|0)|0;
 				vectorSet(FRM, OFS, VAL);
 				KON = immediateVal(pop()|0)|0;
-				goto KON|0;
+				goto KON;
 			}
 
 			E_setGlobal {
@@ -3588,7 +3589,7 @@ function SLIP(callbacks, size) {
 				SCP = immediateVal(pop()|0)|0;
 				vectorSet(vectorRef(ENV,SCP)|0,OFS,VAL);
 				KON = immediateVal(pop()|0)|0;
-				goto KON|0;
+				goto KON;
 			}
 
 			E_evalDfv {
@@ -3606,7 +3607,7 @@ function SLIP(callbacks, size) {
 				OFS = immediateVal(pop()|0)|0;
 				vectorSet(FRM, OFS, VAL);
 				KON = immediateVal(pop()|0)|0;
-				goto KON|0;
+				goto KON;
 			}
 
 			E_evalDff {
@@ -3618,7 +3619,7 @@ function SLIP(callbacks, size) {
 							  extendEnv()|0)|0;
 				OFS = immediateVal(dffOfs(EXP)|0)|0;
 				vectorSet(FRM, OFS, VAL);
-				goto KON|0;
+				goto KON;
 			}	
 
 			E_evalDfz {
@@ -3630,7 +3631,7 @@ function SLIP(callbacks, size) {
 							  extendEnv()|0)|0;
 				OFS = immediateVal(dfzOfs(EXP)|0)|0;
 				vectorSet(FRM, OFS, VAL);
-				goto KON|0;
+				goto KON;
 			}		
 
 			E_evalSequence {
@@ -3682,7 +3683,7 @@ function SLIP(callbacks, size) {
 				zap();
 				VAL = __VOID__;
 				KON = immediateVal(pop()|0)|0;
-				goto KON|0;
+				goto KON;
 			}
 
 			E_evalIff {
@@ -3858,7 +3859,7 @@ function SLIP(callbacks, size) {
 						}
 						claimSiz(SIZ);
 						PAR = fillVector(SIZ, __NULL__)|0;
-						if (LEN) goto E_przArgs;
+						if (LEN) { goto E_przArgs; }
 						IDX = 0; LEN = 1;
 						goto E_przVarArgs;
 				}
@@ -3902,7 +3903,7 @@ function SLIP(callbacks, size) {
 						}
 						claimSiz(SIZ);
 						PAR = fillVector(SIZ, __NULL__)|0;
-						if (LEN) goto E_przArgs;
+						if (LEN) { goto E_przArgs; }
 						IDX = 0; LEN = 1;
 						goto E_przVarArgs;
 	
@@ -3966,7 +3967,7 @@ function SLIP(callbacks, size) {
 				FRM = continuationFrm(VAL)|0;
 				ENV = continuationEnv(VAL)|0;
 				VAL = EXP;
-				goto KON|0;
+				goto KON;
 			}
 
 			E_c_continuationArg {
@@ -3976,7 +3977,7 @@ function SLIP(callbacks, size) {
 				restoreStack(continuationStk(EXP)|0);
 				FRM = continuationFrm(EXP)|0;
 				ENV = continuationEnv(EXP)|0;
-				goto KON|0;
+				goto KON;
 			}
 
 			// ARGUMENTS (NAT)
@@ -4544,7 +4545,7 @@ function SLIP(callbacks, size) {
 				FRM = pop()|0;
 				ENV = pop()|0;
 				KON = immediateVal(pop()|0)|0;
-				goto KON|0;
+				goto KON;
 			}
 
 // **********************************************************************
@@ -4570,7 +4571,7 @@ function SLIP(callbacks, size) {
 				}
 				claim();
 				VAL = makeFloat(FLT)|0;
-				goto KON|0;
+				goto KON;
 			}
 
 	 		N_substractFloats {
@@ -4592,7 +4593,7 @@ function SLIP(callbacks, size) {
 	 			}
 	 			claim();
 	 			VAL = makeFloat(FLT)|0;
-	 			goto KON|0;
+	 			goto KON;
 	 		}
 
 	 		N_multiplyFloats {
@@ -4614,7 +4615,7 @@ function SLIP(callbacks, size) {
 				}
 				claim();
 				VAL = makeFloat(FLT)|0;
-				goto KON|0;
+				goto KON;
 			}
 
 			N_c1_map {
@@ -4625,7 +4626,7 @@ function SLIP(callbacks, size) {
 				for(;LEN;LEN=(LEN-1)|0)
 					VAL = makePair(pop()|0, VAL)|0;
 				KON = immediateVal(pop()|0)|0;
-				goto KON|0;
+				goto KON;
 			}
 
 			N_c2_map {
@@ -4730,7 +4731,7 @@ function SLIP(callbacks, size) {
 						FRM = continuationFrm(VAL)|0;
 						ENV = continuationStk(VAL)|0; 
 						VAL = pairCar(ARG)|0;
-						goto KON|0;
+						goto KON;
 				}
 
 				err_invalidOperator(VAL|0);
@@ -4771,7 +4772,7 @@ function SLIP(callbacks, size) {
 				TMP = tag(EXP)|0;
 				if((TMP|0) != (tag(ARG)|0)) {
 					VAL = __FALSE__;
-					goto KON|0;
+					goto KON;
 				}
 
 				switch(TMP|0) {
@@ -4782,14 +4783,14 @@ function SLIP(callbacks, size) {
 				}
 
 				VAL = ((ARG|0) == (EXP|0) ? __TRUE__ : __FALSE__);
-				goto KON|0;
+				goto KON;
 			}
 
 			N_compareFloat {
 
 				VAL = (fround(floatNumber(EXP)) == fround(floatNumber(ARG)) ?
 						__TRUE__ : __FALSE__);
-				goto KON|0;
+				goto KON;
 			}
 
 			N_compareString {
@@ -4797,19 +4798,19 @@ function SLIP(callbacks, size) {
 				LEN = textLength(ARG)|0;
 				if((textLength(EXP)|0) != (LEN|0)) {
 					VAL = __FALSE__;
-					goto KON|0;
+					goto KON;
 				}
 
 				while(LEN) {
 					LEN = (LEN - 1)|0;
 					if((textGetChar(ARG, LEN)|0) != (textGetChar(EXP, LEN)|0)) {
 						VAL = __FALSE__;
-						goto KON|0;
+						goto KON;
 					}
 				}
 
 				VAL = __TRUE__;
-				goto KON|0;
+				goto KON;
 			}
 
 			N_comparePair {
@@ -4831,7 +4832,7 @@ function SLIP(callbacks, size) {
 				if((VAL|0) == __FALSE__) {
 					zap();
 					zap();
-					goto KON|0;
+					goto KON;
 				}
 
 				ARG = pop()|0;
@@ -4844,11 +4845,11 @@ function SLIP(callbacks, size) {
 				LEN = vectorLength(ARG)|0;
 				if((vectorLength(EXP)|0) != (LEN|0)) {
 					VAL = __FALSE__;
-					goto KON|0;
+					goto KON;
 				}
 				if(!LEN) {
 					VAL = __TRUE__;
-					goto KON|0;
+					goto KON;
 				}
 
 				if((LEN|0) > 1) {
@@ -4872,7 +4873,7 @@ function SLIP(callbacks, size) {
 					zap();
 					zap();
 					KON = immediateVal(pop()|0)|0;
-					goto KON|0;
+					goto KON;
 				}
 
 				IDX = immediateVal(pop()|0)|0;
