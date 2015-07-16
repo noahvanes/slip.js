@@ -7,7 +7,7 @@
            (fib (- n 1)))))
   
   (run-benchmark "FIBONACCI" 
-                 (lambda () (fib 30)) 
+                 (lambda () (fib 33)) 
                  3)
  )
   

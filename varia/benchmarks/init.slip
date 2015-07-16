@@ -16,6 +16,7 @@
     (define (loop i)
       (if (= i times)
           (begin
+            (newline)
             (display "=> results: ")
             (display results)
             (newline)
@@ -29,6 +30,7 @@
             (proc)
             (define stop (clock))
             (vector-set! results i (- stop start))
+            (display ".")
             (loop (+ i 1)))))
     (loop 0)))
     

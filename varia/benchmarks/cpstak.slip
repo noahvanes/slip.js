@@ -21,6 +21,6 @@
     (tak x y z (lambda (a) a)))
   
   (run-benchmark "CPSTAK"
-                 (lambda () (hanoi 25 20 15))
+                 (lambda () (cpstak 35 30 20))
                  3)
   )

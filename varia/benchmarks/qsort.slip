@@ -46,7 +46,7 @@
    (define p
      ((lambda (v)
       (cons
-       (lambda () (set! v (random-vector 1000000)))
+       (lambda () (set! v (random-vector 500000)))
        (lambda () (quicksort v <)))) 'dummy))
    
    (run-benchmark "QUICKSORT" 

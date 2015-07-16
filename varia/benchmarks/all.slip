@@ -4,4 +4,5 @@
   (load "varia/benchmarks/qsort.slip")
   (load "varia/benchmarks/fib.slip")
   (load "varia/benchmarks/cpstak.slip")
+  (load "varia/benchmarks/alloc.slip"))
   
