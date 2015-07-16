@@ -89,11 +89,10 @@ function SLIP(callbacks, size) {
         var err_invalidLength = foreign$2.invalidLength;
         var err_invalidRange = foreign$2.invalidRange;
         var err_fatalMemory = foreign$2.fatalMemory;
+        var err_globalOverflow = foreign$2.globalOverflow;
         //pool
         var __POOL_TOP__ = 0;
         var __POOL_SIZ__ = 0;
-        //environment
-        var __GLOBAL_SIZ__ = 0;
         var //timer
         clock = foreign$2.clock;
         var reset = foreign$2.reset;
@@ -1199,8 +1198,8 @@ function SLIP(callbacks, size) {
             DGL = 2147483645;
         }
         function defineVar() {
-            if ((currentScpLvl | 0) == 0 & (currentFrmSiz | 0) == (__GLOBAL_SIZ__ | 0))
-                globalsGrow();
+            if ((currentScpLvl | 0) == 0 & (currentFrmSiz | 0) == 128)
+                err_globalOverflow();
             DFR = makeFrm(PAT, DFR) | 0;
             currentFrmSiz = currentFrmSiz + 1 | 0;
             return currentFrmSiz | 0;
@@ -1257,25 +1256,9 @@ function SLIP(callbacks, size) {
             currentScpLvl = 0;
         }
         function initEnvironment() {
-            __GLOBAL_SIZ__ = 64;
-            GLB = fillVector(__GLOBAL_SIZ__, 2147483647) | 0;
+            GLB = fillVector(128, 2147483647) | 0;
             FRM = GLB;
             ENV = 2147483645;
-        }
-        function globalsGrow() {
-            var siz = 0;
-            var idx = 0;
-            var val = 0;
-            siz = imul(__GLOBAL_SIZ__, 2) | 0;
-            claimSiz(siz);
-            TMP = fillVector(siz, 2147483647) | 0;
-            while ((idx | 0) < (__GLOBAL_SIZ__ | 0)) {
-                idx = idx + 1 | 0;
-                val = vectorRef(GLB, idx) | 0;
-                vectorSet(TMP, idx, val);
-            }
-            __GLOBAL_SIZ__ = siz;
-            GLB = TMP;
         }
         function extendEnv() {
             var env = 0;
@@ -4903,6 +4886,9 @@ function SLIP(callbacks, size) {
         function invalidApplication() {
             report('invalid application');
         }
+        function globalOverflow() {
+            report('too many global variables');
+        }
         function undefinedVariable(exp) {
             report('undefined variable: ' + printExp(exp));
         }
@@ -4940,6 +4926,7 @@ function SLIP(callbacks, size) {
             invalidExpression: invalidExpression,
             invalidLength: invalidLength,
             invalidRange: invalidRange,
+            globalOverflow: globalOverflow,
             fatalMemory: fatalMemory,
             link: link
         };
@@ -5093,6 +5080,7 @@ function SLIP(callbacks, size) {
         invalidOperator: errors.invalidOperator,
         invalidParamCount: errors.invalidParamCount,
         invalidArgument: errors.invalidArgument,
+        globalOverflow: errors.globalOverflow,
         invalidRange: errors.invalidRange,
         invalidLength: errors.invalidLength,
         fatalMemory: errors.fatalMemory,

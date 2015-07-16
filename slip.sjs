@@ -125,13 +125,11 @@ function SLIP(callbacks, size) {
 		var err_invalidLength = foreign.invalidLength;
 		var err_invalidRange = foreign.invalidRange;
 		var err_fatalMemory = foreign.fatalMemory;
+		var err_globalOverflow = foreign.globalOverflow;
 
 		//pool
 		var __POOL_TOP__ = 0;
 		var __POOL_SIZ__ = 0;
-
-		//environment
-		var __GLOBAL_SIZ__ = 0;
 
 		//timer
 		var clock = foreign.clock;
@@ -1522,8 +1520,8 @@ function SLIP(callbacks, size) {
 
 		function defineVar() {
 			if (((currentScpLvl|0)==0)
-				&((currentFrmSiz|0)==(__GLOBAL_SIZ__|0)))
-				globalsGrow();
+				&((currentFrmSiz|0)==__GLOBAL_SIZ__))
+				err_globalOverflow();
 			DFR = makeFrm(PAT, DFR)|0;
 			currentFrmSiz = (currentFrmSiz+1)|0;
 			return currentFrmSiz|0;
@@ -1587,27 +1585,12 @@ function SLIP(callbacks, size) {
 // *************************** ENVIRONMENT ******************************
 // **********************************************************************
 
+		define __GLOBAL_SIZ__ 128
+
 		function initEnvironment() {
-			__GLOBAL_SIZ__ = 64;
 			GLB = fillVector(__GLOBAL_SIZ__, __VOID__)|0;
 			FRM = GLB;
 			ENV = __NULL__;
-		}
-
-		function globalsGrow() {
-			var siz = 0;
-			var idx = 0;
-			var val = 0;
-			siz = imul(__GLOBAL_SIZ__,2)|0;
-			claimSiz(siz);
-			TMP = fillVector(siz, __VOID__)|0;
-			while((idx|0)<(__GLOBAL_SIZ__|0)) {
-				idx = (idx + 1)|0;
-				val = vectorRef(GLB, idx)|0;
-				vectorSet(TMP, idx, val);
-			}
-			__GLOBAL_SIZ__ = siz;
-			GLB = TMP;
 		}
 
 		function extendEnv() {
@@ -5635,6 +5618,10 @@ function SLIP(callbacks, size) {
 			report('invalid application');
 		}
 
+		function globalOverflow() {
+			report('too many global variables')
+		}
+
 		function undefinedVariable(exp) {
 			report('undefined variable: ' + printExp(exp));
 		}
@@ -5678,6 +5665,7 @@ function SLIP(callbacks, size) {
 			invalidExpression: invalidExpression,
 			invalidLength: invalidLength,
 			invalidRange: invalidRange,
+			globalOverflow: globalOverflow,
 			fatalMemory: fatalMemory,
 			link: link
 		}
@@ -5858,6 +5846,7 @@ function SLIP(callbacks, size) {
 		invalidOperator: errors.invalidOperator,
 		invalidParamCount: errors.invalidParamCount,
 		invalidArgument: errors.invalidArgument,
+		globalOverflow: errors.globalOverflow,
 		invalidRange: errors.invalidRange,
 		invalidLength: errors.invalidLength,
 		fatalMemory: errors.fatalMemory,
