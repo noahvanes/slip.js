@@ -55,6 +55,8 @@ function SLIP(callbacks, size) {
         //size
         var SYM = 0;
         //symbol pool
+        var TLC = 0;
+        //tail call
         var TMP = 0;
         //temporary
         var VAL = 0;
@@ -813,6 +815,21 @@ function SLIP(callbacks, size) {
             x = x | 0;
             return (tag(x) | 0) == 44 | 0;
         }
+        function makeTpz(opr) {
+            opr = opr | 0;
+            var tpz = 0;
+            tpz = makeChunk(38, 1) | 0;
+            chunkSet(tpz, 4, opr);
+            return tpz | 0;
+        }
+        function tpzOpr(tpz) {
+            tpz = tpz | 0;
+            return chunkGet(tpz, 4) | 0;
+        }
+        function isTpz(x) {
+            x = x | 0;
+            return (tag(x) | 0) == 38 | 0;
+        }
         function makeApl(opr, opd) {
             opr = opr | 0;
             opd = opd | 0;
@@ -833,6 +850,27 @@ function SLIP(callbacks, size) {
         function isApl(x) {
             x = x | 0;
             return (tag(x) | 0) == 16 | 0;
+        }
+        function makeTpl(opr, opd) {
+            opr = opr | 0;
+            opd = opd | 0;
+            var tpl = 0;
+            tpl = makeChunk(36, 2) | 0;
+            chunkSet(tpl, 4, opr);
+            chunkSet(tpl, 8, opd);
+            return tpl | 0;
+        }
+        function tplOpr(tpl) {
+            tpl = tpl | 0;
+            return chunkGet(tpl, 4) | 0;
+        }
+        function tplOpd(tpl) {
+            tpl = tpl | 0;
+            return chunkGet(tpl, 8) | 0;
+        }
+        function isTpl(x) {
+            x = x | 0;
+            return (tag(x) | 0) == 36 | 0;
         }
         function makeContinuation(kon, frm, env, stk) {
             kon = kon | 0;
@@ -915,7 +953,7 @@ function SLIP(callbacks, size) {
             x = x | 0;
             return (tag(x) | 0) == 28 | 0;
         }
-        function makeThunk(exp, siz) {
+        function makeThk(exp, siz) {
             exp = exp | 0;
             siz = siz | 0;
             var thk = 0;
@@ -935,6 +973,27 @@ function SLIP(callbacks, size) {
         function isThunk(x) {
             x = x | 0;
             return (tag(x) | 0) == 32 | 0;
+        }
+        function makeTtk(exp, siz) {
+            exp = exp | 0;
+            siz = siz | 0;
+            var ttk = 0;
+            ttk = makeChunk(46, 2) | 0;
+            chunkSet(ttk, 4, exp);
+            chunkSet(ttk, 8, siz);
+            return ttk | 0;
+        }
+        function ttkExp(ttk) {
+            ttk = ttk | 0;
+            return chunkGet(ttk, 4) | 0;
+        }
+        function ttkSiz(ttk) {
+            ttk = ttk | 0;
+            return chunkGet(ttk, 8) | 0;
+        }
+        function isTtk(x) {
+            x = x | 0;
+            return (tag(x) | 0) == 46 | 0;
         }
         function makeLmb(arc, frc, bdy) {
             arc = arc | 0;
@@ -993,7 +1052,7 @@ function SLIP(callbacks, size) {
         function makeLocal(ofs) {
             ofs = ofs | 0;
             var lcl = 0;
-            lcl = makeChunk(36, 1) | 0;
+            lcl = makeChunk(7, 1) | 0;
             chunkSet(lcl, 4, ofs);
             return lcl | 0;
         }
@@ -1003,13 +1062,13 @@ function SLIP(callbacks, size) {
         }
         function isLocal(x) {
             x = x | 0;
-            return (tag(x) | 0) == 36 | 0;
+            return (tag(x) | 0) == 7 | 0;
         }
         function makeGlobal(scp, ofs) {
             scp = scp | 0;
             ofs = ofs | 0;
             var glb = 0;
-            glb = makeChunk(38, 2) | 0;
+            glb = makeChunk(9, 2) | 0;
             chunkSet(glb, 4, scp);
             chunkSet(glb, 8, ofs);
             return glb | 0;
@@ -1024,7 +1083,7 @@ function SLIP(callbacks, size) {
         }
         function isGlobal(x) {
             x = x | 0;
-            return (tag(x) | 0) == 38 | 0;
+            return (tag(x) | 0) == 9 | 0;
         }
         function makePrc(arc, frc, bdy, env) {
             arc = arc | 0;
@@ -1273,33 +1332,30 @@ function SLIP(callbacks, size) {
             return env | 0;
         }
         function preserveEnv() {
-            if ((KON | 0) != 120) {
+            if ((KON | 0) != 131) {
                 push(makeImmediate(KON) | 0);
                 push(ENV);
                 push(FRM);
-                KON = 120;
+                KON = 131;
             }
         }
         function preserveEnv_peek() {
             KON = immediateVal(peek() | 0) | 0;
-            if ((KON | 0) != 120) {
+            if ((KON | 0) != 131) {
                 push(ENV);
                 push(FRM);
-                KON = 120;
+                KON = 131;
             } else {
                 zap();
             }
         }
         function lookupLocal(lcl) {
             lcl = lcl | 0;
-            OFS = immediateVal(localOfs(lcl) | 0) | 0;
-            return vectorRef(FRM, OFS) | 0;
+            return vectorRef(FRM, localOfs(lcl) | 0) | 0;
         }
         function lookupGlobal(glb) {
             glb = glb | 0;
-            SCP = immediateVal(globalScp(glb) | 0) | 0;
-            OFS = immediateVal(globalOfs(glb) | 0) | 0;
-            return vectorRef(vectorRef(ENV, SCP) | 0, OFS) | 0;
+            return vectorRef(vectorRef(ENV, globalScp(glb) | 0) | 0, globalOfs(glb) | 0) | 0;
         }
         function capturePrc(exp) {
             exp = exp | 0;
@@ -1378,7 +1434,7 @@ function SLIP(callbacks, size) {
         }
         function Slip_REPL() {
             initREPL();
-            run(137);
+            run(148);
         }
         function inputReady() {
             run(44);
@@ -1451,11 +1507,11 @@ function SLIP(callbacks, size) {
                                 break;
                             case 1:
                                 FLT = fround(fround(VAL | 0) + fround(floatNumber(EXP)));
-                                opc = 121;
+                                opc = 132;
                                 continue dispatch;
                             default:
                                 err_invalidArgument(EXP | 0);
-                                opc = 141;
+                                opc = 152;
                                 continue dispatch;
                             }
                         }
@@ -1465,7 +1521,7 @@ function SLIP(callbacks, size) {
                     case 1:
                         if (!LEN) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         VAL = vectorRef(PAR, 1) | 0;
@@ -1482,7 +1538,7 @@ function SLIP(callbacks, size) {
                                 continue dispatch;
                             default:
                                 err_invalidArgument(VAL | 0);
-                                opc = 141;
+                                opc = 152;
                                 continue dispatch;
                             }
                         }
@@ -1499,11 +1555,11 @@ function SLIP(callbacks, size) {
                                     break;
                                 case 1:
                                     FLT = fround(fround(VAL | 0) - fround(floatNumber(EXP)));
-                                    opc = 122;
+                                    opc = 133;
                                     continue dispatch;
                                 default:
                                     err_invalidArgument(EXP | 0);
-                                    opc = 141;
+                                    opc = 152;
                                     continue dispatch;
                                 }
                             }
@@ -1512,11 +1568,11 @@ function SLIP(callbacks, size) {
                             continue dispatch;
                         case 1:
                             FLT = fround(floatNumber(VAL));
-                            opc = 122;
+                            opc = 133;
                             continue dispatch;
                         }
                         err_invalidArgument(VAL | 0);
-                        opc = 141;
+                        opc = 152;
                         continue dispatch;
                     case 2:
                         VAL = 1;
@@ -1530,11 +1586,11 @@ function SLIP(callbacks, size) {
                                 break;
                             case 1:
                                 FLT = fround(fround(VAL | 0) * fround(floatNumber(EXP)));
-                                opc = 123;
+                                opc = 134;
                                 continue dispatch;
                             default:
                                 err_invalidArgument(EXP | 0);
-                                opc = 141;
+                                opc = 152;
                                 continue dispatch;
                             }
                         }
@@ -1544,7 +1600,7 @@ function SLIP(callbacks, size) {
                     case 3:
                         if (!LEN) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         claim();
@@ -1561,7 +1617,7 @@ function SLIP(callbacks, size) {
                                 continue dispatch;
                             default:
                                 err_invalidArgument(VAL | 0);
-                                opc = 141;
+                                opc = 152;
                                 continue dispatch;
                             }
                         }
@@ -1574,7 +1630,7 @@ function SLIP(callbacks, size) {
                             break;
                         default:
                             err_invalidArgument(VAL | 0);
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         for (IDX = 2; (IDX | 0) <= (LEN | 0); IDX = IDX + 1 | 0) {
@@ -1588,7 +1644,7 @@ function SLIP(callbacks, size) {
                                 break;
                             default:
                                 err_invalidArgument(EXP | 0);
-                                opc = 141;
+                                opc = 152;
                                 continue dispatch;
                             }
                         }
@@ -1598,7 +1654,7 @@ function SLIP(callbacks, size) {
                     case 4:
                         if ((LEN | 0) != 2) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         claim();
@@ -1608,7 +1664,7 @@ function SLIP(callbacks, size) {
                     case 5:
                         if ((LEN | 0) != 1) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         ARG = vectorRef(PAR, 1) | 0;
@@ -1618,12 +1674,12 @@ function SLIP(callbacks, size) {
                             continue dispatch;
                         }
                         err_invalidArgument(ARG | 0);
-                        opc = 141;
+                        opc = 152;
                         continue dispatch;
                     case 6:
                         if ((LEN | 0) != 1) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         ARG = vectorRef(PAR, 1) | 0;
@@ -1633,12 +1689,12 @@ function SLIP(callbacks, size) {
                             continue dispatch;
                         }
                         err_invalidArgument(ARG | 0);
-                        opc = 141;
+                        opc = 152;
                         continue dispatch;
                     case 7:
                         if ((LEN | 0) != 2) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         ARG = vectorRef(PAR, 1) | 0;
@@ -1649,12 +1705,12 @@ function SLIP(callbacks, size) {
                             continue dispatch;
                         }
                         err_invalidArgument(ARG | 0);
-                        opc = 141;
+                        opc = 152;
                         continue dispatch;
                     case 8:
                         if ((LEN | 0) != 2) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         ARG = vectorRef(PAR, 1) | 0;
@@ -1665,7 +1721,7 @@ function SLIP(callbacks, size) {
                             continue dispatch;
                         }
                         err_invalidArgument(ARG | 0);
-                        opc = 141;
+                        opc = 152;
                         continue dispatch;
                     case 9:
                         claimSiz(imul(3, LEN) | 0);
@@ -1676,7 +1732,7 @@ function SLIP(callbacks, size) {
                     case 10:
                         if ((LEN | 0) != 2) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         ARG = vectorRef(PAR, 1) | 0;
@@ -1694,7 +1750,7 @@ function SLIP(callbacks, size) {
                                 continue dispatch;
                             }
                             err_invalidArgument(EXP | 0);
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         case 1:
                             switch (tag(EXP) | 0) {
@@ -1708,16 +1764,16 @@ function SLIP(callbacks, size) {
                                 continue dispatch;
                             }
                             err_invalidArgument(EXP | 0);
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         err_invalidArgument(ARG | 0);
-                        opc = 141;
+                        opc = 152;
                         continue dispatch;
                     case 11:
                         if ((LEN | 0) != 2) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         ARG = vectorRef(PAR, 1) | 0;
@@ -1735,7 +1791,7 @@ function SLIP(callbacks, size) {
                                 continue dispatch;
                             }
                             err_invalidArgument(EXP | 0);
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         case 1:
                             switch (tag(EXP) | 0) {
@@ -1749,16 +1805,16 @@ function SLIP(callbacks, size) {
                                 continue dispatch;
                             }
                             err_invalidArgument(EXP | 0);
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         err_invalidArgument(ARG | 0);
-                        opc = 141;
+                        opc = 152;
                         continue dispatch;
                     case 12:
                         if ((LEN | 0) != 2) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         ARG = vectorRef(PAR, 1) | 0;
@@ -1776,7 +1832,7 @@ function SLIP(callbacks, size) {
                                 continue dispatch;
                             }
                             err_invalidArgument(EXP | 0);
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         case 1:
                             switch (tag(EXP) | 0) {
@@ -1790,16 +1846,16 @@ function SLIP(callbacks, size) {
                                 continue dispatch;
                             }
                             err_invalidArgument(EXP | 0);
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         err_invalidArgument(ARG | 0);
-                        opc = 141;
+                        opc = 152;
                         continue dispatch;
                     case 13:
                         if ((LEN | 0) != 2) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         ARG = vectorRef(PAR, 1) | 0;
@@ -1817,7 +1873,7 @@ function SLIP(callbacks, size) {
                                 continue dispatch;
                             }
                             err_invalidArgument(EXP | 0);
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         case 1:
                             switch (tag(EXP) | 0) {
@@ -1831,16 +1887,16 @@ function SLIP(callbacks, size) {
                                 continue dispatch;
                             }
                             err_invalidArgument(EXP | 0);
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         err_invalidArgument(ARG | 0);
-                        opc = 141;
+                        opc = 152;
                         continue dispatch;
                     case 14:
                         if ((LEN | 0) != 2) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         ARG = vectorRef(PAR, 1) | 0;
@@ -1858,7 +1914,7 @@ function SLIP(callbacks, size) {
                                 continue dispatch;
                             }
                             err_invalidArgument(EXP | 0);
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         case 1:
                             switch (tag(EXP) | 0) {
@@ -1872,16 +1928,16 @@ function SLIP(callbacks, size) {
                                 continue dispatch;
                             }
                             err_invalidArgument(EXP | 0);
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         err_invalidArgument(ARG | 0);
-                        opc = 141;
+                        opc = 152;
                         continue dispatch;
                     case 15:
                         if ((LEN | 0) != 2) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         PAT = vectorRef(PAR, 1) | 0;
@@ -1890,12 +1946,13 @@ function SLIP(callbacks, size) {
                             VAL = pairCar(LST) | 0;
                             if (!(isPair(VAL) | 0)) {
                                 err_invalidArgument(LST | 0);
-                                opc = 141;
+                                opc = 152;
                                 continue dispatch;
                             }
-                            if ((pairCar(VAL) | 0) == (PAT | 0))
+                            if ((pairCar(VAL) | 0) == (PAT | 0)) {
                                 opc = KON;
-                            continue dispatch;
+                                continue dispatch;
+                            }
                             LST = pairCdr(LST) | 0;
                         }
                         VAL = 2147483641;
@@ -1904,7 +1961,7 @@ function SLIP(callbacks, size) {
                     case 16:
                         if ((LEN | 0) != 2) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         VAL = vectorRef(PAR, 1) | 0;
@@ -1920,40 +1977,41 @@ function SLIP(callbacks, size) {
                         push(makeImmediate(KON) | 0);
                         push(1);
                         if (isNull(LST) | 0) {
-                            KON = 124;
+                            KON = 135;
                         } else {
                             push(VAL);
                             push(LST);
-                            KON = 125;
+                            KON = 136;
                         }
-                        opc = 126;
+                        opc = 137;
                         continue dispatch;
                     case 17:
                         if ((LEN | 0) != 1) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         claim();
                         EXP = vectorRef(PAR, 1) | 0;
                         push(makeImmediate(KON) | 0);
-                        KON = 127;
+                        KON = 138;
+                        TLC = 2147483643;
                         opc = 53;
                         continue dispatch;
                     case 18:
                         if ((LEN | 0) != 2) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         VAL = vectorRef(PAR, 1) | 0;
                         ARG = vectorRef(PAR, 2) | 0;
-                        opc = 126;
+                        opc = 137;
                         continue dispatch;
                     case 19:
                         if ((LEN | 0) != 1) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         printLog(vectorRef(PAR, 1) | 0);
@@ -1966,12 +2024,22 @@ function SLIP(callbacks, size) {
                         opc = KON;
                         continue dispatch;
                     case 21:
-                        promptUserInput();
-                        break dispatch;
+                        switch (LEN | 0) {
+                        case 0:
+                            promptUserInput();
+                            break dispatch;
+                        case 1:
+                            EXP = vectorRef(PAR, 1) | 0;
+                            loadFile(EXP | 0);
+                            break dispatch;
+                        }
+                        err_invalidParamCount();
+                        opc = 152;
+                        continue dispatch;
                     case 22:
                         if ((LEN | 0) != 1) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         VAL = (tag(vectorRef(PAR, 1) | 0) | 0) == 0 ? 2147483643 : 2147483641;
@@ -1980,7 +2048,7 @@ function SLIP(callbacks, size) {
                     case 23:
                         if ((LEN | 0) != 1) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         VAL = (tag(vectorRef(PAR, 1) | 0) | 0) == 68 ? 2147483643 : 2147483641;
@@ -1989,7 +2057,7 @@ function SLIP(callbacks, size) {
                     case 24:
                         if ((LEN | 0) != 1) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         VAL = (tag(vectorRef(PAR, 1) | 0) | 0) == 3 ? 2147483643 : 2147483641;
@@ -1998,7 +2066,7 @@ function SLIP(callbacks, size) {
                     case 25:
                         if ((LEN | 0) != 1) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         VAL = (tag(vectorRef(PAR, 1) | 0) | 0) == 2 ? 2147483643 : 2147483641;
@@ -2007,7 +2075,7 @@ function SLIP(callbacks, size) {
                     case 26:
                         if ((LEN | 0) != 1) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         VAL = (tag(vectorRef(PAR, 1) | 0) | 0) == 5 ? 2147483643 : 2147483641;
@@ -2016,19 +2084,19 @@ function SLIP(callbacks, size) {
                     case 27:
                         if (!LEN) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         ARG = vectorRef(PAR, 1) | 0;
                         if (!(isNumber(ARG) | 0)) {
                             err_invalidArgument(ARG | 0);
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         LEN = immediateVal(ARG) | 0;
                         if ((LEN | 0) < 0) {
                             err_invalidLength(LEN | 0);
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         claimSiz(LEN);
@@ -2039,19 +2107,19 @@ function SLIP(callbacks, size) {
                     case 28:
                         if ((LEN | 0) != 2) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         ARG = vectorRef(PAR, 1) | 0;
                         EXP = vectorRef(PAR, 2) | 0;
                         if (!(isVector(ARG) | 0)) {
                             err_invalidArgument(ARG | 0);
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         if (!(isNumber(EXP) | 0)) {
                             err_invalidArgument(EXP | 0);
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         IDX = immediateVal(EXP) | 0;
@@ -2062,12 +2130,12 @@ function SLIP(callbacks, size) {
                             continue dispatch;
                         }
                         err_invalidRange(IDX | 0, 0, LEN - 1 | 0);
-                        opc = 141;
+                        opc = 152;
                         continue dispatch;
                     case 29:
                         if ((LEN | 0) != 3) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         ARG = vectorRef(PAR, 1) | 0;
@@ -2075,12 +2143,12 @@ function SLIP(callbacks, size) {
                         VAL = vectorRef(PAR, 3) | 0;
                         if (!(isVector(ARG) | 0)) {
                             err_invalidArgument(ARG | 0);
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         if (!(isNumber(EXP) | 0)) {
                             err_invalidArgument(EXP | 0);
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         IDX = immediateVal(EXP) | 0;
@@ -2091,18 +2159,18 @@ function SLIP(callbacks, size) {
                             continue dispatch;
                         }
                         err_invalidRange(IDX | 0, 0, LEN - 1 | 0);
-                        opc = 141;
+                        opc = 152;
                         continue dispatch;
                     case 30:
                         if ((LEN | 0) != 1) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         ARG = vectorRef(PAR, 1) | 0;
                         if (!(isVector(ARG) | 0)) {
                             err_invalidArgument(ARG | 0);
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         LEN = vectorLength(ARG) | 0;
@@ -2116,7 +2184,7 @@ function SLIP(callbacks, size) {
                     case 32:
                         if (LEN) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         VAL = makeImmediate(clock() | 0) | 0;
@@ -2125,7 +2193,7 @@ function SLIP(callbacks, size) {
                     case 33:
                         if (LEN) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         reset();
@@ -2135,7 +2203,7 @@ function SLIP(callbacks, size) {
                     case 34:
                         if ((LEN | 0) != 2) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         VAL = (vectorRef(PAR, 1) | 0) == (vectorRef(PAR, 2) | 0) ? 2147483643 : 2147483641;
@@ -2144,12 +2212,12 @@ function SLIP(callbacks, size) {
                     case 35:
                         if ((LEN | 0) != 2) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         EXP = vectorRef(PAR, 1) | 0;
                         ARG = vectorRef(PAR, 2) | 0;
-                        opc = 130;
+                        opc = 141;
                         continue dispatch;
                     case 36:
                         reclaim();
@@ -2163,7 +2231,7 @@ function SLIP(callbacks, size) {
                     case 38:
                         if ((LEN | 0) != 1) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         VAL = vectorRef(PAR, 1) | 0;
@@ -2175,28 +2243,28 @@ function SLIP(callbacks, size) {
                             ARG = currentStack() | 0;
                             ARG = makeContinuation(makeImmediate(KON) | 0, FRM, ENV, ARG) | 0;
                             ARG = makePair(ARG, 2147483645) | 0;
-                            opc = 126;
+                            opc = 137;
                             continue dispatch;
                         }
                         err_invalidArgument(VAL | 0);
-                        opc = 141;
+                        opc = 152;
                         continue dispatch;
                     case 39:
                         if ((LEN | 0) != 2) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         ARG = vectorRef(PAR, 1) | 0;
                         EXP = vectorRef(PAR, 2) | 0;
                         if (!(isString(ARG) | 0)) {
                             err_invalidArgument(ARG | 0);
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         if (!(isNumber(EXP) | 0)) {
                             err_invalidArgument(EXP | 0);
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         IDX = immediateVal(EXP) | 0;
@@ -2207,12 +2275,12 @@ function SLIP(callbacks, size) {
                             continue dispatch;
                         }
                         err_invalidRange(IDX | 0, 0, LEN - 1 | 0);
-                        opc = 141;
+                        opc = 152;
                         continue dispatch;
                     case 40:
                         if ((LEN | 0) != 3) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         ARG = vectorRef(PAR, 1) | 0;
@@ -2220,17 +2288,17 @@ function SLIP(callbacks, size) {
                         VAL = vectorRef(PAR, 3) | 0;
                         if (!(isString(ARG) | 0)) {
                             err_invalidArgument(ARG | 0);
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         if (!(isNumber(EXP) | 0)) {
                             err_invalidArgument(EXP | 0);
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         if (!(isChar(VAL) | 0)) {
                             err_invalidArgument(VAL | 0);
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         IDX = immediateVal(EXP) | 0;
@@ -2241,18 +2309,18 @@ function SLIP(callbacks, size) {
                             continue dispatch;
                         }
                         err_invalidRange(IDX | 0, 0, LEN - 1 | 0);
-                        opc = 141;
+                        opc = 152;
                         continue dispatch;
                     case 41:
                         if ((LEN | 0) != 1) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         ARG = vectorRef(PAR, 1) | 0;
                         if (!(isString(ARG) | 0)) {
                             err_invalidArgument(ARG | 0);
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         VAL = makeImmediate(textLength(ARG) | 0) | 0;
@@ -2261,7 +2329,7 @@ function SLIP(callbacks, size) {
                     case 42:
                         if (LEN | 0) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         claim();
@@ -2271,18 +2339,18 @@ function SLIP(callbacks, size) {
                     case 43:
                         if ((LEN | 0) != 1) {
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         ARG = vectorRef(PAR, 1) | 0;
                         if (!(isString(ARG) | 0)) {
                             err_invalidArgument(ARG | 0);
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         claim();
                         push(makeImmediate(KON) | 0);
-                        KON = 128;
+                        KON = 139;
                         loadFile(ARG | 0);
                         break dispatch;
                     case 44    // **********************************************************************
@@ -2358,7 +2426,7 @@ function SLIP(callbacks, size) {
                     case 47:
                         if ((look() | 0) != 41) {
                             err_expectedRBR(look() | 0);
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         skip();
@@ -2413,7 +2481,7 @@ function SLIP(callbacks, size) {
                             continue dispatch;
                         }
                         err_invalidSyntax();
-                        opc = 141;
+                        opc = 152;
                         continue dispatch;
                     case 52:
                         if ((look() | 0) == 41) {
@@ -2480,9 +2548,7 @@ function SLIP(callbacks, size) {
                         PAT = EXP;
                         lexicalAdr();
                         if (OFS) {
-                            OFS = makeImmediate(OFS) | 0;
                             if (SCP) {
-                                SCP = makeImmediate(SCP) | 0;
                                 VAL = makeGlobal(SCP, OFS) | 0;
                             } else {
                                 VAL = makeLocal(OFS) | 0;
@@ -2491,7 +2557,7 @@ function SLIP(callbacks, size) {
                             continue dispatch;
                         }
                         err_undefinedVariable(PAT | 0);
-                        opc = 141;
+                        opc = 152;
                         continue dispatch;
                     case 55:
                         if (isNull(LST) | 0) {
@@ -2501,7 +2567,7 @@ function SLIP(callbacks, size) {
                         }
                         if (!(isPair(LST) | 0)) {
                             err_invalidSequence();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         EXP = pairCar(LST) | 0;
@@ -2511,18 +2577,21 @@ function SLIP(callbacks, size) {
                             push(makeImmediate(KON) | 0);
                             push(3);
                             push(LST);
+                            push(TLC);
+                            TLC = 2147483641;
                             KON = 56;
                         }
                         opc = 53;
                         continue dispatch;
                     case 56:
+                        TLC = pop() | 0;
                         LST = pop() | 0;
                         LEN = immediateVal(peek() | 0) | 0;
                         poke(VAL);
                         push(makeImmediate(LEN + 1 | 0) | 0);
                         if (!(isPair(LST) | 0)) {
                             err_invalidSequence();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         EXP = pairCar(LST) | 0;
@@ -2532,6 +2601,9 @@ function SLIP(callbacks, size) {
                         } else {
                             claim();
                             push(LST);
+                            push(TLC);
+                            TLC = 2147483641;
+                            KON = 56;
                         }
                         opc = 53;
                         continue dispatch;
@@ -2539,11 +2611,11 @@ function SLIP(callbacks, size) {
                         LEN = immediateVal(pop() | 0) | 0;
                         claimSiz(LEN);
                         EXP = makeSequence(LEN) | 0;
-                        sequenceSet(EXP, LEN, VAL);
-                        do {
-                            LEN = LEN - 1 | 0;
-                            sequenceSet(EXP, LEN, pop() | 0);
-                        } while ((LEN | 0) > 1);
+                        sequenceSet(EXP, 1, VAL);
+                        for (IDX = 1; (IDX | 0) < (LEN | 0);) {
+                            IDX = IDX + 1 | 0;
+                            sequenceSet(EXP, IDX, pop() | 0);
+                        }
                         VAL = EXP;
                         KON = immediateVal(pop() | 0) | 0;
                         opc = KON;
@@ -2551,7 +2623,7 @@ function SLIP(callbacks, size) {
                     case 58:
                         if (!(isPair(LST) | 0)) {
                             err_invalidQuote();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         EXP = pairCar(LST) | 0;
@@ -2563,51 +2635,55 @@ function SLIP(callbacks, size) {
                             continue dispatch;
                         }
                         err_invalidQuote();
-                        opc = 141;
+                        opc = 152;
                         continue dispatch;
                     case 59:
                         claim();
                         enterScope();
                         push(EXP);
+                        push(TLC);
                         push(makeImmediate(KON) | 0);
+                        TLC = 2147483643;
                         KON = 60;
                         opc = 53;
                         continue dispatch;
                     case 60:
                         SIZ = exitScope() | 0;
                         KON = immediateVal(pop() | 0) | 0;
+                        TLC = pop() | 0;
+                        EXP = pop() | 0;
                         if (SIZ) {
-                            zap();
-                            claim();
+                            //claim();
                             SIZ = makeImmediate(SIZ) | 0;
-                            VAL = makeThunk(VAL, SIZ) | 0;
+                            VAL = (TLC | 0) == 2147483643 ? makeTtk(VAL, SIZ) | 0 : makeThk(VAL, SIZ) | 0;
                             opc = KON;
                             continue dispatch;
                         }
-                        //default to normal compilation if no locals are used
-                        EXP = pop() | 0;
                         opc = 53;
                         continue dispatch;
                     case 61:
                         if (!(isPair(LST) | 0)) {
                             err_invalidIf();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         EXP = pairCar(LST) | 0;
                         LST = pairCdr(LST) | 0;
                         if (!(isPair(LST) | 0)) {
                             err_invalidIf();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         claim();
                         push(makeImmediate(KON) | 0);
                         push(LST);
+                        push(TLC);
+                        TLC = 2147483641;
                         KON = 62;
                         opc = 53;
                         continue dispatch;
                     case 62:
+                        TLC = pop() | 0;
                         LST = peek() | 0;
                         EXP = pairCar(LST) | 0;
                         LST = pairCdr(LST) | 0;
@@ -2620,12 +2696,13 @@ function SLIP(callbacks, size) {
                         if (isPair(LST) | 0) {
                             claim();
                             push(LST);
+                            push(TLC);
                             KON = 64;
                             opc = 59;
                             continue dispatch;
                         }
                         err_invalidIf();
-                        opc = 141;
+                        opc = 152;
                         continue dispatch;
                     case 63:
                         claim();
@@ -2634,13 +2711,14 @@ function SLIP(callbacks, size) {
                         opc = KON;
                         continue dispatch;
                     case 64:
+                        TLC = pop() | 0;
                         LST = peek() | 0;
                         EXP = pairCar(LST) | 0;
                         LST = pairCdr(LST) | 0;
                         poke(VAL);
                         if (!(isNull(LST) | 0)) {
                             err_invalidIf();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         KON = 65;
@@ -2658,7 +2736,7 @@ function SLIP(callbacks, size) {
                             PAT = pairCar(LST) | 0;
                             if (!(isSymbol(PAT) | 0)) {
                                 err_invalidParameter();
-                                opc = 141;
+                                opc = 152;
                                 continue dispatch;
                             }
                             claim();
@@ -2670,7 +2748,7 @@ function SLIP(callbacks, size) {
                         claim();
                         if (!(isPair(LST) | 0)) {
                             err_invalidDefine();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         PAT = pairCar(LST) | 0;
@@ -2680,18 +2758,19 @@ function SLIP(callbacks, size) {
                         case 3:
                             if (!(isPair(LST) | 0)) {
                                 err_invalidDefine();
-                                opc = 141;
+                                opc = 152;
                                 continue dispatch;
                             }
                             EXP = pairCar(LST) | 0;
                             LST = pairCdr(LST) | 0;
                             if (!(isNull(LST) | 0)) {
                                 err_invalidDefine();
-                                opc = 141;
+                                opc = 152;
                                 continue dispatch;
                             }
                             OFS = defineVar() | 0;
                             push(makeImmediate(OFS) | 0);
+                            TLC = 2147483641;
                             KON = 68;
                             opc = 53;
                             continue dispatch;
@@ -2700,7 +2779,7 @@ function SLIP(callbacks, size) {
                             PAT = pairCar(PAT) | 0;
                             if (!(isSymbol(PAT) | 0)) {
                                 err_invalidDefine();
-                                opc = 141;
+                                opc = 152;
                                 continue dispatch;
                             }
                             OFS = defineVar() | 0;
@@ -2712,7 +2791,7 @@ function SLIP(callbacks, size) {
                             continue dispatch;
                         }
                         err_invalidDefine();
-                        opc = 141;
+                        opc = 152;
                         continue dispatch;
                     case 68:
                         claim();
@@ -2723,6 +2802,7 @@ function SLIP(callbacks, size) {
                         continue dispatch;
                     case 69:
                         SIZ = makeImmediate(currentFrmSiz) | 0;
+                        TLC = 2147483643;
                         switch (tag(LST) | 0) {
                         case 68:
                             LST = peek() | 0;
@@ -2741,7 +2821,7 @@ function SLIP(callbacks, size) {
                             continue dispatch;
                         }
                         err_invalidDefine();
-                        opc = 141;
+                        opc = 152;
                         continue dispatch;
                     case 70:
                         claim();
@@ -2771,26 +2851,26 @@ function SLIP(callbacks, size) {
                         claim();
                         if (!(isPair(LST) | 0)) {
                             err_invalidAssignment();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         PAT = pairCar(LST) | 0;
                         if (!(isSymbol(PAT) | 0)) {
                             err_invalidAssignment();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         LST = pairCdr(LST) | 0;
                         if (!(isPair(LST) | 0)) {
                             err_invalidAssignment();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         EXP = pairCar(LST) | 0;
                         LST = pairCdr(LST) | 0;
                         if (!(isNull(LST) | 0)) {
                             err_invalidAssignment();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         //NOTE: original C implementation first compiles expression...
@@ -2798,6 +2878,7 @@ function SLIP(callbacks, size) {
                         //(set! x (begin (define x 2) 'foo)) are valid.
                         push(makeImmediate(KON) | 0);
                         push(PAT);
+                        TLC = 2147483641;
                         KON = 73;
                         opc = 53;
                         continue dispatch;
@@ -2818,12 +2899,12 @@ function SLIP(callbacks, size) {
                             continue dispatch;
                         }
                         err_undefinedVariable(PAT | 0);
-                        opc = 141;
+                        opc = 152;
                         continue dispatch;
                     case 74:
                         if (!(isPair(LST) | 0)) {
                             err_invalidLambda();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         claim();
@@ -2836,6 +2917,7 @@ function SLIP(callbacks, size) {
                         continue dispatch;
                     case 75:
                         SIZ = makeImmediate(currentFrmSiz) | 0;
+                        TLC = 2147483643;
                         switch (tag(LST) | 0) {
                         case 68:
                             LST = peek() | 0;
@@ -2854,7 +2936,7 @@ function SLIP(callbacks, size) {
                             continue dispatch;
                         }
                         err_invalidLambda();
-                        opc = 141;
+                        opc = 152;
                         continue dispatch;
                     case 76:
                         claim();
@@ -2877,47 +2959,56 @@ function SLIP(callbacks, size) {
                         push(makeImmediate(KON) | 0);
                         if (isNull(LST) | 0) {
                             KON = 79;
+                            push(TLC);
                         } else {
-                            push(LST);
                             push(1);
+                            push(LST);
+                            push(TLC);
+                            TLC = 2147483641;
                             KON = 80;
                         }
                         opc = 53;
                         continue dispatch;
                     case 79:
                         claim();
-                        VAL = makeApz(VAL) | 0;
+                        TLC = pop() | 0;
+                        VAL = (TLC | 0) == 2147483643 ? makeTpz(VAL) | 0 : makeApz(VAL) | 0;
                         KON = immediateVal(pop() | 0) | 0;
                         opc = KON;
                         continue dispatch;
                     case 80:
-                        LEN = immediateVal(pop() | 0) | 0;
-                        ARG = peek() | 0;
+                        TLC = pop() | 0;
+                        ARG = pop() | 0;
+                        LEN = immediateVal(peek() | 0) | 0;
                         poke(VAL);
+                        push(makeImmediate(LEN + 1 | 0) | 0);
                         if (!(isPair(ARG) | 0)) {
                             err_invalidApplication();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         EXP = pairCar(ARG) | 0;
                         ARG = pairCdr(ARG) | 0;
                         if (isNull(ARG) | 0) {
                             KON = 81;
+                            push(TLC);
                         } else {
                             claim();
                             push(ARG);
+                            push(TLC);
+                            TLC = 2147483641;
                         }
-                        push(makeImmediate(LEN + 1 | 0) | 0);
                         opc = 53;
                         continue dispatch;
                     case 81:
+                        TLC = pop() | 0;
                         LEN = immediateVal(pop() | 0) | 0;
                         claimSiz(LEN);
                         EXP = makeVector(LEN) | 0;
                         vectorSet(EXP, LEN, VAL);
                         for (LEN = LEN - 1 | 0; LEN; LEN = LEN - 1 | 0)
                             vectorSet(EXP, LEN, pop() | 0);
-                        VAL = makeApl(pop() | 0, EXP) | 0;
+                        VAL = (TLC | 0) == 2147483643 ? makeTpl(pop() | 0, EXP) | 0 : makeApl(pop() | 0, EXP) | 0;
                         KON = immediateVal(pop() | 0) | 0;
                         opc = KON;
                         continue dispatch;
@@ -2949,11 +3040,11 @@ function SLIP(callbacks, size) {
                             VAL = quoExpression(EXP) | 0;
                             opc = KON;
                             continue dispatch;
-                        case 36:
+                        case 7:
                             VAL = lookupLocal(EXP) | 0;
                             opc = KON;
                             continue dispatch;
-                        case 38:
+                        case 9:
                             VAL = lookupGlobal(EXP) | 0;
                             opc = KON;
                             continue dispatch;
@@ -2989,18 +3080,27 @@ function SLIP(callbacks, size) {
                         case 10:
                             opc = 95;
                             continue dispatch;
-                        case 32:
+                        case 46:
                             opc = 97;
                             continue dispatch;
-                        case 44:
+                        case 32:
                             opc = 98;
                             continue dispatch;
+                        case 44:
+                            opc = 104;
+                            continue dispatch;
+                        case 38:
+                            opc = 99;
+                            continue dispatch;
                         case 16:
-                            opc = 101;
+                            opc = 109;
+                            continue dispatch;
+                        case 36:
+                            opc = 112;
                             continue dispatch;
                         }
                         err_invalidExpression(EXP | 0);
-                        opc = 141;
+                        opc = 152;
                         continue dispatch;
                     case 83:
                         claim();
@@ -3064,21 +3164,21 @@ function SLIP(callbacks, size) {
                         claim();
                         push(makeImmediate(KON) | 0);
                         push(EXP);
-                        push(3);
-                        EXP = sequenceAt(EXP, 1) | 0;
+                        LEN = sequenceLength(EXP) | 0;
+                        EXP = sequenceAt(EXP, LEN) | 0;
+                        push(makeImmediate(LEN - 1 | 0) | 0);
                         KON = 92;
                         opc = 82;
                         continue dispatch;
                     case 92:
-                        IDX = (immediateVal(pop() | 0) | 0) + 1 | 0;
-                        EXP = peek() | 0;
-                        LEN = sequenceLength(EXP) | 0;
-                        EXP = sequenceAt(EXP, IDX) | 0;
-                        if ((IDX | 0) == (LEN | 0)) {
+                        IDX = immediateVal(pop() | 0) | 0;
+                        EXP = sequenceAt(peek() | 0, IDX) | 0;
+                        IDX = IDX - 1 | 0;
+                        if (IDX) {
+                            push(makeImmediate(IDX) | 0);
+                        } else {
                             zap();
                             KON = immediateVal(pop() | 0) | 0;
-                        } else {
-                            push(makeImmediate(IDX) | 0);
                         }
                         opc = 82;
                         continue dispatch;
@@ -3117,98 +3217,62 @@ function SLIP(callbacks, size) {
                         opc = 82;
                         continue dispatch;
                     case 97:
-                        SIZ = immediateVal(thunkSiz(EXP) | 0) | 0;
+                        SIZ = immediateVal(ttkSiz(EXP) | 0) | 0;
                         claimSiz(SIZ);
-                        preserveEnv();
                         ENV = extendEnv() | 0;
                         FRM = fillVector(SIZ, 2147483647) | 0;
-                        EXP = thunkExp(EXP) | 0;
+                        EXP = ttkExp(EXP) | 0;
                         opc = 82;
                         continue dispatch;
                     case 98:
-                        EXP = apzOpr(EXP) | 0;
+                        SIZ = immediateVal(thunkSiz(EXP) | 0) | 0;
+                        claimSiz(SIZ);
+                        push(makeImmediate(KON) | 0);
+                        push(ENV);
+                        push(FRM);
+                        ENV = extendEnv() | 0;
+                        FRM = fillVector(SIZ, 2147483647) | 0;
+                        EXP = thunkExp(EXP) | 0;
+                        KON = 131;
+                        opc = 82;
+                        continue dispatch;
+                    case 99    /* --- TPZ (TAIL CALL - ZERO ARGUMENTS) --- */:
+                        /* --- TPZ (TAIL CALL - ZERO ARGUMENTS) --- */
+                        EXP = tpzOpr(EXP) | 0;
                         switch (tag(EXP) | 0) {
-                        case 36:
+                        case 7:
                             VAL = lookupLocal(EXP) | 0;
-                            opc = 100;
+                            opc = 101;
                             continue dispatch;
-                        case 38:
+                        case 9:
                             VAL = lookupGlobal(EXP) | 0;
-                            opc = 100;
+                            opc = 101;
                             continue dispatch;
                         case 18:
                             VAL = capturePrc(EXP) | 0;
-                            LEN = immediateVal(prcArgc(VAL) | 0) | 0;
-                            if (LEN) {
-                                err_invalidParamCount();
-                                opc = 141;
-                                continue dispatch;
-                            }
-                            SIZ = immediateVal(prcFrmSiz(VAL) | 0) | 0;
-                            claimSiz(SIZ);
-                            preserveEnv();
-                            FRM = fillVector(SIZ, 2147483647) | 0;
-                            ENV = prcEnv(VAL) | 0;
-                            EXP = prcBdy(VAL) | 0;
-                            opc = 82;
+                            opc = 102;
                             continue dispatch;
                         case 34:
                             VAL = capturePrz(EXP) | 0;
-                            LEN = immediateVal(przArgc(VAL) | 0) | 0;
-                            if (LEN) {
-                                err_invalidParamCount();
-                                opc = 141;
-                                continue dispatch;
-                            }
-                            SIZ = immediateVal(przFrmSiz(VAL) | 0) | 0;
-                            claimSiz(SIZ);
-                            preserveEnv();
-                            FRM = fillVector(SIZ, 2147483645) | 0;
-                            ENV = przEnv(VAL) | 0;
-                            EXP = przBdy(VAL) | 0;
-                            opc = 82;
+                            opc = 103;
                             continue dispatch;
                         }
                         claim();
                         push(makeImmediate(KON) | 0);
-                        KON = 99;
+                        KON = 100;
                         opc = 82;
                         continue dispatch;
-                    case 99:
-                        KON = immediateVal(pop() | 0) | 0;
-                        opc = 100;
-                        continue dispatch;
                     case 100:
+                        KON = immediateVal(pop() | 0) | 0;
+                        opc = 101;
+                        continue dispatch;
+                    case 101:
                         switch (tag(VAL) | 0) {
                         case 4:
-                            LEN = immediateVal(prcArgc(VAL) | 0) | 0;
-                            SIZ = immediateVal(prcFrmSiz(VAL) | 0) | 0;
-                            if (LEN) {
-                                err_invalidParamCount();
-                                opc = 141;
-                                continue dispatch;
-                            }
-                            claimSiz(SIZ);
-                            preserveEnv();
-                            FRM = fillVector(SIZ, 2147483647) | 0;
-                            ENV = prcEnv(VAL) | 0;
-                            EXP = prcBdy(VAL) | 0;
-                            opc = 82;
+                            opc = 102;
                             continue dispatch;
                         case 42:
-                            LEN = immediateVal(przArgc(VAL) | 0) | 0;
-                            SIZ = immediateVal(przFrmSiz(VAL) | 0) | 0;
-                            if (LEN) {
-                                err_invalidParamCount();
-                                opc = 141;
-                                continue dispatch;
-                            }
-                            claimSiz(SIZ);
-                            preserveEnv();
-                            FRM = fillVector(SIZ, 2147483645) | 0;
-                            ENV = przEnv(VAL) | 0;
-                            EXP = przBdy(VAL) | 0;
-                            opc = 82;
+                            opc = 103;
                             continue dispatch;
                         case 70:
                             LEN = 0;
@@ -3217,27 +3281,142 @@ function SLIP(callbacks, size) {
                             continue dispatch;
                         case 24:
                             err_invalidParamCount();
-                            opc = 141;
+                            opc = 152;
                             continue dispatch;
                         }
                         err_invalidOperator(VAL | 0);
-                        opc = 141;
+                        opc = 152;
                         continue dispatch;
-                    case 101    /* --- APPLICATION MULTIPLE ARGUMENTS --- */
-                               // OPERATOR
+                    case 102:
+                        LEN = immediateVal(prcArgc(VAL) | 0) | 0;
+                        if (LEN) {
+                            err_invalidParamCount();
+                            opc = 152;
+                            continue dispatch;
+                        }
+                        SIZ = immediateVal(prcFrmSiz(VAL) | 0) | 0;
+                        claimSiz(SIZ);
+                        FRM = fillVector(SIZ, 2147483647) | 0;
+                        ENV = prcEnv(VAL) | 0;
+                        EXP = prcBdy(VAL) | 0;
+                        opc = 82;
+                        continue dispatch;
+                    case 103:
+                        LEN = immediateVal(przArgc(VAL) | 0) | 0;
+                        if (LEN) {
+                            err_invalidParamCount();
+                            opc = 152;
+                            continue dispatch;
+                        }
+                        SIZ = immediateVal(przFrmSiz(VAL) | 0) | 0;
+                        claimSiz(SIZ);
+                        FRM = fillVector(SIZ, 2147483645) | 0;
+                        ENV = przEnv(VAL) | 0;
+                        EXP = przBdy(VAL) | 0;
+                        opc = 82;
+                        continue dispatch;
+                    case 104    /* --- APZ (APPLICATION ZERO ARGUMENTS) --- */:
+                        /* --- APZ (APPLICATION ZERO ARGUMENTS) --- */
+                        EXP = apzOpr(EXP) | 0;
+                        switch (tag(EXP) | 0) {
+                        case 7:
+                            VAL = lookupLocal(EXP) | 0;
+                            opc = 106;
+                            continue dispatch;
+                        case 9:
+                            VAL = lookupGlobal(EXP) | 0;
+                            opc = 106;
+                            continue dispatch;
+                        case 18:
+                            VAL = capturePrc(EXP) | 0;
+                            opc = 107;
+                            continue dispatch;
+                        case 34:
+                            VAL = capturePrz(EXP) | 0;
+                            opc = 108;
+                            continue dispatch;
+                        }
+                        claim();
+                        push(makeImmediate(KON) | 0);
+                        KON = 105;
+                        opc = 82;
+                        continue dispatch;
+                    case 105:
+                        KON = immediateVal(pop() | 0) | 0;
+                        opc = 106;
+                        continue dispatch;
+                    case 106:
+                        switch (tag(VAL) | 0) {
+                        case 4:
+                            opc = 107;
+                            continue dispatch;
+                        case 42:
+                            opc = 108;
+                            continue dispatch;
+                        case 70:
+                            LEN = 0;
+                            PAR = __EMPTY_VEC__;
+                            opc = nativePtr(VAL) | 0;
+                            continue dispatch;
+                        case 24:
+                            err_invalidParamCount();
+                            opc = 152;
+                            continue dispatch;
+                        }
+                        err_invalidOperator(VAL | 0);
+                        opc = 152;
+                        continue dispatch;
+                    case 107:
+                        LEN = immediateVal(prcArgc(VAL) | 0) | 0;
+                        if (LEN) {
+                            err_invalidParamCount();
+                            opc = 152;
+                            continue dispatch;
+                        }
+                        SIZ = immediateVal(prcFrmSiz(VAL) | 0) | 0;
+                        claimSiz(SIZ);
+                        EXP = prcBdy(VAL) | 0;
+                        push(makeImmediate(KON) | 0);
+                        push(ENV);
+                        push(FRM);
+                        FRM = fillVector(SIZ, 2147483647) | 0;
+                        ENV = prcEnv(VAL) | 0;
+                        KON = 131;
+                        opc = 82;
+                        continue dispatch;
+                    case 108:
+                        LEN = immediateVal(przArgc(VAL) | 0) | 0;
+                        if (LEN) {
+                            err_invalidParamCount();
+                            opc = 152;
+                            continue dispatch;
+                        }
+                        SIZ = immediateVal(przFrmSiz(VAL) | 0) | 0;
+                        claimSiz(SIZ);
+                        EXP = przBdy(VAL) | 0;
+                        push(makeImmediate(KON) | 0);
+                        push(ENV);
+                        push(FRM);
+                        FRM = fillVector(SIZ, 2147483645) | 0;
+                        ENV = przEnv(VAL) | 0;
+                        KON = 131;
+                        opc = 82;
+                        continue dispatch;
+                    case 109    /* --- APPLICATION MULTIPLE ARGUMENTS --- */
+                               // OPERATOR (NORMAL CALL)
 :
                         /* --- APPLICATION MULTIPLE ARGUMENTS --- */
-                        // OPERATOR
+                        // OPERATOR (NORMAL CALL)
                         VAL = aplOpr(EXP) | 0;
                         ARG = aplOpd(EXP) | 0;
                         switch (tag(VAL) | 0) {
-                        case 36:
+                        case 7:
                             VAL = lookupLocal(VAL) | 0;
-                            opc = 103;
+                            opc = 111;
                             continue dispatch;
-                        case 38:
+                        case 9:
                             VAL = lookupGlobal(VAL) | 0;
-                            opc = 103;
+                            opc = 111;
                             continue dispatch;
                         case 18:
                             VAL = capturePrc(VAL) | 0;
@@ -3245,12 +3424,16 @@ function SLIP(callbacks, size) {
                             SIZ = immediateVal(prcFrmSiz(VAL) | 0) | 0;
                             if ((LEN | 0) != (vectorLength(ARG) | 0)) {
                                 err_invalidParamCount();
-                                opc = 141;
+                                opc = 152;
                                 continue dispatch;
                             }
                             claimSiz(SIZ);
+                            push(makeImmediate(KON) | 0);
+                            push(ENV);
+                            push(FRM);
+                            KON = 131;
                             PAR = fillVector(SIZ, 2147483647) | 0;
-                            opc = 109;
+                            opc = 120;
                             continue dispatch;
                         case 34:
                             VAL = capturePrz(VAL) | 0;
@@ -3258,85 +3441,208 @@ function SLIP(callbacks, size) {
                             SIZ = immediateVal(prcFrmSiz(VAL) | 0) | 0;
                             if ((LEN | 0) > (vectorLength(ARG) | 0)) {
                                 err_invalidParamCount();
-                                opc = 141;
+                                opc = 152;
                                 continue dispatch;
                             }
                             claimSiz(SIZ);
+                            push(makeImmediate(KON) | 0);
+                            push(ENV);
+                            push(FRM);
+                            KON = 131;
                             PAR = fillVector(SIZ, 2147483645) | 0;
                             if (LEN) {
-                                opc = 112;
+                                opc = 123;
                                 continue dispatch;
                             }
                             IDX = 0;
                             LEN = 1;
-                            opc = 115;
+                            opc = 126;
                             continue dispatch;
                         }
                         claim();
                         push(makeImmediate(KON) | 0);
                         push(ARG);
                         EXP = VAL;
-                        KON = 102;
+                        KON = 110;
                         opc = 82;
                         continue dispatch;
-                    case 102:
+                    case 110:
                         ARG = pop() | 0;
                         KON = immediateVal(pop() | 0) | 0;
-                        opc = 103;
+                        opc = 111;
                         continue dispatch;
-                    case 103:
+                    case 111:
                         switch (tag(VAL) | 0) {
                         case 4:
                             LEN = immediateVal(prcArgc(VAL) | 0) | 0;
                             SIZ = immediateVal(prcFrmSiz(VAL) | 0) | 0;
                             if ((LEN | 0) != (vectorLength(ARG) | 0)) {
                                 err_invalidParamCount();
-                                opc = 141;
+                                opc = 152;
                                 continue dispatch;
                             }
                             claimSiz(SIZ);
+                            push(makeImmediate(KON) | 0);
+                            push(ENV);
+                            push(FRM);
+                            KON = 131;
                             PAR = fillVector(SIZ, 2147483647) | 0;
-                            opc = 109;
+                            opc = 120;
                             continue dispatch;
                         case 42:
                             LEN = immediateVal(przArgc(VAL) | 0) | 0;
                             SIZ = immediateVal(przFrmSiz(VAL) | 0) | 0;
                             if ((LEN | 0) > (vectorLength(ARG) | 0)) {
                                 err_invalidParamCount();
-                                opc = 141;
+                                opc = 152;
                                 continue dispatch;
                             }
                             claimSiz(SIZ);
+                            push(makeImmediate(KON) | 0);
+                            push(ENV);
+                            push(FRM);
+                            KON = 131;
                             PAR = fillVector(SIZ, 2147483645) | 0;
                             if (LEN) {
-                                opc = 112;
+                                opc = 123;
                                 continue dispatch;
                             }
                             IDX = 0;
                             LEN = 1;
-                            opc = 115;
+                            opc = 126;
                             continue dispatch;
                         case 70:
                             LEN = vectorLength(ARG) | 0;
                             claimSiz(LEN);
                             PAR = fillVector(LEN, 2147483647) | 0;
-                            opc = 106;
+                            opc = 117;
                             continue dispatch;
                         case 24:
                             LEN = vectorLength(ARG) | 0;
                             if ((LEN | 0) != 1) {
                                 err_invalidParamCount();
-                                opc = 141;
+                                opc = 152;
                                 continue dispatch;
                             }
                             EXP = vectorRef(ARG, 1) | 0;
-                            opc = 104;
+                            opc = 115;
                             continue dispatch;
                         }
                         err_invalidOperator(VAL | 0);
-                        opc = 141;
+                        opc = 152;
                         continue dispatch;
-                    case 104    // ARGUMENT (CNT)
+                    case 112    // OPERATOR (TAIL CALL)
+:
+                        // OPERATOR (TAIL CALL)
+                        VAL = tplOpr(EXP) | 0;
+                        ARG = tplOpd(EXP) | 0;
+                        switch (tag(VAL) | 0) {
+                        case 7:
+                            VAL = lookupLocal(VAL) | 0;
+                            opc = 114;
+                            continue dispatch;
+                        case 9:
+                            VAL = lookupGlobal(VAL) | 0;
+                            opc = 114;
+                            continue dispatch;
+                        case 18:
+                            VAL = capturePrc(VAL) | 0;
+                            LEN = immediateVal(prcArgc(VAL) | 0) | 0;
+                            SIZ = immediateVal(prcFrmSiz(VAL) | 0) | 0;
+                            if ((LEN | 0) != (vectorLength(ARG) | 0)) {
+                                err_invalidParamCount();
+                                opc = 152;
+                                continue dispatch;
+                            }
+                            claimSiz(SIZ);
+                            PAR = fillVector(SIZ, 2147483647) | 0;
+                            opc = 120;
+                            continue dispatch;
+                        case 34:
+                            VAL = capturePrz(VAL) | 0;
+                            LEN = immediateVal(przArgc(VAL) | 0) | 0;
+                            SIZ = immediateVal(prcFrmSiz(VAL) | 0) | 0;
+                            if ((LEN | 0) > (vectorLength(ARG) | 0)) {
+                                err_invalidParamCount();
+                                opc = 152;
+                                continue dispatch;
+                            }
+                            claimSiz(SIZ);
+                            PAR = fillVector(SIZ, 2147483645) | 0;
+                            if (LEN) {
+                                opc = 123;
+                                continue dispatch;
+                            }
+                            IDX = 0;
+                            LEN = 1;
+                            opc = 126;
+                            continue dispatch;
+                        }
+                        claim();
+                        push(makeImmediate(KON) | 0);
+                        push(ARG);
+                        EXP = VAL;
+                        KON = 113;
+                        opc = 82;
+                        continue dispatch;
+                    case 113:
+                        ARG = pop() | 0;
+                        KON = immediateVal(pop() | 0) | 0;
+                        opc = 114;
+                        continue dispatch;
+                    case 114:
+                        switch (tag(VAL) | 0) {
+                        case 4:
+                            LEN = immediateVal(prcArgc(VAL) | 0) | 0;
+                            SIZ = immediateVal(prcFrmSiz(VAL) | 0) | 0;
+                            if ((LEN | 0) != (vectorLength(ARG) | 0)) {
+                                err_invalidParamCount();
+                                opc = 152;
+                                continue dispatch;
+                            }
+                            claimSiz(SIZ);
+                            PAR = fillVector(SIZ, 2147483647) | 0;
+                            opc = 120;
+                            continue dispatch;
+                        case 42:
+                            LEN = immediateVal(przArgc(VAL) | 0) | 0;
+                            SIZ = immediateVal(przFrmSiz(VAL) | 0) | 0;
+                            if ((LEN | 0) > (vectorLength(ARG) | 0)) {
+                                err_invalidParamCount();
+                                opc = 152;
+                                continue dispatch;
+                            }
+                            claimSiz(SIZ);
+                            PAR = fillVector(SIZ, 2147483645) | 0;
+                            if (LEN) {
+                                opc = 123;
+                                continue dispatch;
+                            }
+                            IDX = 0;
+                            LEN = 1;
+                            opc = 126;
+                            continue dispatch;
+                        case 70:
+                            LEN = vectorLength(ARG) | 0;
+                            claimSiz(LEN);
+                            PAR = fillVector(LEN, 2147483647) | 0;
+                            opc = 117;
+                            continue dispatch;
+                        case 24:
+                            LEN = vectorLength(ARG) | 0;
+                            if ((LEN | 0) != 1) {
+                                err_invalidParamCount();
+                                opc = 152;
+                                continue dispatch;
+                            }
+                            EXP = vectorRef(ARG, 1) | 0;
+                            opc = 115;
+                            continue dispatch;
+                        }
+                        err_invalidOperator(VAL | 0);
+                        opc = 152;
+                        continue dispatch;
+                    case 115    // ARGUMENT (CNT)
 :
                         switch (// ARGUMENT (CNT)
                             tag(EXP) | 0) {
@@ -3358,10 +3664,10 @@ function SLIP(callbacks, size) {
                         case 22:
                             EXP = quoExpression(EXP) | 0;
                             break;
-                        case 36:
+                        case 7:
                             EXP = lookupLocal(EXP) | 0;
                             break;
-                        case 38:
+                        case 9:
                             EXP = lookupGlobal(EXP) | 0;
                             break;
                         case 18:
@@ -3373,7 +3679,7 @@ function SLIP(callbacks, size) {
                         default:
                             claim();
                             push(VAL);
-                            KON = 105;
+                            KON = 116;
                             opc = 82;
                             continue dispatch;
                         }
@@ -3384,7 +3690,7 @@ function SLIP(callbacks, size) {
                         VAL = EXP;
                         opc = KON;
                         continue dispatch;
-                    case 105:
+                    case 116:
                         EXP = pop() | 0;
                         KON = immediateVal(continuationKon(EXP) | 0) | 0;
                         restoreStack(continuationStk(EXP) | 0);
@@ -3392,7 +3698,7 @@ function SLIP(callbacks, size) {
                         ENV = continuationEnv(EXP) | 0;
                         opc = KON;
                         continue dispatch;
-                    case 106    // ARGUMENTS (NAT)
+                    case 117    // ARGUMENTS (NAT)
 :
                         for (// ARGUMENTS (NAT)
                             IDX = 0; (IDX | 0) < (LEN | 0);) {
@@ -3417,10 +3723,10 @@ function SLIP(callbacks, size) {
                             case 22:
                                 EXP = quoExpression(EXP) | 0;
                                 break;
-                            case 36:
+                            case 7:
                                 EXP = lookupLocal(EXP) | 0;
                                 break;
-                            case 38:
+                            case 9:
                                 EXP = lookupGlobal(EXP) | 0;
                                 break;
                             case 18:
@@ -3436,11 +3742,11 @@ function SLIP(callbacks, size) {
                                 push(PAR);
                                 if ((IDX | 0) == (LEN | 0)) {
                                     //last argument
-                                    KON = 108;
+                                    KON = 119;
                                 } else {
                                     push(ARG);
                                     push(makeImmediate(IDX) | 0);
-                                    KON = 107;
+                                    KON = 118;
                                 }
                                 opc = 82;
                                 continue dispatch;
@@ -3449,7 +3755,7 @@ function SLIP(callbacks, size) {
                         }
                         opc = nativePtr(VAL) | 0;
                         continue dispatch;
-                    case 107:
+                    case 118:
                         IDX = immediateVal(pop() | 0) | 0;
                         ARG = pop() | 0;
                         LEN = vectorLength(ARG) | 0;
@@ -3477,10 +3783,10 @@ function SLIP(callbacks, size) {
                             case 22:
                                 EXP = quoExpression(EXP) | 0;
                                 break;
-                            case 36:
+                            case 7:
                                 EXP = lookupLocal(EXP) | 0;
                                 break;
-                            case 38:
+                            case 9:
                                 EXP = lookupGlobal(EXP) | 0;
                                 break;
                             case 18:
@@ -3493,11 +3799,11 @@ function SLIP(callbacks, size) {
                                 push(PAR);
                                 if ((IDX | 0) == (LEN | 0)) {
                                     //last argument
-                                    KON = 108;
+                                    KON = 119;
                                 } else {
                                     push(ARG);
                                     push(makeImmediate(IDX) | 0);
-                                    KON = 107;
+                                    KON = 118;
                                 }
                                 opc = 82;
                                 continue dispatch;
@@ -3508,7 +3814,7 @@ function SLIP(callbacks, size) {
                         KON = immediateVal(pop() | 0) | 0;
                         opc = nativePtr(VAL) | 0;
                         continue dispatch;
-                    case 108:
+                    case 119:
                         PAR = pop() | 0;
                         LEN = vectorLength(PAR) | 0;
                         vectorSet(PAR, LEN, VAL);
@@ -3516,7 +3822,7 @@ function SLIP(callbacks, size) {
                         KON = immediateVal(pop() | 0) | 0;
                         opc = nativePtr(VAL) | 0;
                         continue dispatch;
-                    case 109    // ARGUMENTS (PRC)
+                    case 120    // ARGUMENTS (PRC)
 :
                         for (// ARGUMENTS (PRC)
                             IDX = 0; (IDX | 0) < (LEN | 0);) {
@@ -3541,10 +3847,10 @@ function SLIP(callbacks, size) {
                             case 22:
                                 EXP = quoExpression(EXP) | 0;
                                 break;
-                            case 36:
+                            case 7:
                                 EXP = lookupLocal(EXP) | 0;
                                 break;
-                            case 38:
+                            case 9:
                                 EXP = lookupGlobal(EXP) | 0;
                                 break;
                             case 18:
@@ -3561,24 +3867,22 @@ function SLIP(callbacks, size) {
                                 push(makeImmediate(IDX) | 0);
                                 if ((IDX | 0) == (LEN | 0)) {
                                     //last argument
-                                    KON = 111;
+                                    KON = 122;
                                 } else {
                                     push(ARG);
-                                    KON = 110;
+                                    KON = 121;
                                 }
                                 opc = 82;
                                 continue dispatch;
                             }
                             vectorSet(PAR, IDX, EXP);
                         }
-                        claim();
-                        preserveEnv();
                         FRM = PAR;
                         ENV = prcEnv(VAL) | 0;
                         EXP = prcBdy(VAL) | 0;
                         opc = 82;
                         continue dispatch;
-                    case 110:
+                    case 121:
                         ARG = pop() | 0;
                         LEN = vectorLength(ARG) | 0;
                         IDX = immediateVal(pop() | 0) | 0;
@@ -3606,10 +3910,10 @@ function SLIP(callbacks, size) {
                             case 22:
                                 EXP = quoExpression(EXP) | 0;
                                 break;
-                            case 36:
+                            case 7:
                                 EXP = lookupLocal(EXP) | 0;
                                 break;
-                            case 38:
+                            case 9:
                                 EXP = lookupGlobal(EXP) | 0;
                                 break;
                             case 18:
@@ -3623,10 +3927,10 @@ function SLIP(callbacks, size) {
                                 push(makeImmediate(IDX) | 0);
                                 if ((IDX | 0) == (LEN | 0)) {
                                     //last argument
-                                    KON = 111;
+                                    KON = 122;
                                 } else {
                                     push(ARG);
-                                    KON = 110;
+                                    KON = 121;
                                 }
                                 opc = 82;
                                 continue dispatch;
@@ -3634,24 +3938,24 @@ function SLIP(callbacks, size) {
                             vectorSet(PAR, IDX, EXP);
                         }
                         VAL = pop() | 0;
-                        preserveEnv_peek();
                         FRM = PAR;
                         ENV = prcEnv(VAL) | 0;
                         EXP = prcBdy(VAL) | 0;
+                        KON = immediateVal(pop() | 0) | 0;
                         opc = 82;
                         continue dispatch;
-                    case 111:
+                    case 122:
                         IDX = immediateVal(pop() | 0) | 0;
                         PAR = pop() | 0;
                         EXP = pop() | 0;
                         vectorSet(PAR, IDX, VAL);
-                        preserveEnv_peek();
                         FRM = PAR;
                         ENV = prcEnv(EXP) | 0;
                         EXP = prcBdy(EXP) | 0;
+                        KON = immediateVal(pop() | 0) | 0;
                         opc = 82;
                         continue dispatch;
-                    case 112    // ARGUMENTS (PRZ)
+                    case 123    // ARGUMENTS (PRZ)
 :
                         for (// ARGUMENTS (PRZ)
                             IDX = 0; (IDX | 0) < (LEN | 0);) {
@@ -3676,10 +3980,10 @@ function SLIP(callbacks, size) {
                             case 22:
                                 EXP = quoExpression(EXP) | 0;
                                 break;
-                            case 36:
+                            case 7:
                                 EXP = lookupLocal(EXP) | 0;
                                 break;
-                            case 38:
+                            case 9:
                                 EXP = lookupGlobal(EXP) | 0;
                                 break;
                             case 18:
@@ -3698,15 +4002,15 @@ function SLIP(callbacks, size) {
                                     if (//last mandatory argument
                                         (IDX | 0) == (vectorLength(ARG) | 0))
                                         //last argument
-                                        KON = 119;
+                                        KON = 130;
                                     else {
                                         push(ARG);
-                                        KON = 114;
+                                        KON = 125;
                                     }
                                 } else {
                                     push(makeImmediate(LEN) | 0);
                                     push(ARG);
-                                    KON = 113;
+                                    KON = 124;
                                 }
                                 opc = 82;
                                 continue dispatch;
@@ -3715,8 +4019,6 @@ function SLIP(callbacks, size) {
                         }
                         if ((IDX | 0) == (vectorLength(ARG) | 0)) {
                             //no more arguments
-                            claim();
-                            preserveEnv();
                             FRM = PAR;
                             ENV = przEnv(VAL) | 0;
                             EXP = przBdy(VAL) | 0;
@@ -3724,9 +4026,9 @@ function SLIP(callbacks, size) {
                             continue dispatch;
                         }
                         LEN = IDX + 1 | 0;
-                        opc = 115;
+                        opc = 126;
                         continue dispatch;
-                    case 113:
+                    case 124:
                         ARG = pop() | 0;
                         LEN = immediateVal(pop() | 0) | 0;
                         IDX = immediateVal(pop() | 0) | 0;
@@ -3754,10 +4056,10 @@ function SLIP(callbacks, size) {
                             case 22:
                                 EXP = quoExpression(EXP) | 0;
                                 break;
-                            case 36:
+                            case 7:
                                 EXP = lookupLocal(EXP) | 0;
                                 break;
-                            case 38:
+                            case 9:
                                 EXP = lookupGlobal(EXP) | 0;
                                 break;
                             case 18:
@@ -3773,15 +4075,15 @@ function SLIP(callbacks, size) {
                                     if (//last mandatory argument
                                         (IDX | 0) == (vectorLength(ARG) | 0))
                                         //last argument
-                                        KON = 119;
+                                        KON = 130;
                                     else {
                                         push(ARG);
-                                        KON = 114;
+                                        KON = 125;
                                     }
                                 } else {
                                     push(makeImmediate(LEN) | 0);
                                     push(ARG);
-                                    KON = 113;
+                                    KON = 124;
                                 }
                                 opc = 82;
                                 continue dispatch;
@@ -3791,25 +4093,25 @@ function SLIP(callbacks, size) {
                         if ((IDX | 0) == (vectorLength(ARG) | 0)) {
                             //no more arguments
                             VAL = pop() | 0;
-                            preserveEnv_peek();
                             FRM = PAR;
                             ENV = przEnv(VAL) | 0;
                             EXP = przBdy(VAL) | 0;
+                            KON = immediateVal(pop() | 0) | 0;
                             opc = 82;
                             continue dispatch;
                         }
                         LEN = IDX + 1 | 0;
-                        opc = 116;
+                        opc = 127;
                         continue dispatch;
-                    case 114:
+                    case 125:
                         ARG = pop() | 0;
                         IDX = immediateVal(pop() | 0) | 0;
                         PAR = pop() | 0;
                         vectorSet(PAR, IDX, VAL);
                         LEN = IDX + 1 | 0;
-                        opc = 116;
+                        opc = 127;
                         continue dispatch;
-                    case 115:
+                    case 126:
                         SIZ = vectorLength(ARG) | 0;
                         while ((IDX | 0) < (SIZ | 0)) {
                             IDX = IDX + 1 | 0;
@@ -3834,10 +4136,10 @@ function SLIP(callbacks, size) {
                             case 22:
                                 EXP = quoExpression(EXP) | 0;
                                 break;
-                            case 36:
+                            case 7:
                                 EXP = lookupLocal(EXP) | 0;
                                 break;
-                            case 38:
+                            case 9:
                                 EXP = lookupGlobal(EXP) | 0;
                                 break;
                             case 18:
@@ -3852,11 +4154,11 @@ function SLIP(callbacks, size) {
                                 push(PAR);
                                 push(makeImmediate(LEN) | 0);
                                 if ((IDX | 0) == (SIZ | 0)) {
-                                    KON = 118;
+                                    KON = 129;
                                 } else {
                                     push(makeImmediate(IDX) | 0);
                                     push(ARG);
-                                    KON = 117;
+                                    KON = 128;
                                 }
                                 opc = 82;
                                 continue dispatch;
@@ -3866,14 +4168,12 @@ function SLIP(callbacks, size) {
                         }
                         TMP = vectorRef(PAR, LEN) | 0;
                         vectorSet(PAR, LEN, reverse(TMP) | 0);
-                        claim();
-                        preserveEnv();
                         FRM = PAR;
                         ENV = przEnv(VAL) | 0;
                         EXP = przBdy(VAL) | 0;
                         opc = 82;
                         continue dispatch;
-                    case 116:
+                    case 127:
                         SIZ = vectorLength(ARG) | 0;
                         while ((IDX | 0) < (SIZ | 0)) {
                             IDX = IDX + 1 | 0;
@@ -3898,10 +4198,10 @@ function SLIP(callbacks, size) {
                             case 22:
                                 EXP = quoExpression(EXP) | 0;
                                 break;
-                            case 36:
+                            case 7:
                                 EXP = lookupLocal(EXP) | 0;
                                 break;
-                            case 38:
+                            case 9:
                                 EXP = lookupGlobal(EXP) | 0;
                                 break;
                             case 18:
@@ -3914,11 +4214,11 @@ function SLIP(callbacks, size) {
                                 push(PAR);
                                 push(makeImmediate(LEN) | 0);
                                 if ((IDX | 0) == (SIZ | 0)) {
-                                    KON = 118;
+                                    KON = 129;
                                 } else {
                                     push(makeImmediate(IDX) | 0);
                                     push(ARG);
-                                    KON = 117;
+                                    KON = 128;
                                 }
                                 opc = 82;
                                 continue dispatch;
@@ -3929,51 +4229,51 @@ function SLIP(callbacks, size) {
                         TMP = vectorRef(PAR, LEN) | 0;
                         vectorSet(PAR, LEN, reverse(TMP) | 0);
                         VAL = pop() | 0;
-                        preserveEnv_peek();
                         FRM = PAR;
                         ENV = przEnv(VAL) | 0;
                         EXP = przBdy(VAL) | 0;
+                        KON = immediateVal(pop() | 0) | 0;
                         opc = 82;
                         continue dispatch;
-                    case 117:
+                    case 128:
                         ARG = pop() | 0;
                         IDX = immediateVal(pop() | 0) | 0;
                         LEN = immediateVal(pop() | 0) | 0;
                         PAR = pop() | 0;
                         VAL = makePair(VAL, vectorRef(PAR, LEN) | 0) | 0;
                         vectorSet(PAR, LEN, VAL);
-                        opc = 116;
+                        opc = 127;
                         continue dispatch;
-                    case 118:
+                    case 129:
                         IDX = immediateVal(pop() | 0) | 0;
                         PAR = pop() | 0;
                         EXP = pop() | 0;
                         VAL = makePair(VAL, vectorRef(PAR, IDX) | 0) | 0;
                         vectorSet(PAR, IDX, reverse(VAL) | 0);
-                        preserveEnv_peek();
                         FRM = PAR;
                         ENV = przEnv(EXP) | 0;
                         EXP = przBdy(EXP) | 0;
+                        KON = immediateVal(pop() | 0) | 0;
                         opc = 82;
                         continue dispatch;
-                    case 119:
+                    case 130:
                         IDX = immediateVal(pop() | 0) | 0;
                         PAR = pop() | 0;
                         EXP = pop() | 0;
                         vectorSet(PAR, IDX, VAL);
-                        preserveEnv_peek();
                         FRM = PAR;
                         ENV = przEnv(EXP) | 0;
                         EXP = przBdy(EXP) | 0;
+                        KON = immediateVal(pop() | 0) | 0;
                         opc = 82;
                         continue dispatch;
-                    case 120:
+                    case 131:
                         FRM = pop() | 0;
                         ENV = pop() | 0;
                         KON = immediateVal(pop() | 0) | 0;
                         opc = KON;
                         continue dispatch;
-                    case 121    // **********************************************************************
+                    case 132    // **********************************************************************
                                // *************************** NATIVES PT2 ******************************
                                // **********************************************************************
 :
@@ -3992,7 +4292,7 @@ function SLIP(callbacks, size) {
                                 break;
                             default:
                                 err_invalidArgument(EXP | 0);
-                                opc = 141;
+                                opc = 152;
                                 continue dispatch;
                             }
                         }
@@ -4000,7 +4300,7 @@ function SLIP(callbacks, size) {
                         VAL = makeFloat(FLT) | 0;
                         opc = KON;
                         continue dispatch;
-                    case 122:
+                    case 133:
                         while ((IDX | 0) < (LEN | 0)) {
                             IDX = IDX + 1 | 0;
                             EXP = vectorRef(PAR, IDX) | 0;
@@ -4013,7 +4313,7 @@ function SLIP(callbacks, size) {
                                 break;
                             default:
                                 err_invalidArgument(EXP | 0);
-                                opc = 141;
+                                opc = 152;
                                 continue dispatch;
                             }
                         }
@@ -4021,7 +4321,7 @@ function SLIP(callbacks, size) {
                         VAL = makeFloat(FLT) | 0;
                         opc = KON;
                         continue dispatch;
-                    case 123:
+                    case 134:
                         while ((IDX | 0) < (LEN | 0)) {
                             IDX = IDX + 1 | 0;
                             EXP = vectorRef(PAR, IDX) | 0;
@@ -4034,7 +4334,7 @@ function SLIP(callbacks, size) {
                                 break;
                             default:
                                 err_invalidArgument(EXP | 0);
-                                opc = 141;
+                                opc = 152;
                                 continue dispatch;
                             }
                         }
@@ -4042,7 +4342,7 @@ function SLIP(callbacks, size) {
                         VAL = makeFloat(FLT) | 0;
                         opc = KON;
                         continue dispatch;
-                    case 124:
+                    case 135:
                         LEN = immediateVal(pop() | 0) | 0;
                         claimSiz(imul(3, LEN) | 0);
                         VAL = makePair(VAL, 2147483645) | 0;
@@ -4051,7 +4351,7 @@ function SLIP(callbacks, size) {
                         KON = immediateVal(pop() | 0) | 0;
                         opc = KON;
                         continue dispatch;
-                    case 125:
+                    case 136:
                         LST = pop() | 0;
                         EXP = pop() | 0;
                         LEN = immediateVal(peek() | 0) | 0;
@@ -4063,15 +4363,15 @@ function SLIP(callbacks, size) {
                         ARG = makePair(pairCar(LST) | 0, 2147483645) | 0;
                         LST = pairCdr(LST) | 0;
                         if (isNull(LST) | 0) {
-                            KON = 124;
+                            KON = 135;
                         } else {
                             push(VAL);
                             push(LST);
-                            KON = 125;
+                            KON = 136;
                         }
-                        opc = 126;
+                        opc = 137;
                         continue dispatch;
-                    case 126:
+                    case 137:
                         switch (tag(VAL) | 0) {
                         case 4:
                             LEN = immediateVal(prcArgc(VAL) | 0) | 0;
@@ -4082,7 +4382,7 @@ function SLIP(callbacks, size) {
                             for (IDX = 1; (IDX | 0) <= (LEN | 0); IDX = IDX + 1 | 0) {
                                 if (!(isPair(ARG) | 0)) {
                                     err_invalidParamCount();
-                                    opc = 141;
+                                    opc = 152;
                                     continue dispatch;
                                 }
                                 TMP = pairCar(ARG) | 0;
@@ -4091,7 +4391,7 @@ function SLIP(callbacks, size) {
                             }
                             if (!(isNull(ARG) | 0)) {
                                 err_invalidParamCount();
-                                opc = 141;
+                                opc = 152;
                                 continue dispatch;
                             }
                             ENV = prcEnv(VAL) | 0;
@@ -4107,7 +4407,7 @@ function SLIP(callbacks, size) {
                             for (IDX = 1; (IDX | 0) <= (LEN | 0); IDX = IDX + 1 | 0) {
                                 if (!(isPair(ARG) | 0)) {
                                     err_invalidParamCount();
-                                    opc = 141;
+                                    opc = 152;
                                     continue dispatch;
                                 }
                                 TMP = pairCar(ARG) | 0;
@@ -4124,7 +4424,7 @@ function SLIP(callbacks, size) {
                                 LST = pairCdr(LST) | 0;
                             if (!(isNull(LST) | 0)) {
                                 err_invalidArgument(ARG | 0);
-                                opc = 141;
+                                opc = 152;
                                 continue dispatch;
                             }
                             claimSiz(LEN);
@@ -4139,12 +4439,12 @@ function SLIP(callbacks, size) {
                         case 24:
                             if (!(isPair(ARG) | 0)) {
                                 err_invalidParamCount();
-                                opc = 141;
+                                opc = 152;
                                 continue dispatch;
                             }
                             if (!(isNull(pairCdr(ARG) | 0) | 0)) {
                                 err_invalidParamCount();
-                                opc = 141;
+                                opc = 152;
                                 continue dispatch;
                             }
                             KON = immediateVal(continuationKon(VAL) | 0) | 0;
@@ -4156,32 +4456,33 @@ function SLIP(callbacks, size) {
                             continue dispatch;
                         }
                         err_invalidOperator(VAL | 0);
-                        opc = 141;
+                        opc = 152;
                         continue dispatch;
-                    case 127:
+                    case 138:
                         EXP = VAL;
                         push(ENV);
                         push(FRM);
                         FRM = GLB;
                         ENV = __EMPTY_VEC__;
-                        KON = 120;
+                        KON = 131;
                         opc = 82;
                         continue dispatch;
-                    case 128:
+                    case 139:
                         EXP = VAL;
-                        KON = 129;
+                        KON = 140;
+                        TLC = 2147483643;
                         opc = 53;
                         continue dispatch;
-                    case 129:
+                    case 140:
                         EXP = VAL;
                         push(ENV);
                         push(FRM);
                         FRM = GLB;
                         ENV = __EMPTY_VEC__;
-                        KON = 120;
+                        KON = 131;
                         opc = 82;
                         continue dispatch;
-                    case 130:
+                    case 141:
                         TMP = tag(EXP) | 0;
                         if ((TMP | 0) != (tag(ARG) | 0)) {
                             VAL = 2147483641;
@@ -4190,26 +4491,26 @@ function SLIP(callbacks, size) {
                         }
                         switch (TMP | 0) {
                         case 1:
-                            opc = 131;
+                            opc = 142;
                             continue dispatch;
                         case 5:
-                            opc = 132;
+                            opc = 143;
                             continue dispatch;
                         case 0:
-                            opc = 133;
+                            opc = 144;
                             continue dispatch;
                         case 2:
-                            opc = 135;
+                            opc = 146;
                             continue dispatch;
                         }
                         VAL = (ARG | 0) == (EXP | 0) ? 2147483643 : 2147483641;
                         opc = KON;
                         continue dispatch;
-                    case 131:
+                    case 142:
                         VAL = fround(floatNumber(EXP)) == fround(floatNumber(ARG)) ? 2147483643 : 2147483641;
                         opc = KON;
                         continue dispatch;
-                    case 132:
+                    case 143:
                         LEN = textLength(ARG) | 0;
                         if ((textLength(EXP) | 0) != (LEN | 0)) {
                             VAL = 2147483641;
@@ -4227,17 +4528,17 @@ function SLIP(callbacks, size) {
                         VAL = 2147483643;
                         opc = KON;
                         continue dispatch;
-                    case 133:
+                    case 144:
                         claim();
                         push(pairCdr(EXP) | 0);
                         push(pairCdr(ARG) | 0);
                         EXP = pairCar(EXP) | 0;
                         ARG = pairCar(ARG) | 0;
                         push(makeImmediate(KON) | 0);
-                        KON = 134;
-                        opc = 130;
+                        KON = 145;
+                        opc = 141;
                         continue dispatch;
-                    case 134:
+                    case 145:
                         KON = immediateVal(pop() | 0) | 0;
                         if ((VAL | 0) == 2147483641) {
                             zap();
@@ -4247,9 +4548,9 @@ function SLIP(callbacks, size) {
                         }
                         ARG = pop() | 0;
                         EXP = pop() | 0;
-                        opc = 130;
+                        opc = 141;
                         continue dispatch;
-                    case 135:
+                    case 146:
                         LEN = vectorLength(ARG) | 0;
                         if ((vectorLength(EXP) | 0) != (LEN | 0)) {
                             VAL = 2147483641;
@@ -4267,13 +4568,13 @@ function SLIP(callbacks, size) {
                             push(EXP);
                             push(ARG);
                             push(3);
-                            KON = 136;
+                            KON = 147;
                         }
                         ARG = vectorRef(ARG, 1) | 0;
                         EXP = vectorRef(EXP, 1) | 0;
-                        opc = 130;
+                        opc = 141;
                         continue dispatch;
-                    case 136:
+                    case 147:
                         if ((VAL | 0) == 2147483641) {
                             zap();
                             zap();
@@ -4292,13 +4593,13 @@ function SLIP(callbacks, size) {
                         } else {
                             push(ARG);
                             push(makeImmediate(IDX) | 0);
-                            KON = 136;
+                            KON = 147;
                         }
                         ARG = vectorRef(ARG, IDX) | 0;
                         EXP = vectorRef(EXP, IDX) | 0;
-                        opc = 130;
+                        opc = 141;
                         continue dispatch;
-                    case 137    // **********************************************************************
+                    case 148    // **********************************************************************
                                // ****************************** REPL **********************************
                                // **********************************************************************
 :
@@ -4306,29 +4607,30 @@ function SLIP(callbacks, size) {
                         // ****************************** REPL **********************************
                         // **********************************************************************
                         dctCheckpoint();
-                        KON = 138;
+                        KON = 149;
                         promptInput();
                         break dispatch;
-                    case 138:
+                    case 149:
                         EXP = VAL;
-                        KON = 139;
+                        TLC = 2147483641;
+                        KON = 150;
                         opc = 53;
                         continue dispatch;
-                    case 139:
+                    case 150:
                         EXP = VAL;
-                        KON = 140;
+                        KON = 151;
                         opc = 82;
                         continue dispatch;
-                    case 140:
+                    case 151:
                         printOutput(VAL | 0);
-                        opc = 137;
+                        opc = 148;
                         continue dispatch;
-                    case 141:
+                    case 152:
                         FRM = GLB;
                         ENV = 2147483645;
                         dctRollback();
                         emptyStk();
-                        opc = 137;
+                        opc = 148;
                         continue dispatch;
                     }
                 }
@@ -4429,6 +4731,9 @@ function SLIP(callbacks, size) {
             thunkExp: thunkExp,
             thunkSiz: thunkSiz,
             isThunk: isThunk,
+            ttkSiz: ttkSiz,
+            ttkExp: ttkExp,
+            isTtk: isTtk,
             //lambdas
             lmbFrmSiz: lmbFrmSiz,
             lmbArgc: lmbArgc,
@@ -4470,9 +4775,14 @@ function SLIP(callbacks, size) {
             //applications
             apzOpr: apzOpr,
             isApz: isApz,
+            tpzOpr: tplOpr,
+            isTpz: isTpz,
             aplOpr: aplOpr,
             aplOpd: aplOpd,
             isApl: isApl,
+            tplOpr: tplOpr,
+            tplOpd: tplOpd,
+            isTpl: isTpl,
             /**************/
             /**** POOL ****/
             /**************/
@@ -4763,10 +5073,10 @@ function SLIP(callbacks, size) {
             case 4:
             case 42:
                 return '#<procedure>';
-            case 36:
-                return '#<local variable @ offset ' + printExp(ag.localOfs(exp)) + '>';
-            case 38:
-                return '#<variable @ scope-level/offset: ' + printExp(ag.globalScp(exp)) + '/' + printExp(ag.globalOfs(exp)) + '>';
+            case 7:
+                return '#<local variable @ offset ' + ag.localOfs(exp) + '>';
+            case 9:
+                return '#<variable @ scope-level/offset: ' + ag.globalScp(exp) + '/' + ag.globalOfs(exp) + '>';
             case 6:
                 return '#<sequence ' + printSequence(exp) + '>';
             case 8:
@@ -4775,6 +5085,8 @@ function SLIP(callbacks, size) {
                 return '#<full-if ' + printExp(ag.iffPredicate(exp)) + ' ' + printExp(ag.iffConsequence(exp)) + ' ' + printExp(ag.iffAlternative(exp)) + '>';
             case 32:
                 return '#<thunk (size: ' + printExp(ag.thunkSiz(exp)) + '; body: ' + printExp(ag.thunkExp(exp)) + ')>';
+            case 46:
+                return '#<thunk* (size: ' + printExp(ag.ttkSiz(exp)) + '; body: ' + printExp(ag.ttkExp(exp)) + ')>';
             case 22:
                 return '#<quote ' + printExp(ag.quoExpression(exp)) + '>';
             case 18:
@@ -4795,16 +5107,21 @@ function SLIP(callbacks, size) {
                 return '#<application (zero argument): ' + printExp(ag.apzOpr(exp)) + '>';
             case 16:
                 return '#<application ' + printExp(ag.aplOpr(exp)) + ' @ ' + printExp(ag.aplOpd(exp)) + '>';
+            case 38:
+                return '#<application* (zero argument): ' + printExp(ag.tpzOpr(exp)) + '>';
+            case 36:
+                return '#<application* ' + printExp(ag.tplOpr(exp)) + ' @ ' + printExp(ag.tplOpd(exp)) + '>';
             default:
                 return '<expression (tag: ' + tag + ')>';
             }
         }
         var printSequence = function (exp) {
-            var str = '', idx = 1;
+            var str = '';
             var len = ag.sequenceLength(exp);
-            while (idx < len)
-                str += printExp(ag.sequenceAt(exp, idx++)) + ' ';
-            str += printExp(ag.sequenceAt(exp, idx));
+            do {
+                str += printExp(ag.sequenceAt(exp, len)) + ' ';
+            } while (--len > 1);
+            str += printExp(ag.sequenceAt(exp, 1));
             return str;
         };
         function symbolText(chk) {

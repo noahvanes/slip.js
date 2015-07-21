@@ -1,8 +1,9 @@
 (begin
+
   (define (loop output environment)
     (define rollback environment)
-
-    (define (evaluate expression)
+    
+    (define (evalexp expression)
 
       (define (abort message qualifier)
         (display message)
@@ -24,14 +25,14 @@
 
       (define (thunkify expression)
         (define frozen-environment environment)
-        (define value (evaluate expression))
+        (define value (evalexp expression))
         (set! environment frozen-environment)
         value)
 
       (define (evaluate-sequence expressions)
         (define head (car expressions))
         (define tail (cdr expressions))
-        (define value (evaluate head))
+        (define value (evalexp head))
         (if (null? tail)
           value
           (evaluate-sequence tail)))
@@ -49,7 +50,7 @@
 
       (define (evaluate-application operator)
         (lambda operands
-          (apply (evaluate operator) (map evaluate operands))))
+          (apply (evalexp operator) (map evalexp operands))))
 
       (define (evaluate-begin . expressions)
         (evaluate-sequence expressions))
@@ -57,7 +58,7 @@
       (define (evaluate-define pattern . expressions)
         (if (symbol? pattern)
           (begin
-            (define value (evaluate (car expressions)))
+            (define value (evalexp (car expressions)))
             (define binding (cons pattern value))
             (set! environment (cons binding environment))
             value)
@@ -69,10 +70,10 @@
             closure)))
 
       (define (evaluate-eval expression)
-        (evaluate (evaluate expression)))
+        (evalexp (evalexp expression)))
 
       (define (evaluate-if predicate consequent . alternate)
-        (if (evaluate predicate)
+        (if (evalexp predicate)
           (thunkify consequent)
           (if (null? alternate)
             ()
@@ -85,7 +86,7 @@
         expression)
 
       (define (evaluate-set! variable expression)
-        (define value (evaluate expression))
+        (define value (evalexp expression))
         (define binding (assoc variable environment))
         (if (pair? binding)
           (set-cdr! binding value)
@@ -96,6 +97,16 @@
         (if (pair? binding)
           (cdr binding)
           (eval variable)))
+
+      (define (evaluate-load file)
+        (evalexp (read (evalexp file))))
+
+      (define (evaluate-while predicate body)
+        (define (iterate value)
+          (if (evalexp predicate)
+            (iterate (evalexp body))
+            value))
+        (iterate ()))
 
       (if (symbol? expression)
         (evaluate-variable expression)
@@ -111,11 +122,13 @@
                       (if (eq? operator 'lambda) evaluate-lambda
                         (if (eq? operator 'quote) evaluate-quote
                           (if (eq? operator 'set!) evaluate-set!
-                            (evaluate-application operator)))))))) operands))
+                            (if (eq? operator 'while) evaluate-while
+                              (if (eq? operator 'load) evaluate-load
+                                (evaluate-application operator)))))))))) operands))
           expression)))
 
     (display output)
     (newline)
-    (loop (evaluate (read)) environment))
+    (loop (evalexp (read)) environment))
 
   (loop "Meta-Circular Slip" ()))
