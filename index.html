@@ -99,7 +99,7 @@
 		currentInput.keypress(function(ev) {
 			if(ev.which === 13) {
 				var text = currentInput.val();
-				if(scanBrackets(text)) {				
+				if(scanBrackets(text) || !text.trim().length) {				
 					var rows = parseInt(currentInput.attr('rows'));
 					currentInput.attr({rows: rows + 1});
 				} else {

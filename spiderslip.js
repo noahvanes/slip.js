@@ -22,7 +22,7 @@ function readExpression(clb) {
 	var txt = '';
 	do
 		txt += readline();
-	while(scanBrackets(txt));
+	while(scanBrackets(txt) || !txt.trim().length);
 	clb(txt);
 }
 
