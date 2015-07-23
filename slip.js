@@ -404,10 +404,6 @@ function SLIP(callbacks, size) {
         function stkSize() {
             return (MEMSIZ - STKTOP | 0) >> 2;
         }
-        function stackAt(idx) {
-            idx = idx | 0;
-            return MEM32[STKTOP + idx >> 2] | 0;
-        }
         function tag(exp) {
             exp = exp | 0;
             var val = 0;
@@ -561,9 +557,10 @@ function SLIP(callbacks, size) {
             var vct = 0;
             var cur = 0;
             len = stkSize() | 0;
+            claimSiz(len);
             vct = makeVector(len) | 0;
             while ((idx | 0) < (len | 0)) {
-                cur = stackAt(idx << 2) | 0;
+                cur = MEM32[STKTOP + (idx << 2) >> 2] | 0;
                 idx = idx + 1 | 0;
                 vectorSet(vct, idx, cur);
             }
@@ -3101,46 +3098,52 @@ function SLIP(callbacks, size) {
         }
         function _E_setLocal() {
             claim();
-            push(makeImmediate(KON) | 0);
-            push(slcOfs(EXP) | 0);
+            STKTOP = STKTOP - 8 | 0;
+            MEM32[STKTOP + 4 >> 2] = makeImmediate(KON) | 0;
+            MEM32[STKTOP >> 2] = slcOfs(EXP) | 0;
             EXP = slcVal(EXP) | 0;
             KON = 85;
             return _E_eval() | 0;
         }
         function _E_c_setLocal() {
-            OFS = immediateVal(pop() | 0) | 0;
+            OFS = immediateVal(MEM32[STKTOP >> 2] | 0) | 0;
+            KON = immediateVal(MEM32[STKTOP + 4 >> 2] | 0) | 0;
             vectorSet(FRM, OFS, VAL);
-            KON = immediateVal(pop() | 0) | 0;
+            STKTOP = STKTOP + 8 | 0;
             return KON | 0;
         }
         function _E_setGlobal() {
             claim();
-            push(makeImmediate(KON) | 0);
-            push(sglScp(EXP) | 0);
-            push(sglOfs(EXP) | 0);
+            STKTOP = STKTOP - 12 | 0;
+            MEM32[STKTOP + 8 >> 2] = makeImmediate(KON) | 0;
+            MEM32[STKTOP + 4 >> 2] = sglScp(EXP) | 0;
+            MEM32[STKTOP >> 2] = sglOfs(EXP) | 0;
             EXP = sglVal(EXP) | 0;
             KON = 87;
             return _E_eval() | 0;
         }
         function _E_c_setGlobal() {
-            OFS = immediateVal(pop() | 0) | 0;
-            SCP = immediateVal(pop() | 0) | 0;
+            OFS = immediateVal(MEM32[STKTOP >> 2] | 0) | 0;
+            SCP = immediateVal(MEM32[STKTOP + 4 >> 2] | 0) | 0;
+            KON = immediateVal(MEM32[STKTOP + 8 >> 2] | 0) | 0;
             vectorSet(vectorRef(ENV, SCP) | 0, OFS, VAL);
-            KON = immediateVal(pop() | 0) | 0;
+            STKTOP = STKTOP + 12 | 0;
             return KON | 0;
         }
         function _E_evalDfv() {
             claim();
-            push(makeImmediate(KON) | 0);
-            push(dfvOfs(EXP) | 0);
+            STKTOP = STKTOP - 8 | 0;
+            MEM32[STKTOP + 4 >> 2] = makeImmediate(KON) | 0;
+            MEM32[STKTOP >> 2] = dfvOfs(EXP) | 0;
             EXP = dfvVal(EXP) | 0;
             KON = 89;
             return _E_eval() | 0;
         }
         function _E_c_evalDfv() {
-            OFS = immediateVal(pop() | 0) | 0;
+            OFS = immediateVal(MEM32[STKTOP >> 2] | 0) | 0;
+            KON = immediateVal(MEM32[STKTOP + 4 >> 2] | 0) | 0;
             vectorSet(FRM, OFS, VAL);
-            KON = immediateVal(pop() | 0) | 0;
+            STKTOP = STKTOP + 8 | 0;
             return KON | 0;
         }
         function _E_evalDff() {
@@ -3159,57 +3162,60 @@ function SLIP(callbacks, size) {
         }
         function _E_evalSequence() {
             claim();
-            push(makeImmediate(KON) | 0);
-            push(EXP);
+            STKTOP = STKTOP - 12 | 0;
+            MEM32[STKTOP + 8 >> 2] = makeImmediate(KON) | 0;
+            MEM32[STKTOP + 4 >> 2] = EXP;
             LEN = sequenceLength(EXP) | 0;
             EXP = sequenceAt(EXP, LEN) | 0;
-            push(makeImmediate(LEN - 1 | 0) | 0);
+            MEM32[STKTOP >> 2] = makeImmediate(LEN - 1 | 0) | 0;
             KON = 93;
             return _E_eval() | 0;
         }
         function _E_c_sequence() {
-            IDX = immediateVal(pop() | 0) | 0;
-            EXP = sequenceAt(peek() | 0, IDX) | 0;
+            IDX = immediateVal(MEM32[STKTOP >> 2] | 0) | 0;
+            EXP = sequenceAt(MEM32[STKTOP + 4 >> 2] | 0, IDX) | 0;
             IDX = IDX - 1 | 0;
             if (IDX) {
-                push(makeImmediate(IDX) | 0);
+                MEM32[STKTOP >> 2] = makeImmediate(IDX) | 0;
             } else {
-                zap();
-                KON = immediateVal(pop() | 0) | 0;
+                KON = immediateVal(MEM32[STKTOP + 8 >> 2] | 0) | 0;
+                STKTOP = STKTOP + 12 | 0;
             }
             return _E_eval() | 0;
         }
         function _E_evalIfs() {
             claim();
-            push(makeImmediate(KON) | 0);
-            push(ifsConsequence(EXP) | 0);
+            STKTOP = STKTOP - 8 | 0;
+            MEM32[STKTOP + 4 >> 2] = makeImmediate(KON) | 0;
+            MEM32[STKTOP >> 2] = ifsConsequence(EXP) | 0;
             EXP = ifsPredicate(EXP) | 0;
             KON = 95;
             return _E_eval() | 0;
         }
         function _E_c_ifs() {
-            if (!(isFalse(VAL) | 0)) {
-                EXP = pop() | 0;
-                KON = immediateVal(pop() | 0) | 0;
+            KON = immediateVal(MEM32[STKTOP + 4 >> 2] | 0) | 0;
+            if ((VAL | 0) != 2147483641) {
+                EXP = MEM32[STKTOP >> 2] | 0;
+                STKTOP = STKTOP + 8 | 0;
                 return _E_eval() | 0;
             }
-            zap();
             VAL = 2147483647;
-            KON = immediateVal(pop() | 0) | 0;
+            STKTOP = STKTOP + 8 | 0;
             return KON | 0;
         }
         function _E_evalIff() {
             claim();
-            push(makeImmediate(KON) | 0);
-            push(EXP);
+            STKTOP = STKTOP - 8 | 0;
+            MEM32[STKTOP + 4 >> 2] = makeImmediate(KON) | 0;
+            MEM32[STKTOP >> 2] = EXP;
             EXP = iffPredicate(EXP) | 0;
             KON = 97;
             return _E_eval() | 0;
         }
         function _E_c_iff() {
-            EXP = pop() | 0;
-            EXP = isFalse(VAL) | 0 ? iffAlternative(EXP) | 0 : iffConsequence(EXP) | 0;
-            KON = immediateVal(pop() | 0) | 0;
+            EXP = (VAL | 0) == 2147483641 ? iffAlternative(MEM32[STKTOP >> 2] | 0) | 0 : iffConsequence(MEM32[STKTOP >> 2] | 0) | 0;
+            KON = immediateVal(MEM32[STKTOP + 4 >> 2] | 0) | 0;
+            STKTOP = STKTOP + 8 | 0;
             return _E_eval() | 0;
         }
         function _E_evalTtk() {
@@ -3223,9 +3229,10 @@ function SLIP(callbacks, size) {
         function _E_evalThk() {
             SIZ = immediateVal(thunkSiz(EXP) | 0) | 0;
             claimSiz(SIZ);
-            push(makeImmediate(KON) | 0);
-            push(ENV);
-            push(FRM);
+            STKTOP = STKTOP - 12 | 0;
+            MEM32[STKTOP + 8 >> 2] = makeImmediate(KON) | 0;
+            MEM32[STKTOP + 4 >> 2] = ENV;
+            MEM32[STKTOP >> 2] = FRM;
             ENV = extendEnv() | 0;
             FRM = fillVector(SIZ, 2147483647) | 0;
             EXP = thunkExp(EXP) | 0;
@@ -3242,13 +3249,15 @@ function SLIP(callbacks, size) {
         }
         function _E_evalApz() {
             claim();
-            push(makeImmediate(KON) | 0);
+            STKTOP = STKTOP - 4 | 0;
+            MEM32[STKTOP >> 2] = makeImmediate(KON) | 0;
             EXP = apzOpr(EXP) | 0;
             KON = 103;
             return _E_eval() | 0;
         }
         function _E_c_evalApz() {
-            KON = immediateVal(pop() | 0) | 0;
+            KON = immediateVal(MEM32[STKTOP >> 2] | 0) | 0;
+            STKTOP = STKTOP + 4 | 0;
             return _E_evalAZ() | 0;
         }
         function _E_evalAZ() {
@@ -3260,9 +3269,10 @@ function SLIP(callbacks, size) {
                 }
                 SIZ = immediateVal(prcFrmSiz(VAL) | 0) | 0;
                 claimSiz(SIZ);
-                push(makeImmediate(KON) | 0);
-                push(ENV);
-                push(FRM);
+                STKTOP = STKTOP - 12 | 0;
+                MEM32[STKTOP + 8 >> 2] = makeImmediate(KON) | 0;
+                MEM32[STKTOP + 4 >> 2] = ENV;
+                MEM32[STKTOP >> 2] = FRM;
                 FRM = SIZ ? fillVector(SIZ, 2147483647) | 0 : __EMPTY_VEC__;
                 ENV = prcEnv(VAL) | 0;
                 EXP = prcBdy(VAL) | 0;
@@ -3275,9 +3285,10 @@ function SLIP(callbacks, size) {
                 }
                 SIZ = immediateVal(przFrmSiz(VAL) | 0) | 0;
                 claimSiz(SIZ);
-                push(makeImmediate(KON) | 0);
-                push(ENV);
-                push(FRM);
+                STKTOP = STKTOP - 12 | 0;
+                MEM32[STKTOP + 8 >> 2] = makeImmediate(KON) | 0;
+                MEM32[STKTOP + 4 >> 2] = ENV;
+                MEM32[STKTOP >> 2] = FRM;
                 FRM = SIZ ? fillVector(SIZ, 2147483645) | 0 : __EMPTY_VEC__;
                 ENV = przEnv(VAL) | 0;
                 EXP = przBdy(VAL) | 0;
@@ -3303,13 +3314,15 @@ function SLIP(callbacks, size) {
         }
         function _E_evalTpz() {
             claim();
-            push(makeImmediate(KON) | 0);
+            STKTOP = STKTOP - 4 | 0;
+            MEM32[STKTOP >> 2] = makeImmediate(KON) | 0;
             EXP = tpzOpr(EXP) | 0;
             KON = 108;
             return _E_eval() | 0;
         }
         function _E_c_evalTpz() {
-            KON = immediateVal(pop() | 0) | 0;
+            KON = immediateVal(MEM32[STKTOP >> 2] | 0) | 0;
+            STKTOP = STKTOP + 4 | 0;
             return _E_evalTZ() | 0;
         }
         function _E_evalTZ() {
@@ -3362,15 +3375,17 @@ function SLIP(callbacks, size) {
         }
         function _E_evalApl() {
             claim();
-            push(makeImmediate(KON) | 0);
-            push(aplOpd(EXP) | 0);
+            STKTOP = STKTOP - 8 | 0;
+            MEM32[STKTOP + 4 >> 2] = makeImmediate(KON) | 0;
+            MEM32[STKTOP >> 2] = aplOpd(EXP) | 0;
             EXP = aplOpr(EXP) | 0;
             KON = 113;
             return _E_eval() | 0;
         }
         function _E_c_evalApl() {
-            ARG = pop() | 0;
-            KON = immediateVal(pop() | 0) | 0;
+            ARG = MEM32[STKTOP >> 2] | 0;
+            KON = immediateVal(MEM32[STKTOP + 4 >> 2] | 0) | 0;
+            STKTOP = STKTOP + 8 | 0;
             return _E_evalAL() | 0;
         }
         function _E_evalAL() {
@@ -3384,9 +3399,10 @@ function SLIP(callbacks, size) {
                 }
                 claimSiz(SIZ);
                 PAR = fillVector(SIZ, 2147483647) | 0;
-                push(makeImmediate(KON) | 0);
-                push(ENV);
-                push(FRM);
+                STKTOP = STKTOP - 12 | 0;
+                MEM32[STKTOP + 8 >> 2] = makeImmediate(KON) | 0;
+                MEM32[STKTOP + 4 >> 2] = ENV;
+                MEM32[STKTOP >> 2] = FRM;
                 KON = 136;
                 return _E_prcEvalArgs() | 0;
             case 36:
@@ -3398,9 +3414,10 @@ function SLIP(callbacks, size) {
                 }
                 claimSiz(SIZ);
                 PAR = fillVector(SIZ, 2147483645) | 0;
-                push(makeImmediate(KON) | 0);
-                push(ENV);
-                push(FRM);
+                STKTOP = STKTOP - 12 | 0;
+                MEM32[STKTOP + 8 >> 2] = makeImmediate(KON) | 0;
+                MEM32[STKTOP + 4 >> 2] = ENV;
+                MEM32[STKTOP >> 2] = FRM;
                 KON = 136;
                 if (LEN) {
                     return _E_przArgs() | 0;
@@ -3437,15 +3454,17 @@ function SLIP(callbacks, size) {
         }
         function _E_evalTpl() {
             claim();
-            push(makeImmediate(KON) | 0);
-            push(tplOpd(EXP) | 0);
+            STKTOP = STKTOP - 8 | 0;
+            MEM32[STKTOP + 4 >> 2] = makeImmediate(KON) | 0;
+            MEM32[STKTOP >> 2] = tplOpd(EXP) | 0;
             EXP = tplOpr(EXP) | 0;
             KON = 118;
             return _E_eval() | 0;
         }
         function _E_c_evalTpl() {
-            ARG = pop() | 0;
-            KON = immediateVal(pop() | 0) | 0;
+            ARG = MEM32[STKTOP >> 2] | 0;
+            KON = immediateVal(MEM32[STKTOP + 4 >> 2] | 0) | 0;
+            STKTOP = STKTOP + 8 | 0;
             return _E_evalTL() | 0;
         }
         function _E_evalTL() {
@@ -3526,7 +3545,8 @@ function SLIP(callbacks, size) {
                 break;
             default:
                 claim();
-                push(VAL);
+                STKTOP = STKTOP - 4 | 0;
+                MEM32[STKTOP >> 2] = VAL;
                 KON = 121;
                 return _E_eval() | 0;
             }
@@ -3538,7 +3558,8 @@ function SLIP(callbacks, size) {
             return KON | 0;
         }
         function _E_c_continuationArg() {
-            EXP = pop() | 0;
+            EXP = MEM32[STKTOP >> 2] | 0;
+            //no need to unwind
             KON = immediateVal(continuationKon(EXP) | 0) | 0;
             restoreStack(continuationStk(EXP) | 0);
             FRM = continuationFrm(EXP) | 0;
@@ -3582,15 +3603,21 @@ function SLIP(callbacks, size) {
                     break;
                 default:
                     claim();
-                    push(makeImmediate(KON) | 0);
-                    push(VAL);
-                    push(PAR);
                     if ((IDX | 0) == (LEN | 0)) {
-                        //last argument
+                        STKTOP = STKTOP - 12 | 0    //last argument
+;
+                        MEM32[STKTOP + 8 >> 2] = //last argument
+                        makeImmediate(KON) | 0;
+                        MEM32[STKTOP + 4 >> 2] = VAL;
+                        MEM32[STKTOP >> 2] = PAR;
                         KON = 124;
                     } else {
-                        push(ARG);
-                        push(makeImmediate(IDX) | 0);
+                        STKTOP = STKTOP - 20 | 0;
+                        MEM32[STKTOP + 16 >> 2] = makeImmediate(KON) | 0;
+                        MEM32[STKTOP + 12 >> 2] = VAL;
+                        MEM32[STKTOP + 8 >> 2] = PAR;
+                        MEM32[STKTOP + 4 >> 2] = ARG;
+                        MEM32[STKTOP >> 2] = makeImmediate(IDX) | 0;
                         KON = 123;
                     }
                     return _E_eval() | 0;
@@ -3600,10 +3627,10 @@ function SLIP(callbacks, size) {
             return nativePtr(VAL) | 0;
         }
         function _E_c_nativeArgs() {
-            IDX = immediateVal(pop() | 0) | 0;
-            ARG = pop() | 0;
+            IDX = immediateVal(MEM32[STKTOP >> 2] | 0) | 0;
+            ARG = MEM32[STKTOP + 4 >> 2] | 0;
+            PAR = MEM32[STKTOP + 8 >> 2] | 0;
             LEN = vectorLength(ARG) | 0;
-            PAR = pop() | 0;
             vectorSet(PAR, IDX, VAL);
             while ((IDX | 0) < (LEN | 0)) {
                 IDX = IDX + 1 | 0;
@@ -3640,29 +3667,29 @@ function SLIP(callbacks, size) {
                     EXP = capturePrz(EXP) | 0;
                     break;
                 default:
-                    push(PAR);
                     if ((IDX | 0) == (LEN | 0)) {
                         //last argument
                         KON = 124;
+                        STKTOP = STKTOP + 8 | 0;
                     } else {
-                        push(ARG);
-                        push(makeImmediate(IDX) | 0);
-                        KON = 123;
+                        MEM32[STKTOP >> 2] = makeImmediate(IDX) | 0;
                     }
                     return _E_eval() | 0;
                 }
                 vectorSet(PAR, IDX, EXP);
             }
-            VAL = pop() | 0;
-            KON = immediateVal(pop() | 0) | 0;
+            VAL = MEM32[STKTOP + 12 >> 2] | 0;
+            KON = immediateVal(MEM32[STKTOP + 16 >> 2] | 0) | 0;
+            STKTOP = STKTOP + 20 | 0;
             return nativePtr(VAL) | 0;
         }
         function _E_applyNative() {
-            PAR = pop() | 0;
+            PAR = MEM32[STKTOP >> 2] | 0;
             LEN = vectorLength(PAR) | 0;
             vectorSet(PAR, LEN, VAL);
-            VAL = pop() | 0;
-            KON = immediateVal(pop() | 0) | 0;
+            VAL = MEM32[STKTOP + 4 >> 2] | 0;
+            KON = immediateVal(MEM32[STKTOP + 8 >> 2] | 0) | 0;
+            STKTOP = STKTOP + 12 | 0;
             return nativePtr(VAL) | 0;
         }
         function _E_prcEvalArgs() {
@@ -3702,15 +3729,22 @@ function SLIP(callbacks, size) {
                     break;
                 default:
                     claim();
-                    push(makeImmediate(KON) | 0);
-                    push(VAL);
-                    push(PAR);
-                    push(makeImmediate(IDX) | 0);
                     if ((IDX | 0) == (LEN | 0)) {
-                        //last argument
+                        STKTOP = STKTOP - 16 | 0    //last argument
+;
+                        MEM32[STKTOP + 12 >> 2] = //last argument
+                        makeImmediate(KON) | 0;
+                        MEM32[STKTOP + 8 >> 2] = VAL;
+                        MEM32[STKTOP + 4 >> 2] = PAR;
+                        MEM32[STKTOP >> 2] = makeImmediate(IDX) | 0;
                         KON = 127;
                     } else {
-                        push(ARG);
+                        STKTOP = STKTOP - 20 | 0;
+                        MEM32[STKTOP + 16 >> 2] = makeImmediate(KON) | 0;
+                        MEM32[STKTOP + 12 >> 2] = VAL;
+                        MEM32[STKTOP + 8 >> 2] = PAR;
+                        MEM32[STKTOP + 4 >> 2] = makeImmediate(IDX) | 0;
+                        MEM32[STKTOP >> 2] = ARG;
                         KON = 126;
                     }
                     return _E_eval() | 0;
@@ -3723,10 +3757,10 @@ function SLIP(callbacks, size) {
             return 83;
         }
         function _E_c_prcArgs() {
-            ARG = pop() | 0;
+            ARG = MEM32[STKTOP >> 2] | 0;
+            IDX = immediateVal(MEM32[STKTOP + 4 >> 2] | 0) | 0;
+            PAR = MEM32[STKTOP + 8 >> 2] | 0;
             LEN = vectorLength(ARG) | 0;
-            IDX = immediateVal(pop() | 0) | 0;
-            PAR = pop() | 0;
             vectorSet(PAR, IDX, VAL);
             while ((IDX | 0) < (LEN | 0)) {
                 IDX = IDX + 1 | 0;
@@ -3763,35 +3797,34 @@ function SLIP(callbacks, size) {
                     EXP = capturePrz(EXP) | 0;
                     break;
                 default:
-                    push(PAR);
-                    push(makeImmediate(IDX) | 0);
+                    MEM32[STKTOP + 4 >> 2] = makeImmediate(IDX) | 0;
                     if ((IDX | 0) == (LEN | 0)) {
                         //last argument
                         KON = 127;
-                    } else {
-                        push(ARG);
-                        KON = 126;
+                        STKTOP = STKTOP + 4 | 0;
                     }
                     return _E_eval() | 0;
                 }
                 vectorSet(PAR, IDX, EXP);
             }
-            VAL = pop() | 0;
             FRM = PAR;
+            VAL = MEM32[STKTOP + 12 >> 2] | 0;
             ENV = prcEnv(VAL) | 0;
             EXP = prcBdy(VAL) | 0;
-            KON = immediateVal(pop() | 0) | 0;
+            KON = immediateVal(MEM32[STKTOP + 16 >> 2] | 0) | 0;
+            STKTOP = STKTOP + 20 | 0;
             return 83;
         }
         function _E_prcApply() {
-            IDX = immediateVal(pop() | 0) | 0;
-            PAR = pop() | 0;
-            EXP = pop() | 0;
+            IDX = immediateVal(MEM32[STKTOP >> 2] | 0) | 0;
+            PAR = MEM32[STKTOP + 4 >> 2] | 0;
+            EXP = MEM32[STKTOP + 8 >> 2] | 0;
             vectorSet(PAR, IDX, VAL);
             FRM = PAR;
             ENV = prcEnv(EXP) | 0;
             EXP = prcBdy(EXP) | 0;
-            KON = immediateVal(pop() | 0) | 0;
+            KON = immediateVal(MEM32[STKTOP + 12 >> 2] | 0) | 0;
+            STKTOP = STKTOP + 16 | 0;
             return 83;
         }
         function _E_przArgs() {
@@ -3831,22 +3864,34 @@ function SLIP(callbacks, size) {
                     break;
                 default:
                     claim();
-                    push(makeImmediate(KON) | 0);
-                    push(VAL);
-                    push(PAR);
-                    push(makeImmediate(IDX) | 0);
                     if ((IDX | 0) == (LEN | 0)) {
                         if (//last mandatory argument
-                            (IDX | 0) == (vectorLength(ARG) | 0))
-                            //last argument
+                            (IDX | 0) == (vectorLength(ARG) | 0)) {
+                            STKTOP = STKTOP - 16 | 0    //last argument
+;
+                            MEM32[STKTOP + 12 >> 2] = //last argument
+                            makeImmediate(KON) | 0;
+                            MEM32[STKTOP + 8 >> 2] = VAL;
+                            MEM32[STKTOP + 4 >> 2] = PAR;
+                            MEM32[STKTOP >> 2] = makeImmediate(IDX) | 0;
                             KON = 135;
-                        else {
-                            push(ARG);
+                        } else {
+                            STKTOP = STKTOP - 20 | 0;
+                            MEM32[STKTOP + 16 >> 2] = makeImmediate(KON) | 0;
+                            MEM32[STKTOP + 12 >> 2] = VAL;
+                            MEM32[STKTOP + 8 >> 2] = PAR;
+                            MEM32[STKTOP + 4 >> 2] = makeImmediate(IDX) | 0;
+                            MEM32[STKTOP >> 2] = ARG;
                             KON = 130;
                         }
                     } else {
-                        push(makeImmediate(LEN) | 0);
-                        push(ARG);
+                        STKTOP = STKTOP - 24 | 0;
+                        MEM32[STKTOP + 20 >> 2] = makeImmediate(KON) | 0;
+                        MEM32[STKTOP + 16 >> 2] = VAL;
+                        MEM32[STKTOP + 12 >> 2] = PAR;
+                        MEM32[STKTOP + 8 >> 2] = makeImmediate(IDX) | 0;
+                        MEM32[STKTOP + 4 >> 2] = ARG;
+                        MEM32[STKTOP >> 2] = makeImmediate(LEN) | 0;
                         KON = 129;
                     }
                     return _E_eval() | 0;
@@ -3864,10 +3909,10 @@ function SLIP(callbacks, size) {
             return _E_przVarArgs() | 0;
         }
         function _E_c1_przArgs() {
-            ARG = pop() | 0;
-            LEN = immediateVal(pop() | 0) | 0;
-            IDX = immediateVal(pop() | 0) | 0;
-            PAR = pop() | 0;
+            LEN = immediateVal(MEM32[STKTOP >> 2] | 0) | 0;
+            ARG = MEM32[STKTOP + 4 >> 2] | 0;
+            IDX = immediateVal(MEM32[STKTOP + 8 >> 2] | 0) | 0;
+            PAR = MEM32[STKTOP + 12 >> 2] | 0;
             vectorSet(PAR, IDX, VAL);
             while ((IDX | 0) < (LEN | 0)) {
                 IDX = IDX + 1 | 0;
@@ -3904,21 +3949,17 @@ function SLIP(callbacks, size) {
                     EXP = capturePrz(EXP) | 0;
                     break;
                 default:
-                    push(PAR);
-                    push(makeImmediate(IDX) | 0);
+                    MEM32[STKTOP + 8 >> 2] = makeImmediate(IDX) | 0;
                     if ((IDX | 0) == (LEN | 0)) {
                         if (//last mandatory argument
-                            (IDX | 0) == (vectorLength(ARG) | 0))
+                            (IDX | 0) == (vectorLength(ARG) | 0)) {
                             //last argument
                             KON = 135;
-                        else {
-                            push(ARG);
+                            STKTOP = STKTOP + 8 | 0;
+                        } else {
                             KON = 130;
+                            STKTOP = STKTOP + 4 | 0;
                         }
-                    } else {
-                        push(makeImmediate(LEN) | 0);
-                        push(ARG);
-                        KON = 129;
                     }
                     return _E_eval() | 0;
                 }
@@ -3926,20 +3967,23 @@ function SLIP(callbacks, size) {
             }
             if ((IDX | 0) == (vectorLength(ARG) | 0)) {
                 //no more arguments
-                VAL = pop() | 0;
+                VAL = MEM32[STKTOP + 16 >> 2] | 0;
                 FRM = PAR;
                 ENV = przEnv(VAL) | 0;
                 EXP = przBdy(VAL) | 0;
-                KON = immediateVal(pop() | 0) | 0;
+                KON = immediateVal(MEM32[STKTOP + 20 >> 2] | 0) | 0;
+                STKTOP = STKTOP + 24 | 0;
                 return 83;
             }
+            STKTOP = STKTOP + 16 | 0;
             LEN = IDX + 1 | 0;
             return _E_przVarArgs2() | 0;
         }
         function _E_c2_przArgs() {
-            ARG = pop() | 0;
-            IDX = immediateVal(pop() | 0) | 0;
-            PAR = pop() | 0;
+            ARG = MEM32[STKTOP >> 2] | 0;
+            IDX = immediateVal(MEM32[STKTOP + 4 >> 2] | 0) | 0;
+            PAR = MEM32[STKTOP + 8 >> 2] | 0;
+            STKTOP = STKTOP + 12 | 0;
             vectorSet(PAR, IDX, VAL);
             LEN = IDX + 1 | 0;
             return _E_przVarArgs2() | 0;
@@ -3982,15 +4026,21 @@ function SLIP(callbacks, size) {
                     EXP = capturePrz(EXP) | 0;
                     break;
                 default:
-                    push(makeImmediate(KON) | 0);
-                    push(VAL);
-                    push(PAR);
-                    push(makeImmediate(LEN) | 0);
                     if ((IDX | 0) == (SIZ | 0)) {
+                        STKTOP = STKTOP - 16 | 0;
+                        MEM32[STKTOP + 12 >> 2] = makeImmediate(KON) | 0;
+                        MEM32[STKTOP + 8 >> 2] = VAL;
+                        MEM32[STKTOP + 4 >> 2] = PAR;
+                        MEM32[STKTOP >> 2] = makeImmediate(LEN) | 0;
                         KON = 134;
                     } else {
-                        push(makeImmediate(IDX) | 0);
-                        push(ARG);
+                        STKTOP = STKTOP - 24 | 0;
+                        MEM32[STKTOP + 20 >> 2] = makeImmediate(KON) | 0;
+                        MEM32[STKTOP + 16 >> 2] = VAL;
+                        MEM32[STKTOP + 12 >> 2] = PAR;
+                        MEM32[STKTOP + 8 >> 2] = makeImmediate(LEN) | 0;
+                        MEM32[STKTOP + 4 >> 2] = makeImmediate(IDX) | 0;
+                        MEM32[STKTOP >> 2] = ARG;
                         KON = 133;
                     }
                     return _E_eval() | 0;
@@ -4043,13 +4093,17 @@ function SLIP(callbacks, size) {
                     EXP = capturePrz(EXP) | 0;
                     break;
                 default:
-                    push(PAR);
-                    push(makeImmediate(LEN) | 0);
                     if ((IDX | 0) == (SIZ | 0)) {
+                        STKTOP = STKTOP - 8 | 0;
+                        MEM32[STKTOP + 4 >> 2] = PAR;
+                        MEM32[STKTOP >> 2] = makeImmediate(LEN) | 0;
                         KON = 134;
                     } else {
-                        push(makeImmediate(IDX) | 0);
-                        push(ARG);
+                        STKTOP = STKTOP - 16 | 0;
+                        MEM32[STKTOP + 12 >> 2] = PAR;
+                        MEM32[STKTOP + 8 >> 2] = makeImmediate(LEN) | 0;
+                        MEM32[STKTOP + 4 >> 2] = makeImmediate(IDX) | 0;
+                        MEM32[STKTOP >> 2] = ARG;
                         KON = 133;
                     }
                     return _E_eval() | 0;
@@ -4059,49 +4113,54 @@ function SLIP(callbacks, size) {
             }
             TMP = vectorRef(PAR, LEN) | 0;
             vectorSet(PAR, LEN, reverse(TMP) | 0);
-            VAL = pop() | 0;
+            VAL = MEM32[STKTOP >> 2] | 0;
             FRM = PAR;
             ENV = przEnv(VAL) | 0;
             EXP = przBdy(VAL) | 0;
-            KON = immediateVal(pop() | 0) | 0;
+            KON = immediateVal(MEM32[STKTOP + 4 >> 2] | 0) | 0;
+            STKTOP = STKTOP + 8 | 0;
             return 83;
         }
         function _E_c_przVarArgs() {
-            ARG = pop() | 0;
-            IDX = immediateVal(pop() | 0) | 0;
-            LEN = immediateVal(pop() | 0) | 0;
-            PAR = pop() | 0;
+            ARG = MEM32[STKTOP >> 2] | 0;
+            IDX = immediateVal(MEM32[STKTOP + 4 >> 2] | 0) | 0;
+            LEN = immediateVal(MEM32[STKTOP + 8 >> 2] | 0) | 0;
+            PAR = MEM32[STKTOP + 12 >> 2] | 0;
             VAL = makePair(VAL, vectorRef(PAR, LEN) | 0) | 0;
             vectorSet(PAR, LEN, VAL);
+            STKTOP = STKTOP + 16 | 0;
             return _E_przVarArgs2() | 0;
         }
         function _E_przApplyVarArgs() {
-            IDX = immediateVal(pop() | 0) | 0;
-            PAR = pop() | 0;
-            EXP = pop() | 0;
+            IDX = immediateVal(MEM32[STKTOP >> 2] | 0) | 0;
+            PAR = MEM32[STKTOP + 4 >> 2] | 0;
+            EXP = MEM32[STKTOP + 8 >> 2] | 0;
             VAL = makePair(VAL, vectorRef(PAR, IDX) | 0) | 0;
             vectorSet(PAR, IDX, reverse(VAL) | 0);
             FRM = PAR;
             ENV = przEnv(EXP) | 0;
             EXP = przBdy(EXP) | 0;
-            KON = immediateVal(pop() | 0) | 0;
+            KON = immediateVal(MEM32[STKTOP + 12 >> 2] | 0) | 0;
+            STKTOP = STKTOP + 16 | 0;
             return 83;
         }
         function _E_przApply() {
-            IDX = immediateVal(pop() | 0) | 0;
-            PAR = pop() | 0;
-            EXP = pop() | 0;
+            IDX = immediateVal(MEM32[STKTOP >> 2] | 0) | 0;
+            PAR = MEM32[STKTOP + 4 >> 2] | 0;
+            EXP = MEM32[STKTOP + 8 >> 2] | 0;
             vectorSet(PAR, IDX, VAL);
             FRM = PAR;
             ENV = przEnv(EXP) | 0;
             EXP = przBdy(EXP) | 0;
-            KON = immediateVal(pop() | 0) | 0;
+            KON = immediateVal(MEM32[STKTOP + 12 >> 2] | 0) | 0;
+            STKTOP = STKTOP + 16 | 0;
             return 83;
         }
         function _E_c_return() {
-            FRM = pop() | 0;
-            ENV = pop() | 0;
-            KON = immediateVal(pop() | 0) | 0;
+            FRM = MEM32[STKTOP >> 2] | 0;
+            ENV = MEM32[STKTOP + 4 >> 2] | 0;
+            KON = immediateVal(MEM32[STKTOP + 8 >> 2] | 0) | 0;
+            STKTOP = STKTOP + 12 | 0;
             return KON | 0;
         }
         function _N_addFloats() {

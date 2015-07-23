@@ -471,7 +471,7 @@ function SLIP(callbacks, size) {
 		}
 
 		function peek() {
-			return MEM32[STKTOP >> 2]|0;
+			return STK[0]|0;
 		}
 
 		function poke(el) {
@@ -480,7 +480,7 @@ function SLIP(callbacks, size) {
 		}
 
 		function zap() {
-			STKTOP = (STKTOP + 4)|0;
+			STKUNWIND(1);
 		}
 
 		function emptyStk() {
@@ -491,10 +491,45 @@ function SLIP(callbacks, size) {
 			return ((MEMSIZ - STKTOP)|0) >> 2;
 		}
 
-		function stackAt(idx) {
-			idx = idx|0;
-			return MEM32[(STKTOP + idx) >> 2]|0;
+		macro STK {
+			rule {[0]} => {
+				(MEM32[STKTOP >> 2])
+			}
+			case {_[$idx:lit]} => {
+			  var i = unwrapSyntax(#{$idx});
+			  letstx $i = [makeValue(i<<2,#{h})];
+			  return #{
+				(MEM32[(STKTOP+($i))>>2])
+			  }
+			}
+			rule{[$idx:expr]} => {
+				(MEM32[(STKTOP+($idx<<2))>>2])
+			}
 		}
+
+		macro STKUNWIND {
+			case {_($n:lit)} => {
+				var nbr = unwrapSyntax(#{$n});
+				var val = makeValue(nbr<<2,#{h});
+				letstx $inc = [val];
+				return #{
+					(STKTOP = (STKTOP + $inc)|0)
+				}
+			}
+		}
+
+		macro STKALLOC {
+			case {_($n:lit)} => {
+				var nbr = unwrapSyntax(#{$n});
+				var val = makeValue(nbr<<2,#{h});
+				letstx $dec = [val];
+				return #{
+					(STKTOP = (STKTOP - $dec)|0)
+				}
+			}
+		}
+
+
 
 // **********************************************************************
 // ************************* ABSTRACT GRAMMAR ***************************
@@ -656,9 +691,10 @@ function SLIP(callbacks, size) {
 			var vct = 0;
 			var cur = 0;
 			len = stkSize()|0;
+			claimSiz(len);
 			vct = makeVector(len)|0;
 			while((idx|0) < (len|0)) {
-				cur = stackAt(idx<<2)|0;
+				cur = STK[idx]|0;
 				idx = (idx+1)|0;
 				vectorSet(vct, idx, cur);
 			}
@@ -2596,7 +2632,7 @@ function SLIP(callbacks, size) {
 
 				if(OFS) {
 					VAL = (SCP? 
-							(makeGlobal(SCP, OFS)|0):
+							(makeGlobal(SCP,OFS)|0):
 							(makeLocal(OFS)|0));
 					goto KON|0;
 				}
@@ -3266,8 +3302,9 @@ function SLIP(callbacks, size) {
 			E_setLocal {
 				
 				claim();
-				push(makeImmediate(KON)|0);
-				push(slcOfs(EXP)|0);
+				STKALLOC(2);
+				STK[1] = makeImmediate(KON)|0;
+				STK[0] = slcOfs(EXP)|0;
 				EXP = slcVal(EXP)|0;
 				KON = E_c_setLocal;
 				goto E_eval();
@@ -3275,18 +3312,20 @@ function SLIP(callbacks, size) {
 
 			E_c_setLocal {
 
-				OFS = immediateVal(pop()|0)|0;
+				OFS = immediateVal(STK[0]|0)|0;
+				KON = immediateVal(STK[1]|0)|0;
 				vectorSet(FRM, OFS, VAL);
-				KON = immediateVal(pop()|0)|0;
+				STKUNWIND(2);
 				goto KON|0;
 			}
 
 			E_setGlobal {
 
 				claim();
-				push(makeImmediate(KON)|0);
-				push(sglScp(EXP)|0);
-				push(sglOfs(EXP)|0);
+				STKALLOC(3);
+				STK[2] = makeImmediate(KON)|0;
+				STK[1] = sglScp(EXP)|0;
+				STK[0] = sglOfs(EXP)|0;
 				EXP = sglVal(EXP)|0;
 				KON = E_c_setGlobal;
 				goto E_eval();
@@ -3294,18 +3333,20 @@ function SLIP(callbacks, size) {
 
 			E_c_setGlobal {
 
-				OFS = immediateVal(pop()|0)|0;
-				SCP = immediateVal(pop()|0)|0;
+				OFS = immediateVal(STK[0]|0)|0;
+				SCP = immediateVal(STK[1]|0)|0;
+				KON = immediateVal(STK[2]|0)|0;
 				vectorSet(vectorRef(ENV,SCP)|0,OFS,VAL);
-				KON = immediateVal(pop()|0)|0;
+				STKUNWIND(3);
 				goto KON|0;
 			}
 
 			E_evalDfv {
 
 				claim();
-				push(makeImmediate(KON)|0);
-				push(dfvOfs(EXP)|0);
+				STKALLOC(2);
+				STK[1] = makeImmediate(KON)|0;
+				STK[0] = dfvOfs(EXP)|0;
 				EXP = dfvVal(EXP)|0;
 				KON = E_c_evalDfv;
 				goto E_eval();
@@ -3313,9 +3354,10 @@ function SLIP(callbacks, size) {
 
 			E_c_evalDfv {
 
-				OFS = immediateVal(pop()|0)|0;
+				OFS = immediateVal(STK[0]|0)|0;
+				KON = immediateVal(STK[1]|0)|0;
 				vectorSet(FRM, OFS, VAL);
-				KON = immediateVal(pop()|0)|0;
+				STKUNWIND(2);
 				goto KON|0;
 			}
 
@@ -3346,26 +3388,27 @@ function SLIP(callbacks, size) {
 			E_evalSequence {
 
 				claim();
-				push(makeImmediate(KON)|0);
-				push(EXP);
+				STKALLOC(3);
+				STK[2] = makeImmediate(KON)|0;
+				STK[1] = EXP;
 				LEN = sequenceLength(EXP)|0;
 				EXP = sequenceAt(EXP, LEN)|0;
-				push(makeImmediate((LEN-1)|0)|0);
+				STK[0] = (makeImmediate((LEN-1)|0)|0);
 				KON = E_c_sequence;
 				goto E_eval();
 			}
 
 			E_c_sequence {
 
-				IDX = immediateVal(pop()|0)|0;
-				EXP = sequenceAt(peek()|0, IDX)|0;
+				IDX = immediateVal(STK[0]|0)|0;
+				EXP = sequenceAt(STK[1]|0, IDX)|0;
 				IDX = (IDX - 1)|0;
 
 				if(IDX) {
-					push(makeImmediate(IDX)|0);
+					STK[0] = makeImmediate(IDX)|0;
 				} else {
-					zap();
-					KON = immediateVal(pop()|0)|0;
+					KON = immediateVal(STK[2]|0)|0;
+					STKUNWIND(3);
 				}
 				goto E_eval();
 			}
@@ -3373,8 +3416,9 @@ function SLIP(callbacks, size) {
 			E_evalIfs {
 
 				claim();
-				push(makeImmediate(KON)|0);
-				push(ifsConsequence(EXP)|0);
+				STKALLOC(2);
+				STK[1] = makeImmediate(KON)|0;
+				STK[0] = ifsConsequence(EXP)|0;
 				EXP = ifsPredicate(EXP)|0;
 				KON = E_c_ifs;
 				goto E_eval();
@@ -3382,23 +3426,25 @@ function SLIP(callbacks, size) {
 
 			E_c_ifs {
 
-				if(!(isFalse(VAL)|0)) {
-					EXP = pop()|0;
-					KON = immediateVal(pop()|0)|0;					
+				KON = immediateVal(STK[1]|0)|0;		
+
+				if((VAL|0) != __FALSE__) {
+					EXP = STK[0]|0;
+					STKUNWIND(2);			
 					goto E_eval();
 				}
 
-				zap();
 				VAL = __VOID__;
-				KON = immediateVal(pop()|0)|0;
+				STKUNWIND(2);
 				goto KON|0;
 			}
 
 			E_evalIff {
 
 				claim();
-				push(makeImmediate(KON)|0);
-				push(EXP);
+				STKALLOC(2);
+				STK[1] = makeImmediate(KON)|0;
+				STK[0] = EXP;
 				EXP = iffPredicate(EXP)|0;
 				KON = E_c_iff;
 				goto E_eval();
@@ -3406,9 +3452,11 @@ function SLIP(callbacks, size) {
 
 			E_c_iff {
 
-				EXP = pop()|0;
-				EXP = (isFalse(VAL)|0? iffAlternative(EXP)|0 : iffConsequence(EXP)|0);
-				KON = immediateVal(pop()|0)|0;
+				EXP = ((VAL|0) == __FALSE__? 
+						iffAlternative(STK[0]|0)|0: 
+						iffConsequence(STK[0]|0)|0);
+				KON = immediateVal(STK[1]|0)|0;
+				STKUNWIND(2);
 				goto E_eval();
 			}
 
@@ -3426,9 +3474,10 @@ function SLIP(callbacks, size) {
 
 				SIZ = immediateVal(thunkSiz(EXP)|0)|0;
 				claimSiz(SIZ);
-				push(makeImmediate(KON)|0);
-				push(ENV);
-				push(FRM);
+				STKALLOC(3);
+				STK[2] = makeImmediate(KON)|0;
+				STK[1] = ENV;
+				STK[0] = FRM;
 				ENV = extendEnv()|0;
 				FRM = fillVector(SIZ, __VOID__)|0;
 				EXP = thunkExp(EXP)|0;
@@ -3453,7 +3502,8 @@ function SLIP(callbacks, size) {
 			E_evalApz {
 
 				claim();
-				push(makeImmediate(KON)|0);
+				STKALLOC(1);
+				STK[0] = makeImmediate(KON)|0;
 				EXP = apzOpr(EXP)|0;
 				KON = E_c_evalApz;
 				goto E_eval();
@@ -3461,7 +3511,8 @@ function SLIP(callbacks, size) {
 
 			E_c_evalApz {
 
-				KON = immediateVal(pop()|0)|0;
+				KON = immediateVal(STK[0]|0)|0;
+				STKUNWIND(1);
 				goto E_evalAZ();
 			}
 
@@ -3476,9 +3527,10 @@ function SLIP(callbacks, size) {
 						}
 						SIZ = immediateVal(prcFrmSiz(VAL)|0)|0;
 						claimSiz(SIZ);
-						push(makeImmediate(KON)|0);
-						push(ENV);
-						push(FRM);
+						STKALLOC(3);
+						STK[2] = makeImmediate(KON)|0;
+						STK[1] = ENV;
+						STK[0] = FRM;
 						FRM = (SIZ? (fillVector(SIZ, __VOID__)|0):__EMPTY_VEC__)
 						ENV = prcEnv(VAL)|0;
 						EXP = prcBdy(VAL)|0;
@@ -3492,9 +3544,10 @@ function SLIP(callbacks, size) {
 						}
 						SIZ = immediateVal(przFrmSiz(VAL)|0)|0;
 						claimSiz(SIZ);
-						push(makeImmediate(KON)|0);
-						push(ENV);
-						push(FRM);
+						STKALLOC(3);
+						STK[2] = makeImmediate(KON)|0;
+						STK[1] = ENV;
+						STK[0] = FRM;
 						FRM = (SIZ? (fillVector(SIZ, __NULL__)|0):__EMPTY_VEC__)
 						ENV = przEnv(VAL)|0;
 						EXP = przBdy(VAL)|0;
@@ -3531,7 +3584,8 @@ function SLIP(callbacks, size) {
 			E_evalTpz {
 
 				claim();
-				push(makeImmediate(KON)|0);
+				STKALLOC(1);
+				STK[0] = makeImmediate(KON)|0;
 				EXP = tpzOpr(EXP)|0;
 				KON = E_c_evalTpz;
 				goto E_eval();
@@ -3539,7 +3593,8 @@ function SLIP(callbacks, size) {
 
 			E_c_evalTpz {
 
-				KON = immediateVal(pop()|0)|0;
+				KON = immediateVal(STK[0]|0)|0;
+				STKUNWIND(1);
 				goto E_evalTZ();
 			}
 
@@ -3608,8 +3663,9 @@ function SLIP(callbacks, size) {
 			E_evalApl {
 
 				claim();
-				push(makeImmediate(KON)|0);
-				push(aplOpd(EXP)|0);
+				STKALLOC(2);
+				STK[1] = makeImmediate(KON)|0;
+				STK[0] = aplOpd(EXP)|0;
 				EXP = aplOpr(EXP)|0;
 				KON = E_c_evalApl;
 				goto E_eval();
@@ -3617,8 +3673,9 @@ function SLIP(callbacks, size) {
 
 			E_c_evalApl {
 
-				ARG = pop()|0;
-				KON = immediateVal(pop()|0)|0;
+				ARG = STK[0]|0;
+				KON = immediateVal(STK[1]|0)|0;
+				STKUNWIND(2);
 				goto E_evalAL();
 			}
 
@@ -3635,9 +3692,10 @@ function SLIP(callbacks, size) {
 						}
 						claimSiz(SIZ);
 						PAR = fillVector(SIZ, __VOID__)|0;
-						push(makeImmediate(KON)|0);
-						push(ENV);
-						push(FRM);
+						STKALLOC(3);
+						STK[2] = makeImmediate(KON)|0;
+						STK[1] = ENV;
+						STK[0] = FRM;
 						KON = E_c_return;
 						goto E_prcEvalArgs();
 
@@ -3650,9 +3708,10 @@ function SLIP(callbacks, size) {
 						}
 						claimSiz(SIZ);
 						PAR = fillVector(SIZ, __NULL__)|0;
-						push(makeImmediate(KON)|0);
-						push(ENV);
-						push(FRM);
+						STKALLOC(3);
+						STK[2] = makeImmediate(KON)|0;
+						STK[1] = ENV;
+						STK[0] = FRM;
 						KON = E_c_return;
 						if (LEN) { 
 							goto E_przArgs(); 
@@ -3700,8 +3759,9 @@ function SLIP(callbacks, size) {
 			E_evalTpl {
 
 				claim();
-				push(makeImmediate(KON)|0);
-				push(tplOpd(EXP)|0);
+				STKALLOC(2);
+				STK[1] = makeImmediate(KON)|0;
+				STK[0] = tplOpd(EXP)|0;
 				EXP = tplOpr(EXP)|0;
 				KON = E_c_evalTpl;
 				goto E_eval();
@@ -3709,8 +3769,9 @@ function SLIP(callbacks, size) {
 
 			E_c_evalTpl {
 
-				ARG = pop()|0;
-				KON = immediateVal(pop()|0)|0;
+				ARG = STK[0]|0;
+				KON = immediateVal(STK[1]|0)|0;
+				STKUNWIND(2);
 				goto E_evalTL();
 			}
 
@@ -3794,7 +3855,8 @@ function SLIP(callbacks, size) {
 						break;
 					default:
 						claim();
-						push(VAL);
+						STKALLOC(1);
+						STK[0] = VAL;
 						KON = E_c_continuationArg;
 						goto E_eval();
 				}
@@ -3809,7 +3871,7 @@ function SLIP(callbacks, size) {
 
 			E_c_continuationArg {
 
-				EXP = pop()|0;
+				EXP = STK[0]|0; //no need to unwind
 				KON = immediateVal(continuationKon(EXP)|0)|0;
 				restoreStack(continuationStk(EXP)|0);
 				FRM = continuationFrm(EXP)|0;
@@ -3852,14 +3914,19 @@ function SLIP(callbacks, size) {
 							break;
 						default:
 							claim();
-							push(makeImmediate(KON)|0);
-							push(VAL);
-							push(PAR);
 							if((IDX|0) == (LEN|0)) { //last argument
+								STKALLOC(3);
+								STK[2] = makeImmediate(KON)|0;
+								STK[1] = VAL;
+								STK[0] = PAR;
 								KON = E_applyNative;
 							} else {
-								push(ARG);
-								push(makeImmediate(IDX)|0);
+								STKALLOC(5);								
+								STK[4] = makeImmediate(KON)|0;
+								STK[3] = VAL;
+								STK[2] = PAR;
+								STK[1] = ARG;
+								STK[0] = makeImmediate(IDX)|0;
 								KON = E_c_nativeArgs;
 							}
 							goto E_eval();
@@ -3872,10 +3939,10 @@ function SLIP(callbacks, size) {
 
 			E_c_nativeArgs {
 
-				IDX = immediateVal(pop()|0)|0;
-				ARG = pop()|0;
+				IDX = immediateVal(STK[0]|0)|0;
+				ARG = STK[1]|0;
+				PAR = STK[2]|0;
 				LEN = vectorLength(ARG)|0;
-				PAR = pop()|0;
 				vectorSet(PAR, IDX, VAL);
 
 				while((IDX|0)<(LEN|0)) {
@@ -3908,31 +3975,31 @@ function SLIP(callbacks, size) {
 							EXP = capturePrz(EXP)|0;
 							break;
 						default:
-							push(PAR);
 							if((IDX|0) == (LEN|0)) { //last argument
 								KON = E_applyNative;
+								STKUNWIND(2);
 							} else {
-								push(ARG);
-								push(makeImmediate(IDX)|0);
-								KON = E_c_nativeArgs;
+								STK[0] = makeImmediate(IDX)|0;
 							}
 							goto E_eval();
 					}
 					vectorSet(PAR, IDX, EXP);
 				}
 				
-				VAL = pop()|0;
-				KON = immediateVal(pop()|0)|0;
+				VAL = STK[3]|0;
+				KON = immediateVal(STK[4]|0)|0;
+				STKUNWIND(5);
 				goto nativePtr(VAL)|0;
 			}
 
 			E_applyNative {
 
-				PAR = pop()|0;
+				PAR = STK[0]|0;
 				LEN = vectorLength(PAR)|0;
 				vectorSet(PAR, LEN, VAL);
-				VAL = pop()|0;
-				KON = immediateVal(pop()|0)|0;
+				VAL = STK[1]|0;
+				KON = immediateVal(STK[2]|0)|0;
+				STKUNWIND(3);
 				goto nativePtr(VAL)|0;
 			}
 
@@ -3971,14 +4038,20 @@ function SLIP(callbacks, size) {
 							break;
 						default:
 							claim();
-							push(makeImmediate(KON)|0);
-							push(VAL);
-							push(PAR);
-							push(makeImmediate(IDX)|0);
 							if((IDX|0) == (LEN|0)) { //last argument
+								STKALLOC(4);
+								STK[3] = makeImmediate(KON)|0;
+								STK[2] = VAL;
+								STK[1] = PAR;
+								STK[0] = makeImmediate(IDX)|0;
 								KON = E_prcApply;
 							} else {
-								push(ARG);
+								STKALLOC(5);
+								STK[4] = makeImmediate(KON)|0;
+								STK[3] = VAL;
+								STK[2] = PAR;
+								STK[1] = makeImmediate(IDX)|0;
+								STK[0] = ARG;
 								KON = E_c_prcArgs;
 							}
 							goto E_eval();
@@ -3994,10 +4067,10 @@ function SLIP(callbacks, size) {
 
 			E_c_prcArgs {
 
-				ARG = pop()|0;
+				ARG = STK[0]|0;
+				IDX = immediateVal(STK[1]|0)|0;
+				PAR = STK[2]|0;
 				LEN = vectorLength(ARG)|0;
-				IDX = immediateVal(pop()|0)|0;
-				PAR = pop()|0;
 				vectorSet(PAR, IDX, VAL);
 
 				while((IDX|0)<(LEN|0)) {
@@ -4030,37 +4103,36 @@ function SLIP(callbacks, size) {
 							EXP = capturePrz(EXP)|0;
 							break;
 						default:
-							push(PAR);
-							push(makeImmediate(IDX)|0);
+							STK[1] = makeImmediate(IDX)|0;
 							if((IDX|0) == (LEN|0)) { //last argument
 								KON = E_prcApply;
-							} else {
-								push(ARG);
-								KON = E_c_prcArgs;
+								STKUNWIND(1);
 							}
 							goto E_eval();
 					}
 					vectorSet(PAR, IDX, EXP);
 				}
 				
-				VAL = pop()|0;
 				FRM = PAR;
+				VAL = STK[3]|0;
 				ENV = prcEnv(VAL)|0;
 				EXP = prcBdy(VAL)|0;
-				KON = immediateVal(pop()|0)|0;
+				KON = immediateVal(STK[4]|0)|0;
+				STKUNWIND(5);
 				goto E_eval;
 			}
 
 			E_prcApply {
 
-				IDX = immediateVal(pop()|0)|0;
-				PAR = pop()|0;
-				EXP = pop()|0;
+				IDX = immediateVal(STK[0]|0)|0;
+				PAR = STK[1]|0;
+				EXP = STK[2]|0;
 				vectorSet(PAR, IDX, VAL);
 				FRM = PAR;
 				ENV = prcEnv(EXP)|0;
 				EXP = prcBdy(EXP)|0;
-				KON = immediateVal(pop()|0)|0;
+				KON = immediateVal(STK[3]|0)|0;
+				STKUNWIND(4);
 				goto E_eval;
 			}
 
@@ -4099,20 +4171,31 @@ function SLIP(callbacks, size) {
 							break;
 						default:
 							claim();
-							push(makeImmediate(KON)|0);
-							push(VAL);
-							push(PAR);
-							push(makeImmediate(IDX)|0);
 							if((IDX|0) == (LEN|0)) { 					//last mandatory argument
-								if((IDX|0) == (vectorLength(ARG)|0))	//last argument
+								if((IDX|0) == (vectorLength(ARG)|0)) {	//last argument
+									STKALLOC(4);
+									STK[3] = makeImmediate(KON)|0;
+									STK[2] = VAL;
+									STK[1] = PAR;
+									STK[0] = makeImmediate(IDX)|0;
 									KON = E_przApply;
-								else {
-									push(ARG);
+								} else {									
+									STKALLOC(5);
+									STK[4] = makeImmediate(KON)|0;
+									STK[3] = VAL;
+									STK[2] = PAR;
+									STK[1] = makeImmediate(IDX)|0;
+									STK[0] = ARG;
 									KON = E_c2_przArgs;
 								}
-							} else {
-								push(makeImmediate(LEN)|0);
-								push(ARG); 
+							} else {									
+								STKALLOC(6);
+								STK[5] = makeImmediate(KON)|0;
+								STK[4] = VAL;
+								STK[3] = PAR;
+								STK[2] = makeImmediate(IDX)|0;
+								STK[1] = ARG;
+								STK[0] = makeImmediate(LEN)|0;
 								KON = E_c1_przArgs;
 							}
 							goto E_eval();
@@ -4133,10 +4216,10 @@ function SLIP(callbacks, size) {
 
 			E_c1_przArgs {
 
-				ARG = pop()|0;
-				LEN = immediateVal(pop()|0)|0;
-				IDX = immediateVal(pop()|0)|0;
-				PAR = pop()|0;
+				LEN = immediateVal(STK[0]|0)|0;
+				ARG = STK[1]|0;
+				IDX = immediateVal(STK[2]|0)|0;
+				PAR = STK[3]|0;
 				vectorSet(PAR, IDX, VAL);
 
 				while((IDX|0)<(LEN|0)) {
@@ -4169,19 +4252,15 @@ function SLIP(callbacks, size) {
 							EXP = capturePrz(EXP)|0;
 							break;
 						default:
-							push(PAR);
-							push(makeImmediate(IDX)|0);
+							STK[2] = makeImmediate(IDX)|0;
 							if((IDX|0) == (LEN|0)) { 					//last mandatory argument
-								if((IDX|0) == (vectorLength(ARG)|0))	//last argument
+								if((IDX|0) == (vectorLength(ARG)|0)) {	//last argument
 									KON = E_przApply;
-								else {
-									push(ARG);
+									STKUNWIND(2);
+								} else {
 									KON = E_c2_przArgs;
+									STKUNWIND(1);
 								}
-							} else {
-								push(makeImmediate(LEN)|0);
-								push(ARG); 
-								KON = E_c1_przArgs;
 							}
 							goto E_eval();
 					}
@@ -4189,23 +4268,26 @@ function SLIP(callbacks, size) {
 				}
 
 				if((IDX|0) == (vectorLength(ARG)|0)) { //no more arguments
-					VAL = pop()|0;
+					VAL = STK[4]|0;
 					FRM = PAR;
 					ENV = przEnv(VAL)|0;
 					EXP = przBdy(VAL)|0;
-					KON = immediateVal(pop()|0)|0;
+					KON = immediateVal(STK[5]|0)|0;
+					STKUNWIND(6);
 					goto E_eval;
 				}
 
+				STKUNWIND(4);
 				LEN = (IDX + 1)|0;
 				goto E_przVarArgs2();
 			}
 
 			E_c2_przArgs {
 
-				ARG = pop()|0;
-				IDX = immediateVal(pop()|0)|0;
-				PAR = pop()|0;
+				ARG = STK[0]|0;
+				IDX = immediateVal(STK[1]|0)|0;
+				PAR = STK[2]|0;
+				STKUNWIND(3);
 				vectorSet(PAR, IDX, VAL);
 				LEN = (IDX + 1)|0;
 				goto E_przVarArgs2();
@@ -4246,15 +4328,21 @@ function SLIP(callbacks, size) {
 							EXP = capturePrz(EXP)|0;
 							break;
 						default:
-							push(makeImmediate(KON)|0);
-							push(VAL);
-							push(PAR);
-							push(makeImmediate(LEN)|0);
-							if((IDX|0) == (SIZ|0)) { 			
+							if((IDX|0) == (SIZ|0)) {
+								STKALLOC(4);
+								STK[3] = makeImmediate(KON)|0;
+								STK[2] = VAL;
+								STK[1] = PAR;
+								STK[0] = makeImmediate(LEN)|0; 			
 								KON = E_przApplyVarArgs;	
 							} else {
-								push(makeImmediate(IDX)|0);
-								push(ARG); 
+								STKALLOC(6);
+								STK[5] = makeImmediate(KON)|0;
+								STK[4] = VAL;
+								STK[3] = PAR;
+								STK[2] = makeImmediate(LEN)|0; 	
+								STK[1] = makeImmediate(IDX)|0;
+								STK[0] = ARG; 
 								KON = E_c_przVarArgs;
 							}
 							goto E_eval();
@@ -4306,13 +4394,17 @@ function SLIP(callbacks, size) {
 							EXP = capturePrz(EXP)|0;
 							break;
 						default:
-							push(PAR);
-							push(makeImmediate(LEN)|0);
-							if((IDX|0) == (SIZ|0)) { 			
+							if((IDX|0) == (SIZ|0)) { 
+								STKALLOC(2);
+								STK[1] = PAR;
+								STK[0] = makeImmediate(LEN)|0;	
 								KON = E_przApplyVarArgs;	
 							} else {
-								push(makeImmediate(IDX)|0);
-								push(ARG); 
+								STKALLOC(4);
+								STK[3] = PAR;
+								STK[2] = makeImmediate(LEN)|0;
+								STK[1] = makeImmediate(IDX)|0;
+								STK[0] = ARG; 
 								KON = E_c_przVarArgs;
 							}
 							goto E_eval();
@@ -4324,57 +4416,62 @@ function SLIP(callbacks, size) {
 				TMP = vectorRef(PAR, LEN)|0;
 				vectorSet(PAR, LEN, reverse(TMP)|0);
 
-				VAL = pop()|0;
+				VAL = STK[0]|0;
 				FRM = PAR;
 				ENV = przEnv(VAL)|0;
 				EXP = przBdy(VAL)|0;
-				KON = immediateVal(pop()|0)|0;
+				KON = immediateVal(STK[1]|0)|0;
+				STKUNWIND(2);
 				goto E_eval;
 			}
 
 			E_c_przVarArgs {
 
-				ARG = pop()|0;
-				IDX = immediateVal(pop()|0)|0;
-				LEN = immediateVal(pop()|0)|0;
-				PAR = pop()|0;
-				VAL = makePair(VAL, vectorRef(PAR, LEN)|0)|0;
+				ARG = STK[0]|0;
+				IDX = immediateVal(STK[1]|0)|0;
+				LEN = immediateVal(STK[2]|0)|0;
+				PAR = STK[3]|0;
+				VAL = makePair(VAL,vectorRef(PAR,LEN)|0)|0;
 				vectorSet(PAR, LEN, VAL);
+				STKUNWIND(4);
 				goto E_przVarArgs2();
 			}
 
 			E_przApplyVarArgs {
 
-				IDX = immediateVal(pop()|0)|0;
-				PAR = pop()|0;
-				EXP = pop()|0;
+				IDX = immediateVal(STK[0]|0)|0;
+				PAR = STK[1]|0;
+				EXP = STK[2]|0;
 				VAL = makePair(VAL, vectorRef(PAR, IDX)|0)|0;
 				vectorSet(PAR, IDX, reverse(VAL)|0);
 				FRM = PAR;
 				ENV = przEnv(EXP)|0;
 				EXP = przBdy(EXP)|0;
-				KON = immediateVal(pop()|0)|0;
+				KON = immediateVal(STK[3]|0)|0;
+				STKUNWIND(4);
 				goto E_eval;
 			}
 
 			E_przApply {
 
-				IDX = immediateVal(pop()|0)|0;
-				PAR = pop()|0;
-				EXP = pop()|0;
+				IDX = immediateVal(STK[0]|0)|0;
+				PAR = STK[1]|0;
+				EXP = STK[2]|0;
 				vectorSet(PAR, IDX, VAL);
 				FRM = PAR;
 				ENV = przEnv(EXP)|0;
 				EXP = przBdy(EXP)|0;
-				KON = immediateVal(pop()|0)|0;
+				KON = immediateVal(STK[3]|0)|0;
+				STKUNWIND(4);
 				goto E_eval;
 			}
 
 			E_c_return {
 
-				FRM = pop()|0;
-				ENV = pop()|0;
-				KON = immediateVal(pop()|0)|0;
+				FRM = STK[0]|0;
+				ENV = STK[1]|0;
+				KON = immediateVal(STK[2]|0)|0;
+				STKUNWIND(3);
 				goto KON|0;
 			}
 
