@@ -564,7 +564,7 @@ function SLIP(callbacks, size) {
 					return __CHR_TAG__
 				else if ((val|0) < maxNat) 	//native pointer
 					return __NAT_TAG__
-				else  					//special value
+				else  						//special value
 					switch (val & specialMask) {
 						case falseVal: return __FLS_TAG__
 						case trueVal: return __TRU_TAG__
@@ -3731,7 +3731,6 @@ function SLIP(callbacks, size) {
 							err_invalidParamCount();
 							goto error;
 						}
-						EXP = vectorRef(ARG,1)|0;
 						goto E_continuationArg();
 				}
 
@@ -3817,7 +3816,6 @@ function SLIP(callbacks, size) {
 							err_invalidParamCount();
 							goto error;
 						}
-						EXP = vectorRef(ARG,1)|0;
 						goto E_continuationArg();
 				}
 
@@ -3879,7 +3877,7 @@ function SLIP(callbacks, size) {
 				goto KON|0;
 			}
 
-			// ARGUMENTS (NAT)
+			/* ---- ARGUMENTS (NATIVE) ---- */
 
 			E_nativeArgs {
 
@@ -4003,7 +4001,7 @@ function SLIP(callbacks, size) {
 				goto nativePtr(VAL)|0;
 			}
 
-			// ARGUMENTS (PRC)
+			/* ---- ARGUMENTS (PRC) ---- */
 
 			E_prcEvalArgs {
 
@@ -4136,7 +4134,7 @@ function SLIP(callbacks, size) {
 				goto E_eval;
 			}
 
-			// ARGUMENTS (PRZ)
+			/* ---- ARGUMENTS (PRZ) ---- */
 
 			E_przArgs {
 
