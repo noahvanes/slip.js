@@ -1,0 +1,39 @@
+(begin 
+  
+  (define (fake-IO)
+    
+    (define native-read read)
+    (define native-display display)
+    (define native-newline newline)
+    
+    (define (read-3)
+      (set! read native-read)
+      (set! display native-display)
+      (set! newline native-newline)
+      '(begin 
+         (define (fib n) (if (< n 2) n (+ (fib (- n 2)) (fib (- n 1)))))
+         (define t (clock))
+         (fib 16)
+         (exit (- (clock) t))))
+    
+    (define (read-2 file)
+      (set! read read-3)
+      (native-read file))
+    
+    (define (read-1) 
+      (set! read read-2)
+      '(load "varia/mceval.slip"))
+    
+    (set! read read-1)
+    (set! display (lambda x #f))
+    (set! newline (lambda x #f)))
+  
+  (define exit '())
+  
+  (define (test)
+    (call-with-current-continuation
+     (lambda (c)
+       (set! exit c)
+       (load "varia/mceval.slip"))))
+  
+  (run-benchmark "TOWER-FIB" test 3 fake-IO))
