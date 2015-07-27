@@ -36,4 +36,4 @@
     
     (my-try (_1-to n) '() '()))
   
-  (run-benchmark "NQUEENS" (lambda () (nqueens 11)) 3))
+  (run-benchmark "N-QUEENS" (lambda () (nqueens 12)) 3))

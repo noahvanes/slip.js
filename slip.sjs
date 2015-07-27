@@ -82,6 +82,7 @@ function SLIP(callbacks, size) {
 		//math
 		var fround = stdlib.Math.fround;
 		var imul = stdlib.Math.imul;
+		var sin = stdlib.Math.sin;
 
 		//TODO: clean TMP etc...
 
@@ -216,6 +217,7 @@ function SLIP(callbacks, size) {
 		var loadQtt = foreign.loadQtt;
 		var loadRem = foreign.loadRem;
 		var loadLen = foreign.loadLen;
+		var loadSin = foreign.loadSin;
 
 		//IO
 		var promptUserInput = foreign.promptUserInput;
@@ -1363,6 +1365,7 @@ function SLIP(callbacks, size) {
 // **********************************************************************
 
 		function initNatives() {
+			addNative(loadSin()|0, N_sin);
 			addNative(loadLen()|0, N_length);
 			addNative(loadRem()|0, N_remainder);
 			addNative(loadQtt()|0, N_quotient);
@@ -2636,6 +2639,31 @@ function SLIP(callbacks, size) {
 
 				VAL = makeImmediate(LEN)|0;
 				goto KON|0;
+			}
+
+			N_sin {
+
+				if((LEN|0) != 1) {
+					err_invalidParamCount();
+					goto error;
+				}
+
+				claim();
+				ARG = vectorRef(PAR, 1)|0;
+				
+				switch(tag(ARG)|0) {
+					case __NBR_TAG__:
+						REA = +sin(+(immediateVal(ARG)|0));
+						VAL = makeFloat(fround(REA))|0;
+						goto KON|0;
+					case __FLT_TAG__:
+						REA = +sin(+(fround(floatNumber(ARG))));
+						VAL = makeFloat(fround(REA))|0;
+						goto KON|0;
+				}
+
+				err_invalidArgument(ARG|0);
+				goto error;
 			}
 
 // **********************************************************************
@@ -5272,6 +5300,7 @@ function SLIP(callbacks, size) {
 		define __QTT_STR__ 'quotient'
 		define __REM_STR__ 'remainder'
 		define __LEN_STR__ 'length'
+		define __SIN_STR__ 'sin'
 
 		return {
 			enterPool: enterPool,
@@ -5330,6 +5359,7 @@ function SLIP(callbacks, size) {
 			loadQtt: symbol(__QTT_STR__),
 			loadRem: symbol(__REM_STR__),
 			loadLen: symbol(__LEN_STR__),
+			loadSin: symbol(__SIN_STR__),
 			link: link
 		}
 	}
@@ -5848,6 +5878,7 @@ function SLIP(callbacks, size) {
 		loadQtt: pool.loadQtt,
 		loadRem: pool.loadRem,
 		loadLen: pool.loadLen,
+		loadSin: pool.loadSin,
 		clock: timer.getTime,
 		reset: timer.reset,
 		invalidIf: errors.invalidIf,
