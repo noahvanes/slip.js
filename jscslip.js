@@ -45,10 +45,10 @@ var slip = SLIP({
 	stdlib: stdlib,
 	readExpression: readExpression,
 	load: readFile,
-	print: putstr,
+	print: print,
 	printline: print,
 	printerror: print,
-	printlog: putstr
+	printlog: print
 }, 26);
 
 slip.Slip_REPL();
