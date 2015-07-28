@@ -53,7 +53,7 @@ function write(str) {
 		print(__KEEP__);
 		__KEEP__ = '';
 	}
-	__KEEP__ = sp[last];
+	__KEEP__ += sp[last];
 }
 
 function writeLine(str) {
