@@ -42,11 +42,10 @@ function readFS(path, clb) {
 var __KEEP__ = '';
 
 function write(str) {
-	/* temporary fix to avoid printing a promt 
+	/* temporary fix to avoid printing a prompt */
 	if(str === '> ') {
 		return; 
 	}
-	*/
 	var sp = str.split('\s');
 	var last = sp.length - 1;
 	for(var i = 0; i < last; ++i) {
