@@ -46,7 +46,7 @@ function write(str) {
 	if(str === '> ') {
 		return; 
 	}
-	var sp = str.split('\s');
+	var sp = str.match(/\S+/g);
 	var last = sp.length - 1;
 	for(var i = 0; i < last; ++i) {
 		__KEEP__ += sp[i];
