@@ -14,7 +14,7 @@
   (define (run-benchmark name proc . pre)
     (newline)
     (display "Running benchmark: ") (display name) (newline)
-    (define results (make-vector times))
+    (define results (make-vector BENCH_COUNT))
     (define (loop i)
       (if (= i BENCH_COUNT)
           (begin
