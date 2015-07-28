@@ -20,7 +20,4 @@
                                (tak v1 v2 v3 k)))))))))
     (tak x y z (lambda (a) a)))
   
-  (run-benchmark "CPSTAK"
-                 (lambda () (cpstak 35 30 20))
-                 3)
-  )
+  (run-benchmark "CPSTAK" (lambda () (cpstak 35 30 20))))

@@ -21,7 +21,7 @@
   (define (primes<= n)
     (sieve (interval-list 2 n)))
   
-  (run-benchmark "PRIMES" (lambda () (primes<= 50000)) 3))
+  (run-benchmark "PRIMES" (lambda () (primes<= 50000))))
   
   
   

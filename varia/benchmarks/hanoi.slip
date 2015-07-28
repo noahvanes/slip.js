@@ -8,9 +8,6 @@
             (move-them (- n 1) helper to from))))
     (move-them n 0 1 2))
   
-  (run-benchmark "HANOI TOWERS"
-                 (lambda () (hanoi 25))
-                 3)
-)
+  (run-benchmark "HANOI TOWERS" (lambda () (hanoi 25))))
   
   

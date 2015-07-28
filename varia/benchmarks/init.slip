@@ -1,4 +1,6 @@
 (begin
+
+  (define BENCH_COUNT 30)
   
   (define (average nbrs)
     (define len (vector-length nbrs))
@@ -9,12 +11,12 @@
                 (+ acc (vector-ref nbrs i)))))
     (loop 0 0))
   
-  (define (run-benchmark name proc times . pre)
+  (define (run-benchmark name proc . pre)
     (newline)
     (display "Running benchmark: ") (display name) (newline)
     (define results (make-vector times))
     (define (loop i)
-      (if (= i times)
+      (if (= i BENCH_COUNT)
           (begin
             (newline)
             (display "=> results: ")

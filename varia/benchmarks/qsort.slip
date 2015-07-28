@@ -49,8 +49,4 @@
        (lambda () (set! v (random-vector 500000)))
        (lambda () (quicksort v <)))) 'dummy))
    
-   (run-benchmark "QUICKSORT" 
-                  (cdr p) 
-                  3 
-                  (car p))
-)
+   (run-benchmark "QUICKSORT" (cdr p) (car p)))

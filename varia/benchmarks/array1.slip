@@ -24,4 +24,4 @@
          (if (> repeat 0) (loop (- repeat 1) (my-try n)) result))
        (loop m '())))
    
-   (run-benchmark "ARRAY1" (lambda () (go 10 1000000)) 3))
+   (run-benchmark "ARRAY1" (lambda () (go 10 1000000))))

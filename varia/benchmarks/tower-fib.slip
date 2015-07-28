@@ -36,4 +36,4 @@
        (set! exit c)
        (load "varia/mceval.slip"))))
   
-  (run-benchmark "TOWER-FIB" test 3 fake-IO))
+  (run-benchmark "TOWER-FIB" test fake-IO))

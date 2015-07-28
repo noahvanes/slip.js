@@ -72,4 +72,4 @@
                      (loop4 l (cdr l)))))
                (loop1 (- i 1)))))
          (loop1 n))))
-   (run-benchmark "DESTRUCT" (lambda () (destructive 10000 1000)) 3))
+   (run-benchmark "DESTRUCT" (lambda () (destructive 10000 1000))))
