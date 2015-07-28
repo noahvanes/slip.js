@@ -218,6 +218,7 @@ function SLIP(callbacks, size) {
 		var loadRem = foreign.loadRem;
 		var loadLen = foreign.loadLen;
 		var loadSin = foreign.loadSin;
+		var loadExi = foreign.loadExi;
 
 		//IO
 		var promptUserInput = foreign.promptUserInput;
@@ -1365,6 +1366,7 @@ function SLIP(callbacks, size) {
 // **********************************************************************
 
 		function initNatives() {
+			addNative(loadExi()|0, N_exit);
 			addNative(loadSin()|0, N_sin);
 			addNative(loadLen()|0, N_length);
 			addNative(loadRem()|0, N_remainder);
@@ -2664,6 +2666,11 @@ function SLIP(callbacks, size) {
 
 				err_invalidArgument(ARG|0);
 				goto error;
+			}
+
+			N_exit {
+
+				halt;
 			}
 
 // **********************************************************************
@@ -5301,6 +5308,7 @@ function SLIP(callbacks, size) {
 		define __REM_STR__ 'remainder'
 		define __LEN_STR__ 'length'
 		define __SIN_STR__ 'sin'
+		define __EXI_STR__ 'exit'
 
 		return {
 			enterPool: enterPool,
@@ -5360,6 +5368,7 @@ function SLIP(callbacks, size) {
 			loadRem: symbol(__REM_STR__),
 			loadLen: symbol(__LEN_STR__),
 			loadSin: symbol(__SIN_STR__),
+			loadExi: symbol(__EXI_STR__),
 			link: link
 		}
 	}
@@ -5879,6 +5888,7 @@ function SLIP(callbacks, size) {
 		loadRem: pool.loadRem,
 		loadLen: pool.loadLen,
 		loadSin: pool.loadSin,
+		loadExi: pool.loadExi,
 		clock: timer.getTime,
 		reset: timer.reset,
 		invalidIf: errors.invalidIf,
