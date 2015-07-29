@@ -1351,18 +1351,6 @@ function SLIP(callbacks, size) {
 			}
 		}
 
-		function preserveEnv_peek() {
-			KON = immediateVal(STK[0]|0)|0;
-			if((KON|0) != E_c_return) {
-				STKALLOC(2);
-				STK[1] = ENV;
-				STK[0] = FRM;
-				KON = E_c_return;
-			} else {
-				STKUNWIND(1);
-			}
-		}
-
 // **********************************************************************
 // ***************************** NATIVES ********************************
 // **********************************************************************
@@ -2807,7 +2795,7 @@ function SLIP(callbacks, size) {
 				if ((look()|0) == RBR) {
 					skip();
 					LEN = immediateVal(pop()|0)|0;
-					claimSiz(LEN);
+					claimSiz(imul(3,LEN)|0);
 					VAL = makePair(VAL, __NULL__)|0;
 					for(LEN=(LEN-1)|0;LEN;LEN=(LEN-1)|0)
 						VAL = makePair(pop()|0, VAL)|0;
@@ -4068,13 +4056,37 @@ function SLIP(callbacks, size) {
 
 				EXP = vectorRef(ARG,1)|0;
 
-				if(evalSimpleExp()|0) {
-					claim();
-					STKALLOC(1);
-					STK[0] = VAL;
-					KON = E_c_continuationArg;
-					goto E_eval();
-				} 
+				switch(tag(EXP)|0) {
+					case __NUL_TAG__: case __VOI_TAG__:
+					case __TRU_TAG__: case __FLS_TAG__:
+					case __NBR_TAG__: case __CHR_TAG__:
+					case __PAI_TAG__: case __PRC_TAG__:
+					case __VCT_TAG__: case __STR_TAG__:
+					case __FLT_TAG__: case __NAT_TAG__:
+					case __CNT_TAG__: case __PRZ_TAG__:
+						break;
+					case __QUO_TAG__:
+						EXP = quoExpression(EXP)|0;
+						break;
+					case __LCL_TAG__:
+						EXP = lookupLocal(EXP)|0;
+						break;
+					case __GLB_TAG__:
+						EXP = lookupGlobal(EXP)|0;
+						break;
+					case __LMB_TAG__:
+						EXP = capturePrc(EXP)|0;
+						break;
+					case __LMZ_TAG__:
+						EXP = capturePrz(EXP)|0;
+						break;				
+					default:
+						claim();
+						STKALLOC(1);
+						STK[0] = VAL;
+						KON = E_c_continuationArg;
+						goto E_eval();	 
+				}
 
 				KON = immediateVal(continuationKon(VAL)|0)|0;
 				restoreStack(continuationStk(VAL)|0);
@@ -4103,24 +4115,48 @@ function SLIP(callbacks, size) {
 					IDX = (IDX + 1)|0;
 					EXP = vectorRef(ARG, IDX)|0;
 
-					if(evalSimpleExp()|0) {
-						claim();
-						if((IDX|0) == (LEN|0)) { //last argument
-							STKALLOC(3);
-							STK[2] = makeImmediate(KON)|0;
-							STK[1] = VAL;
-							STK[0] = PAR;
-							KON = E_applyNative;
-						} else {
-							STKALLOC(5);								
-							STK[4] = makeImmediate(KON)|0;
-							STK[3] = VAL;
-							STK[2] = PAR;
-							STK[1] = ARG;
-							STK[0] = makeImmediate(IDX)|0;
-							KON = E_c_nativeArgs;
-						}
-						goto E_eval();
+					switch(tag(EXP)|0) {
+						case __NUL_TAG__: case __VOI_TAG__:
+						case __TRU_TAG__: case __FLS_TAG__:
+						case __NBR_TAG__: case __CHR_TAG__:
+						case __PAI_TAG__: case __PRC_TAG__:
+						case __VCT_TAG__: case __STR_TAG__:
+						case __FLT_TAG__: case __NAT_TAG__:
+						case __CNT_TAG__: case __PRZ_TAG__:
+							break;
+						case __QUO_TAG__:
+							EXP = quoExpression(EXP)|0;
+							break;
+						case __LCL_TAG__:
+							EXP = lookupLocal(EXP)|0;
+							break;
+						case __GLB_TAG__:
+							EXP = lookupGlobal(EXP)|0;
+							break;
+						case __LMB_TAG__:
+							EXP = capturePrc(EXP)|0;
+							break;
+						case __LMZ_TAG__:
+							EXP = capturePrz(EXP)|0;
+							break;				
+						default:
+							claim();
+							if((IDX|0) == (LEN|0)) { //last argument
+								STKALLOC(3);
+								STK[2] = makeImmediate(KON)|0;
+								STK[1] = VAL;
+								STK[0] = PAR;
+								KON = E_applyNative;
+							} else {
+								STKALLOC(5);								
+								STK[4] = makeImmediate(KON)|0;
+								STK[3] = VAL;
+								STK[2] = PAR;
+								STK[1] = ARG;
+								STK[0] = makeImmediate(IDX)|0;
+								KON = E_c_nativeArgs;
+							}
+							goto E_eval();
 					}
 					vectorSet(PAR, IDX, EXP);
 				}
@@ -4141,14 +4177,38 @@ function SLIP(callbacks, size) {
 					IDX = (IDX + 1)|0;
 					EXP = vectorRef(ARG, IDX)|0;
 
-					if(evalSimpleExp()|0) {
-						if((IDX|0) == (LEN|0)) { //last argument
-							KON = E_applyNative;
-							STKUNWIND(2);
-						} else {
-							STK[0] = makeImmediate(IDX)|0;
-						}
-						goto E_eval();
+					switch(tag(EXP)|0) {
+						case __NUL_TAG__: case __VOI_TAG__:
+						case __TRU_TAG__: case __FLS_TAG__:
+						case __NBR_TAG__: case __CHR_TAG__:
+						case __PAI_TAG__: case __PRC_TAG__:
+						case __VCT_TAG__: case __STR_TAG__:
+						case __FLT_TAG__: case __NAT_TAG__:
+						case __CNT_TAG__: case __PRZ_TAG__:
+							break;
+						case __QUO_TAG__:
+							EXP = quoExpression(EXP)|0;
+							break;
+						case __LCL_TAG__:
+							EXP = lookupLocal(EXP)|0;
+							break;
+						case __GLB_TAG__:
+							EXP = lookupGlobal(EXP)|0;
+							break;
+						case __LMB_TAG__:
+							EXP = capturePrc(EXP)|0;
+							break;
+						case __LMZ_TAG__:
+							EXP = capturePrz(EXP)|0;
+							break;				
+						default:
+							if((IDX|0) == (LEN|0)) { //last argument
+								KON = E_applyNative;
+								STKUNWIND(2);
+							} else {
+								STK[0] = makeImmediate(IDX)|0;
+							}
+							goto E_eval();
 					}
 					vectorSet(PAR, IDX, EXP);
 				}
@@ -4179,25 +4239,49 @@ function SLIP(callbacks, size) {
 					IDX = (IDX + 1)|0;
 					EXP = vectorRef(ARG, IDX)|0;
 
-					if(evalSimpleExp()|0) {
-						claim();
-						if((IDX|0) == (LEN|0)) { //last argument
-							STKALLOC(4);
-							STK[3] = makeImmediate(KON)|0;
-							STK[2] = VAL;
-							STK[1] = PAR;
-							STK[0] = makeImmediate(IDX)|0;
-							KON = E_prcApply;
-						} else {
-							STKALLOC(5);
-							STK[4] = makeImmediate(KON)|0;
-							STK[3] = VAL;
-							STK[2] = PAR;
-							STK[1] = makeImmediate(IDX)|0;
-							STK[0] = ARG;
-							KON = E_c_prcArgs;
-						}
-						goto E_eval();
+					switch(tag(EXP)|0) {
+						case __NUL_TAG__: case __VOI_TAG__:
+						case __TRU_TAG__: case __FLS_TAG__:
+						case __NBR_TAG__: case __CHR_TAG__:
+						case __PAI_TAG__: case __PRC_TAG__:
+						case __VCT_TAG__: case __STR_TAG__:
+						case __FLT_TAG__: case __NAT_TAG__:
+						case __CNT_TAG__: case __PRZ_TAG__:
+							break;
+						case __QUO_TAG__:
+							EXP = quoExpression(EXP)|0;
+							break;
+						case __LCL_TAG__:
+							EXP = lookupLocal(EXP)|0;
+							break;
+						case __GLB_TAG__:
+							EXP = lookupGlobal(EXP)|0;
+							break;
+						case __LMB_TAG__:
+							EXP = capturePrc(EXP)|0;
+							break;
+						case __LMZ_TAG__:
+							EXP = capturePrz(EXP)|0;
+							break;				
+						default:
+							claim();
+							if((IDX|0) == (LEN|0)) { //last argument
+								STKALLOC(4);
+								STK[3] = makeImmediate(KON)|0;
+								STK[2] = VAL;
+								STK[1] = PAR;
+								STK[0] = makeImmediate(IDX)|0;
+								KON = E_prcApply;
+							} else {
+								STKALLOC(5);
+								STK[4] = makeImmediate(KON)|0;
+								STK[3] = VAL;
+								STK[2] = PAR;
+								STK[1] = makeImmediate(IDX)|0;
+								STK[0] = ARG;
+								KON = E_c_prcArgs;
+							}
+							goto E_eval();
 					}
 					vectorSet(PAR, IDX, EXP);
 				}
@@ -4221,13 +4305,37 @@ function SLIP(callbacks, size) {
 					IDX = (IDX + 1)|0;
 					EXP = vectorRef(ARG, IDX)|0;
 
-					if(evalSimpleExp()|0) {
-						STK[1] = makeImmediate(IDX)|0;
-						if((IDX|0) == (LEN|0)) { //last argument
-							KON = E_prcApply;
-							STKUNWIND(1);
-						}
-						goto E_eval();
+					switch(tag(EXP)|0) {
+						case __NUL_TAG__: case __VOI_TAG__:
+						case __TRU_TAG__: case __FLS_TAG__:
+						case __NBR_TAG__: case __CHR_TAG__:
+						case __PAI_TAG__: case __PRC_TAG__:
+						case __VCT_TAG__: case __STR_TAG__:
+						case __FLT_TAG__: case __NAT_TAG__:
+						case __CNT_TAG__: case __PRZ_TAG__:
+							break;
+						case __QUO_TAG__:
+							EXP = quoExpression(EXP)|0;
+							break;
+						case __LCL_TAG__:
+							EXP = lookupLocal(EXP)|0;
+							break;
+						case __GLB_TAG__:
+							EXP = lookupGlobal(EXP)|0;
+							break;
+						case __LMB_TAG__:
+							EXP = capturePrc(EXP)|0;
+							break;
+						case __LMZ_TAG__:
+							EXP = capturePrz(EXP)|0;
+							break;				
+						default:
+							STK[1] = makeImmediate(IDX)|0;
+							if((IDX|0) == (LEN|0)) { //last argument
+								KON = E_prcApply;
+								STKUNWIND(1);
+							}
+							goto E_eval();
 					}
 					vectorSet(PAR, IDX, EXP);
 				}
@@ -4322,18 +4430,42 @@ function SLIP(callbacks, size) {
 					IDX = (IDX + 1)|0;
 					EXP = vectorRef(ARG, IDX)|0;
 
-					if(evalSimpleExp()|0) {
-						STK[2] = makeImmediate(IDX)|0;
-						if((IDX|0) == (LEN|0)) { 					//last mandatory argument
-							if((IDX|0) == (vectorLength(ARG)|0)) {	//last argument
-								KON = E_przApply;
-								STKUNWIND(2);
-							} else {
-								KON = E_c2_przArgs;
-								STKUNWIND(1);
+					switch(tag(EXP)|0) {
+						case __NUL_TAG__: case __VOI_TAG__:
+						case __TRU_TAG__: case __FLS_TAG__:
+						case __NBR_TAG__: case __CHR_TAG__:
+						case __PAI_TAG__: case __PRC_TAG__:
+						case __VCT_TAG__: case __STR_TAG__:
+						case __FLT_TAG__: case __NAT_TAG__:
+						case __CNT_TAG__: case __PRZ_TAG__:
+							break;
+						case __QUO_TAG__:
+							EXP = quoExpression(EXP)|0;
+							break;
+						case __LCL_TAG__:
+							EXP = lookupLocal(EXP)|0;
+							break;
+						case __GLB_TAG__:
+							EXP = lookupGlobal(EXP)|0;
+							break;
+						case __LMB_TAG__:
+							EXP = capturePrc(EXP)|0;
+							break;
+						case __LMZ_TAG__:
+							EXP = capturePrz(EXP)|0;
+							break;				
+						default:
+							STK[2] = makeImmediate(IDX)|0;
+							if((IDX|0) == (LEN|0)) { 					//last mandatory argument
+								if((IDX|0) == (vectorLength(ARG)|0)) {	//last argument
+									KON = E_przApply;
+									STKUNWIND(2);
+								} else {
+									KON = E_c2_przArgs;
+									STKUNWIND(1);
+								}
 							}
-						}
-						goto E_eval();
+							goto E_eval();
 					}
 					vectorSet(PAR, IDX, EXP);
 				}
@@ -4374,25 +4506,49 @@ function SLIP(callbacks, size) {
 					EXP = vectorRef(ARG, IDX)|0;
 					claim();
 
-					if(evalSimpleExp()|0) {
-						if((IDX|0) == (SIZ|0)) {
-							STKALLOC(4);
-							STK[3] = makeImmediate(KON)|0;
-							STK[2] = VAL;
-							STK[1] = PAR;
-							STK[0] = makeImmediate(LEN)|0; 			
-							KON = E_przApplyVarArgs;	
-						} else {
-							STKALLOC(6);
-							STK[5] = makeImmediate(KON)|0;
-							STK[4] = VAL;
-							STK[3] = PAR;
-							STK[2] = makeImmediate(LEN)|0; 	
-							STK[1] = makeImmediate(IDX)|0;
-							STK[0] = ARG; 
-							KON = E_c_przVarArgs;
-						}
-						goto E_eval();
+					switch(tag(EXP)|0) {
+						case __NUL_TAG__: case __VOI_TAG__:
+						case __TRU_TAG__: case __FLS_TAG__:
+						case __NBR_TAG__: case __CHR_TAG__:
+						case __PAI_TAG__: case __PRC_TAG__:
+						case __VCT_TAG__: case __STR_TAG__:
+						case __FLT_TAG__: case __NAT_TAG__:
+						case __CNT_TAG__: case __PRZ_TAG__:
+							break;
+						case __QUO_TAG__:
+							EXP = quoExpression(EXP)|0;
+							break;
+						case __LCL_TAG__:
+							EXP = lookupLocal(EXP)|0;
+							break;
+						case __GLB_TAG__:
+							EXP = lookupGlobal(EXP)|0;
+							break;
+						case __LMB_TAG__:
+							EXP = capturePrc(EXP)|0;
+							break;
+						case __LMZ_TAG__:
+							EXP = capturePrz(EXP)|0;
+							break;				
+						default:
+							if((IDX|0) == (SIZ|0)) {
+								STKALLOC(4);
+								STK[3] = makeImmediate(KON)|0;
+								STK[2] = VAL;
+								STK[1] = PAR;
+								STK[0] = makeImmediate(LEN)|0; 			
+								KON = E_przApplyVarArgs;	
+							} else {
+								STKALLOC(6);
+								STK[5] = makeImmediate(KON)|0;
+								STK[4] = VAL;
+								STK[3] = PAR;
+								STK[2] = makeImmediate(LEN)|0; 	
+								STK[1] = makeImmediate(IDX)|0;
+								STK[0] = ARG; 
+								KON = E_c_przVarArgs;
+							}
+							goto E_eval();
 					}
 					TMP = vectorRef(PAR, LEN)|0;
 					vectorSet(PAR, LEN, makePair(EXP, TMP)|0);
@@ -4416,21 +4572,45 @@ function SLIP(callbacks, size) {
 					EXP = vectorRef(ARG, IDX)|0;
 					claim();
 
-					if(evalSimpleExp()|0) {
-						if((IDX|0) == (SIZ|0)) { 
-							STKALLOC(2);
-							STK[1] = PAR;
-							STK[0] = makeImmediate(LEN)|0;	
-							KON = E_przApplyVarArgs;	
-						} else {
-							STKALLOC(4);
-							STK[3] = PAR;
-							STK[2] = makeImmediate(LEN)|0;
-							STK[1] = makeImmediate(IDX)|0;
-							STK[0] = ARG; 
-							KON = E_c_przVarArgs;
-						}
-						goto E_eval();
+					switch(tag(EXP)|0) {
+						case __NUL_TAG__: case __VOI_TAG__:
+						case __TRU_TAG__: case __FLS_TAG__:
+						case __NBR_TAG__: case __CHR_TAG__:
+						case __PAI_TAG__: case __PRC_TAG__:
+						case __VCT_TAG__: case __STR_TAG__:
+						case __FLT_TAG__: case __NAT_TAG__:
+						case __CNT_TAG__: case __PRZ_TAG__:
+							break;
+						case __QUO_TAG__:
+							EXP = quoExpression(EXP)|0;
+							break;
+						case __LCL_TAG__:
+							EXP = lookupLocal(EXP)|0;
+							break;
+						case __GLB_TAG__:
+							EXP = lookupGlobal(EXP)|0;
+							break;
+						case __LMB_TAG__:
+							EXP = capturePrc(EXP)|0;
+							break;
+						case __LMZ_TAG__:
+							EXP = capturePrz(EXP)|0;
+							break;				
+						default:
+							if((IDX|0) == (SIZ|0)) { 
+								STKALLOC(2);
+								STK[1] = PAR;
+								STK[0] = makeImmediate(LEN)|0;	
+								KON = E_przApplyVarArgs;	
+							} else {
+								STKALLOC(4);
+								STK[3] = PAR;
+								STK[2] = makeImmediate(LEN)|0;
+								STK[1] = makeImmediate(IDX)|0;
+								STK[0] = ARG; 
+								KON = E_c_przVarArgs;
+							}
+							goto E_eval();
 					}
 					TMP = vectorRef(PAR, LEN)|0;
 					vectorSet(PAR, LEN, makePair(EXP, TMP)|0);
@@ -4450,6 +4630,7 @@ function SLIP(callbacks, size) {
 
 			E_c_przVarArgs {
 
+				claim();
 				ARG = STK[0]|0;
 				IDX = immediateVal(STK[1]|0)|0;
 				LEN = immediateVal(STK[2]|0)|0;
@@ -4462,6 +4643,7 @@ function SLIP(callbacks, size) {
 
 			E_przApplyVarArgs {
 
+				claim()
 				IDX = immediateVal(STK[0]|0)|0;
 				PAR = STK[1]|0;
 				EXP = STK[2]|0;

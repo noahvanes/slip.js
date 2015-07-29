@@ -1584,17 +1584,6 @@ function SLIP(callbacks, size) {
                 KON = 143;
             }
         }
-        function preserveEnv_peek() {
-            KON = immediateVal(MEM32[STKTOP >> 2] | 0) | 0;
-            if ((KON | 0) != 143) {
-                STKTOP = STKTOP - 8 | 0;
-                MEM32[STKTOP + 4 >> 2] = ENV;
-                MEM32[STKTOP >> 2] = FRM;
-                KON = 143;
-            } else {
-                STKTOP = STKTOP + 4 | 0;
-            }
-        }
         function initNatives() {
             addNative(loadExi() | 0, 50);
             addNative(loadSin() | 0, 49);
@@ -2733,7 +2722,7 @@ function SLIP(callbacks, size) {
             if ((look() | 0) == 41) {
                 skip();
                 LEN = immediateVal(pop() | 0) | 0;
-                claimSiz(LEN);
+                claimSiz(imul(3, LEN) | 0);
                 VAL = makePair(VAL, 2147483645) | 0;
                 for (LEN = LEN - 1 | 0; LEN; LEN = LEN - 1 | 0)
                     VAL = makePair(pop() | 0, VAL) | 0;
@@ -3727,7 +3716,38 @@ function SLIP(callbacks, size) {
         }
         function _E_continuationArg() {
             EXP = vectorRef(ARG, 1) | 0;
-            if (evalSimpleExp() | 0) {
+            switch (tag(EXP) | 0) {
+            case 68:
+            case 67:
+            case 65:
+            case 66:
+            case 69:
+            case 64:
+            case 0:
+            case 4:
+            case 2:
+            case 5:
+            case 1:
+            case 70:
+            case 24:
+            case 36:
+                break;
+            case 22:
+                EXP = quoExpression(EXP) | 0;
+                break;
+            case 7:
+                EXP = lookupLocal(EXP) | 0;
+                break;
+            case 9:
+                EXP = lookupGlobal(EXP) | 0;
+                break;
+            case 18:
+                EXP = capturePrc(EXP) | 0;
+                break;
+            case 34:
+                EXP = capturePrz(EXP) | 0;
+                break;
+            default:
                 claim();
                 STKTOP = STKTOP - 4 | 0;
                 MEM32[STKTOP >> 2] = VAL;
@@ -3754,7 +3774,38 @@ function SLIP(callbacks, size) {
             for (IDX = 0; (IDX | 0) < (LEN | 0);) {
                 IDX = IDX + 1 | 0;
                 EXP = vectorRef(ARG, IDX) | 0;
-                if (evalSimpleExp() | 0) {
+                switch (tag(EXP) | 0) {
+                case 68:
+                case 67:
+                case 65:
+                case 66:
+                case 69:
+                case 64:
+                case 0:
+                case 4:
+                case 2:
+                case 5:
+                case 1:
+                case 70:
+                case 24:
+                case 36:
+                    break;
+                case 22:
+                    EXP = quoExpression(EXP) | 0;
+                    break;
+                case 7:
+                    EXP = lookupLocal(EXP) | 0;
+                    break;
+                case 9:
+                    EXP = lookupGlobal(EXP) | 0;
+                    break;
+                case 18:
+                    EXP = capturePrc(EXP) | 0;
+                    break;
+                case 34:
+                    EXP = capturePrz(EXP) | 0;
+                    break;
+                default:
                     claim();
                     if ((IDX | 0) == (LEN | 0)) {
                         STKTOP = STKTOP - 12 | 0    //last argument
@@ -3788,7 +3839,38 @@ function SLIP(callbacks, size) {
             while ((IDX | 0) < (LEN | 0)) {
                 IDX = IDX + 1 | 0;
                 EXP = vectorRef(ARG, IDX) | 0;
-                if (evalSimpleExp() | 0) {
+                switch (tag(EXP) | 0) {
+                case 68:
+                case 67:
+                case 65:
+                case 66:
+                case 69:
+                case 64:
+                case 0:
+                case 4:
+                case 2:
+                case 5:
+                case 1:
+                case 70:
+                case 24:
+                case 36:
+                    break;
+                case 22:
+                    EXP = quoExpression(EXP) | 0;
+                    break;
+                case 7:
+                    EXP = lookupLocal(EXP) | 0;
+                    break;
+                case 9:
+                    EXP = lookupGlobal(EXP) | 0;
+                    break;
+                case 18:
+                    EXP = capturePrc(EXP) | 0;
+                    break;
+                case 34:
+                    EXP = capturePrz(EXP) | 0;
+                    break;
+                default:
                     if ((IDX | 0) == (LEN | 0)) {
                         //last argument
                         KON = 131;
@@ -3818,7 +3900,38 @@ function SLIP(callbacks, size) {
             for (IDX = 0; (IDX | 0) < (LEN | 0);) {
                 IDX = IDX + 1 | 0;
                 EXP = vectorRef(ARG, IDX) | 0;
-                if (evalSimpleExp() | 0) {
+                switch (tag(EXP) | 0) {
+                case 68:
+                case 67:
+                case 65:
+                case 66:
+                case 69:
+                case 64:
+                case 0:
+                case 4:
+                case 2:
+                case 5:
+                case 1:
+                case 70:
+                case 24:
+                case 36:
+                    break;
+                case 22:
+                    EXP = quoExpression(EXP) | 0;
+                    break;
+                case 7:
+                    EXP = lookupLocal(EXP) | 0;
+                    break;
+                case 9:
+                    EXP = lookupGlobal(EXP) | 0;
+                    break;
+                case 18:
+                    EXP = capturePrc(EXP) | 0;
+                    break;
+                case 34:
+                    EXP = capturePrz(EXP) | 0;
+                    break;
+                default:
                     claim();
                     if ((IDX | 0) == (LEN | 0)) {
                         STKTOP = STKTOP - 16 | 0    //last argument
@@ -3856,7 +3969,38 @@ function SLIP(callbacks, size) {
             while ((IDX | 0) < (LEN | 0)) {
                 IDX = IDX + 1 | 0;
                 EXP = vectorRef(ARG, IDX) | 0;
-                if (evalSimpleExp() | 0) {
+                switch (tag(EXP) | 0) {
+                case 68:
+                case 67:
+                case 65:
+                case 66:
+                case 69:
+                case 64:
+                case 0:
+                case 4:
+                case 2:
+                case 5:
+                case 1:
+                case 70:
+                case 24:
+                case 36:
+                    break;
+                case 22:
+                    EXP = quoExpression(EXP) | 0;
+                    break;
+                case 7:
+                    EXP = lookupLocal(EXP) | 0;
+                    break;
+                case 9:
+                    EXP = lookupGlobal(EXP) | 0;
+                    break;
+                case 18:
+                    EXP = capturePrc(EXP) | 0;
+                    break;
+                case 34:
+                    EXP = capturePrz(EXP) | 0;
+                    break;
+                default:
                     MEM32[STKTOP + 4 >> 2] = makeImmediate(IDX) | 0;
                     if ((IDX | 0) == (LEN | 0)) {
                         //last argument
@@ -3946,7 +4090,38 @@ function SLIP(callbacks, size) {
             while ((IDX | 0) < (LEN | 0)) {
                 IDX = IDX + 1 | 0;
                 EXP = vectorRef(ARG, IDX) | 0;
-                if (evalSimpleExp() | 0) {
+                switch (tag(EXP) | 0) {
+                case 68:
+                case 67:
+                case 65:
+                case 66:
+                case 69:
+                case 64:
+                case 0:
+                case 4:
+                case 2:
+                case 5:
+                case 1:
+                case 70:
+                case 24:
+                case 36:
+                    break;
+                case 22:
+                    EXP = quoExpression(EXP) | 0;
+                    break;
+                case 7:
+                    EXP = lookupLocal(EXP) | 0;
+                    break;
+                case 9:
+                    EXP = lookupGlobal(EXP) | 0;
+                    break;
+                case 18:
+                    EXP = capturePrc(EXP) | 0;
+                    break;
+                case 34:
+                    EXP = capturePrz(EXP) | 0;
+                    break;
+                default:
                     MEM32[STKTOP + 8 >> 2] = makeImmediate(IDX) | 0;
                     if ((IDX | 0) == (LEN | 0)) {
                         if (//last mandatory argument
@@ -3992,7 +4167,38 @@ function SLIP(callbacks, size) {
                 IDX = IDX + 1 | 0;
                 EXP = vectorRef(ARG, IDX) | 0;
                 claim();
-                if (evalSimpleExp() | 0) {
+                switch (tag(EXP) | 0) {
+                case 68:
+                case 67:
+                case 65:
+                case 66:
+                case 69:
+                case 64:
+                case 0:
+                case 4:
+                case 2:
+                case 5:
+                case 1:
+                case 70:
+                case 24:
+                case 36:
+                    break;
+                case 22:
+                    EXP = quoExpression(EXP) | 0;
+                    break;
+                case 7:
+                    EXP = lookupLocal(EXP) | 0;
+                    break;
+                case 9:
+                    EXP = lookupGlobal(EXP) | 0;
+                    break;
+                case 18:
+                    EXP = capturePrc(EXP) | 0;
+                    break;
+                case 34:
+                    EXP = capturePrz(EXP) | 0;
+                    break;
+                default:
                     if ((IDX | 0) == (SIZ | 0)) {
                         STKTOP = STKTOP - 16 | 0;
                         MEM32[STKTOP + 12 >> 2] = makeImmediate(KON) | 0;
@@ -4028,7 +4234,38 @@ function SLIP(callbacks, size) {
                 IDX = IDX + 1 | 0;
                 EXP = vectorRef(ARG, IDX) | 0;
                 claim();
-                if (evalSimpleExp() | 0) {
+                switch (tag(EXP) | 0) {
+                case 68:
+                case 67:
+                case 65:
+                case 66:
+                case 69:
+                case 64:
+                case 0:
+                case 4:
+                case 2:
+                case 5:
+                case 1:
+                case 70:
+                case 24:
+                case 36:
+                    break;
+                case 22:
+                    EXP = quoExpression(EXP) | 0;
+                    break;
+                case 7:
+                    EXP = lookupLocal(EXP) | 0;
+                    break;
+                case 9:
+                    EXP = lookupGlobal(EXP) | 0;
+                    break;
+                case 18:
+                    EXP = capturePrc(EXP) | 0;
+                    break;
+                case 34:
+                    EXP = capturePrz(EXP) | 0;
+                    break;
+                default:
                     if ((IDX | 0) == (SIZ | 0)) {
                         STKTOP = STKTOP - 8 | 0;
                         MEM32[STKTOP + 4 >> 2] = PAR;
@@ -4058,6 +4295,7 @@ function SLIP(callbacks, size) {
             return 89;
         }
         function _E_c_przVarArgs() {
+            claim();
             ARG = MEM32[STKTOP >> 2] | 0;
             IDX = immediateVal(MEM32[STKTOP + 4 >> 2] | 0) | 0;
             LEN = immediateVal(MEM32[STKTOP + 8 >> 2] | 0) | 0;
@@ -4068,6 +4306,7 @@ function SLIP(callbacks, size) {
             return _E_przVarArgs2() | 0;
         }
         function _E_przApplyVarArgs() {
+            claim();
             IDX = immediateVal(MEM32[STKTOP >> 2] | 0) | 0;
             PAR = MEM32[STKTOP + 4 >> 2] | 0;
             EXP = MEM32[STKTOP + 8 >> 2] | 0;
