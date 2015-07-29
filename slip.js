@@ -1577,20 +1577,22 @@ function SLIP(callbacks, size) {
         }
         function preserveEnv() {
             if ((KON | 0) != 143) {
-                push(makeImmediate(KON) | 0);
-                push(ENV);
-                push(FRM);
+                STKTOP = STKTOP - 12 | 0;
+                MEM32[STKTOP + 8 >> 2] = makeImmediate(KON) | 0;
+                MEM32[STKTOP + 4 >> 2] = ENV;
+                MEM32[STKTOP >> 2] = FRM;
                 KON = 143;
             }
         }
         function preserveEnv_peek() {
-            KON = immediateVal(peek() | 0) | 0;
+            KON = immediateVal(MEM32[STKTOP >> 2] | 0) | 0;
             if ((KON | 0) != 143) {
-                push(ENV);
-                push(FRM);
+                STKTOP = STKTOP - 8 | 0;
+                MEM32[STKTOP + 4 >> 2] = ENV;
+                MEM32[STKTOP >> 2] = FRM;
                 KON = 143;
             } else {
-                zap();
+                STKTOP = STKTOP + 4 | 0;
             }
         }
         function initNatives() {
@@ -1721,21 +1723,21 @@ function SLIP(callbacks, size) {
             __EMPTY_VEC__ = makeVector(0) | 0;
         }
         function _N_add() {
-            for (VAL = 0, IDX = 1; (IDX | 0) <= (LEN | 0); IDX = IDX + 1 | 0) {
+            for (TMP = 0, IDX = 1; (IDX | 0) <= (LEN | 0); IDX = IDX + 1 | 0) {
                 EXP = vectorRef(PAR, IDX) | 0;
                 switch (tag(EXP) | 0) {
                 case 69:
-                    VAL = VAL + (immediateVal(EXP) | 0) | 0;
+                    TMP = TMP + (immediateVal(EXP) | 0) | 0;
                     break;
                 case 1:
-                    FLT = fround(fround(VAL | 0) + fround(floatNumber(EXP)));
+                    FLT = fround(fround(TMP | 0) + fround(floatNumber(EXP)));
                     return _N_addFloats() | 0;
                 default:
                     err_invalidArgument(EXP | 0);
                     return 164;
                 }
             }
-            VAL = makeImmediate(VAL) | 0;
+            VAL = makeImmediate(TMP) | 0;
             return KON | 0;
         }
         function _N_sub() {
@@ -1761,23 +1763,23 @@ function SLIP(callbacks, size) {
             IDX = 1;
             switch (tag(VAL) | 0) {
             case 69:
-                VAL = immediateVal(VAL) | 0;
+                TMP = immediateVal(VAL) | 0;
                 while ((IDX | 0) < (LEN | 0)) {
                     IDX = IDX + 1 | 0;
                     EXP = vectorRef(PAR, IDX) | 0;
                     switch (tag(EXP) | 0) {
                     case 69:
-                        VAL = VAL - (immediateVal(EXP) | 0) | 0;
+                        TMP = TMP - (immediateVal(EXP) | 0) | 0;
                         break;
                     case 1:
-                        FLT = fround(fround(VAL | 0) - fround(floatNumber(EXP)));
+                        FLT = fround(fround(TMP | 0) - fround(floatNumber(EXP)));
                         return _N_substractFloats() | 0;
                     default:
                         err_invalidArgument(EXP | 0);
                         return 164;
                     }
                 }
-                VAL = makeImmediate(VAL) | 0;
+                VAL = makeImmediate(TMP) | 0;
                 return KON | 0;
             case 1:
                 FLT = fround(floatNumber(VAL));
@@ -1787,24 +1789,24 @@ function SLIP(callbacks, size) {
             return 164;
         }
         function _N_multiply() {
-            VAL = 1;
+            TMP = 1;
             IDX = 0;
             while ((IDX | 0) < (LEN | 0)) {
                 IDX = IDX + 1 | 0;
                 EXP = vectorRef(PAR, IDX) | 0;
                 switch (tag(EXP) | 0) {
                 case 69:
-                    VAL = imul(VAL, immediateVal(EXP) | 0) | 0;
+                    TMP = imul(TMP, immediateVal(EXP) | 0) | 0;
                     break;
                 case 1:
-                    FLT = fround(fround(VAL | 0) * fround(floatNumber(EXP)));
+                    FLT = fround(fround(TMP | 0) * fround(floatNumber(EXP)));
                     return _N_multiplyFloats() | 0;
                 default:
                     err_invalidArgument(EXP | 0);
                     return 164;
                 }
             }
-            VAL = makeImmediate(VAL) | 0;
+            VAL = makeImmediate(TMP) | 0;
             return KON | 0;
         }
         function _N_div() {
@@ -2358,7 +2360,7 @@ function SLIP(callbacks, size) {
             }
             EXP = vectorRef(PAR, 1) | 0;
             ARG = vectorRef(PAR, 2) | 0;
-            return 153;
+            return _N_compare() | 0;
         }
         function _N_collect() {
             reclaim();
@@ -2383,7 +2385,7 @@ function SLIP(callbacks, size) {
                 ARG = currentStack() | 0;
                 ARG = makeContinuation(makeImmediate(KON) | 0, FRM, ENV, ARG) | 0;
                 ARG = makePair(ARG, 2147483645) | 0;
-                return 149;
+                return _N_apply() | 0;
             }
             err_invalidArgument(VAL | 0);
             return 164;
@@ -2493,8 +2495,8 @@ function SLIP(callbacks, size) {
             case 69:
                 switch (tag(EXP) | 0) {
                 case 69:
-                    VAL = (immediateVal(ARG) | 0) / (immediateVal(EXP) | 0) | 0;
-                    VAL = makeImmediate(VAL) | 0;
+                    TMP = (immediateVal(ARG) | 0) / (immediateVal(EXP) | 0) | 0;
+                    VAL = makeImmediate(TMP) | 0;
                     return KON | 0;
                 case 1:
                     FLT = fround(immediateVal(ARG) | 0);
@@ -2533,8 +2535,8 @@ function SLIP(callbacks, size) {
             case 69:
                 switch (tag(EXP) | 0) {
                 case 69:
-                    VAL = (immediateVal(ARG) | 0) % (immediateVal(EXP) | 0) | 0;
-                    VAL = makeImmediate(VAL) | 0;
+                    TMP = (immediateVal(ARG) | 0) % (immediateVal(EXP) | 0) | 0;
+                    VAL = makeImmediate(TMP) | 0;
                     return KON | 0;
                 case 1:
                     claim();
@@ -2649,6 +2651,7 @@ function SLIP(callbacks, size) {
                 VAL = 2147483645;
                 return KON | 0;
             }
+            claim();
             push(makeImmediate(KON) | 0);
             push(1);
             KON = 53;
@@ -2686,7 +2689,8 @@ function SLIP(callbacks, size) {
             return KON | 0;
         }
         function _R_readQUO() {
-            skip() | 0;
+            claim();
+            skip();
             push(makeImmediate(KON) | 0);
             KON = 57;
             return 51;
@@ -2711,14 +2715,15 @@ function SLIP(callbacks, size) {
                 VAL = makeChar(read() | 0) | 0;
                 return KON | 0;
             case 40:
+                claim();
                 if ((look() | 0) == 41) {
                     skip();
                     VAL = makePair(__VEC_SYM__, 2147483645) | 0;
                     return KON | 0;
                 }
                 push(makeImmediate(KON) | 0);
-                KON = 59;
                 push(3);
+                KON = 59;
                 return 51;
             }
             err_invalidSyntax();
@@ -2793,10 +2798,11 @@ function SLIP(callbacks, size) {
             LST = pairCdr(LST) | 0;
             if (!(isNull(LST) | 0)) {
                 claim();
-                push(makeImmediate(KON) | 0);
-                push(3);
-                push(LST);
-                push(TLC);
+                STKTOP = STKTOP - 16 | 0;
+                MEM32[STKTOP + 12 >> 2] = makeImmediate(KON) | 0;
+                MEM32[STKTOP + 8 >> 2] = 3;
+                MEM32[STKTOP + 4 >> 2] = LST;
+                MEM32[STKTOP >> 2] = TLC;
                 TLC = 2147483641;
                 KON = 63;
             }
@@ -4154,6 +4160,7 @@ function SLIP(callbacks, size) {
             return KON | 0;
         }
         function _N_c1_map() {
+            claim();
             VAL = reverse(makePair(VAL, MEM32[STKTOP >> 2] | 0) | 0) | 0;
             KON = immediateVal(MEM32[STKTOP + 4 >> 2] | 0) | 0;
             STKTOP = STKTOP + 8 | 0;

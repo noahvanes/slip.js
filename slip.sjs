@@ -1343,21 +1343,23 @@ function SLIP(callbacks, size) {
 
 		function preserveEnv() {
 			if((KON|0) != E_c_return) {
-				push(makeImmediate(KON)|0);
-				push(ENV);
-				push(FRM);
+				STKALLOC(3);
+				STK[2] = makeImmediate(KON)|0;
+				STK[1] = ENV;
+				STK[0] = FRM;
 				KON = E_c_return;
 			}
 		}
 
 		function preserveEnv_peek() {
-			KON = immediateVal(peek()|0)|0;
+			KON = immediateVal(STK[0]|0)|0;
 			if((KON|0) != E_c_return) {
-				push(ENV);
-				push(FRM);
+				STKALLOC(2);
+				STK[1] = ENV;
+				STK[0] = FRM;
 				KON = E_c_return;
 			} else {
-				zap();
+				STKUNWIND(1);
 			}
 		}
 
@@ -1535,16 +1537,16 @@ function SLIP(callbacks, size) {
 
 			N_add {
 
-				for(VAL=0,IDX=1;
+				for(TMP=0,IDX=1;
 					(IDX|0)<=(LEN|0);
 					IDX=(IDX+1)|0) {
 					EXP = vectorRef(PAR, IDX)|0;
 					switch(tag(EXP)|0) {
 						case __NBR_TAG__:
-							VAL = (VAL + (immediateVal(EXP)|0))|0;
+							TMP = (TMP + (immediateVal(EXP)|0))|0;
 							break;
 						case __FLT_TAG__:
-							FLT = fround(fround(VAL|0)+fround(floatNumber(EXP)));
+							FLT = fround(fround(TMP|0)+fround(floatNumber(EXP)));
 							goto N_addFloats();
 						default:
 							err_invalidArgument(EXP|0);
@@ -1552,7 +1554,7 @@ function SLIP(callbacks, size) {
 					}
 				}
 
-				VAL = makeImmediate(VAL)|0;
+				VAL = makeImmediate(TMP)|0;
 				goto KON|0;
 			}
 
@@ -1583,23 +1585,23 @@ function SLIP(callbacks, size) {
 				IDX = 1;
 				switch(tag(VAL)|0) {
 					case __NBR_TAG__:
-						VAL = immediateVal(VAL)|0;
+						TMP = immediateVal(VAL)|0;
 						while((IDX|0)<(LEN|0)) {
 							IDX = (IDX+1)|0;
 							EXP = vectorRef(PAR, IDX)|0;
 							switch(tag(EXP)|0) {
 								case __NBR_TAG__:
-									VAL = (VAL - (immediateVal(EXP)|0))|0;
+									TMP = (TMP - (immediateVal(EXP)|0))|0;
 									break;
 								case __FLT_TAG__:
-									FLT = fround(fround(VAL|0) - fround(floatNumber(EXP)));
+									FLT = fround(fround(TMP|0) - fround(floatNumber(EXP)));
 									goto N_substractFloats();
 								default:
 									err_invalidArgument(EXP|0);
 									goto error;
 							}
 						}
-						VAL = makeImmediate(VAL)|0;
+						VAL = makeImmediate(TMP)|0;
 						goto KON|0;
 
 					case __FLT_TAG__:
@@ -1613,16 +1615,16 @@ function SLIP(callbacks, size) {
 
 			N_multiply {
 
-				VAL = 1; IDX = 0; 
+				TMP = 1; IDX = 0; 
 				while((IDX|0)<(LEN|0)) {
 					IDX = (IDX + 1)|0;
 					EXP = vectorRef(PAR, IDX)|0;
 					switch(tag(EXP)|0) {
 						case __NBR_TAG__:
-							VAL = imul(VAL, immediateVal(EXP)|0)|0;
+							TMP = imul(TMP, immediateVal(EXP)|0)|0;
 							break;
 						case __FLT_TAG__:
-							FLT = fround(fround(VAL|0)*fround(floatNumber(EXP)));
+							FLT = fround(fround(TMP|0)*fround(floatNumber(EXP)));
 							goto N_multiplyFloats();
 						default:
 							err_invalidArgument(EXP|0);
@@ -1630,7 +1632,7 @@ function SLIP(callbacks, size) {
 					}
 				}
 
-				VAL = makeImmediate(VAL)|0;
+				VAL = makeImmediate(TMP)|0;
 				goto KON|0;
 			}
 
@@ -2349,7 +2351,7 @@ function SLIP(callbacks, size) {
 
 				EXP = vectorRef(PAR, 1)|0;
 				ARG = vectorRef(PAR, 2)|0;
-				goto N_compare;
+				goto N_compare();
 			}
 
 			N_collect {
@@ -2382,7 +2384,7 @@ function SLIP(callbacks, size) {
 						ARG = currentStack()|0;
 						ARG = makeContinuation(makeImmediate(KON)|0, FRM, ENV, ARG)|0;
 						ARG = makePair(ARG, __NULL__)|0;
-						goto N_apply;
+						goto N_apply();
 				}
 
 				err_invalidArgument(VAL|0);
@@ -2525,8 +2527,8 @@ function SLIP(callbacks, size) {
 
 						switch(tag(EXP)|0) {
 							case __NBR_TAG__:
-								VAL = ((immediateVal(ARG)|0)/(immediateVal(EXP)|0))|0;
-								VAL = makeImmediate(VAL)|0;
+								TMP = ((immediateVal(ARG)|0)/(immediateVal(EXP)|0))|0;
+								VAL = makeImmediate(TMP)|0;
 								goto KON|0;
 							case __FLT_TAG__:
 								FLT = fround(immediateVal(ARG)|0);
@@ -2574,8 +2576,8 @@ function SLIP(callbacks, size) {
 
 						switch(tag(EXP)|0) {
 							case __NBR_TAG__:
-								VAL = ((immediateVal(ARG)|0)%(immediateVal(EXP)|0))|0;
-								VAL = makeImmediate(VAL)|0;
+								TMP = ((immediateVal(ARG)|0)%(immediateVal(EXP)|0))|0;
+								VAL = makeImmediate(TMP)|0;
 								goto KON|0;
 							case __FLT_TAG__:
 								claim();
@@ -2707,6 +2709,7 @@ function SLIP(callbacks, size) {
 					VAL = __NULL__;
 					goto KON|0;
 				}
+				claim();
 				push(makeImmediate(KON)|0);
 				push(__ZERO__);
 				KON = R_c1_LBR;
@@ -2753,7 +2756,8 @@ function SLIP(callbacks, size) {
 
 			R_readQUO {
 
-				skip()|0;
+				claim();
+				skip();
 				push(makeImmediate(KON)|0);
 				KON = R_c_QUO;
 				goto R_read;
@@ -2782,14 +2786,15 @@ function SLIP(callbacks, size) {
 						VAL = makeChar(read()|0)|0;
 						goto KON|0;
 					case LBR:
+						claim();
 						if ((look()|0) == RBR) {
 							skip();
 							VAL = makePair(__VEC_SYM__, __NULL__)|0;
 							goto KON|0;
 						}
 						push(makeImmediate(KON)|0);
-						KON = R_c_vector;
 						push(__ONE__);
+						KON = R_c_vector;
 						goto R_read
 				}
 
@@ -2891,10 +2896,11 @@ function SLIP(callbacks, size) {
 
 				if(!(isNull(LST)|0)) {
 					claim();
-					push(makeImmediate(KON)|0);
-					push(__ONE__);
-					push(LST);
-					push(TLC);
+					STKALLOC(4);
+					STK[3] = makeImmediate(KON)|0;
+					STK[2] = __ONE__;
+					STK[1] = LST;
+					STK[0] = TLC;
 					TLC = __FALSE__;
 					KON = C_c1_sequence;
 				}
@@ -4566,6 +4572,7 @@ function SLIP(callbacks, size) {
 
 			N_c1_map {
 
+				claim();
 				VAL = reverse(makePair(VAL,STK[0]|0)|0)|0;
 				KON = immediateVal(STK[1]|0)|0;
 				STKUNWIND(2);
