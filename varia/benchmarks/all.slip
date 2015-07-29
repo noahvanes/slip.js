@@ -11,4 +11,3 @@
   (load "varia/benchmarks/array1.slip")
   (load "varia/benchmarks/mbrot.slip")
   (load "varia/benchmarks/primes.slip"))
-  

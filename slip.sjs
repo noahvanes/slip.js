@@ -1246,7 +1246,7 @@ function SLIP(callbacks, size) {
 		}
 
 		function dctRollback() {
-		  //TODO: check with C implementation
+		  	//TODO: check with C implementation
 			DFR = DGL;
 			DEN = __NULL__;
 			currentFrmSiz = globalFrmSiz;
@@ -1281,36 +1281,6 @@ function SLIP(callbacks, size) {
 // **********************************************************************
 // ********************** EVALUATOR AUXILIARIES *************************
 // **********************************************************************
-
-		function evalSimpleExp() {
-
-			switch(tag(EXP)|0) {
-				case __NUL_TAG__: case __VOI_TAG__:
-				case __TRU_TAG__: case __FLS_TAG__:
-				case __NBR_TAG__: case __CHR_TAG__:
-				case __PAI_TAG__: case __PRC_TAG__:
-				case __VCT_TAG__: case __STR_TAG__:
-				case __FLT_TAG__: case __NAT_TAG__:
-				case __CNT_TAG__: case __PRZ_TAG__:
-					return 0;
-				case __QUO_TAG__:
-					EXP = quoExpression(EXP)|0;
-					return 0;
-				case __LCL_TAG__:
-					EXP = lookupLocal(EXP)|0;
-					return 0;
-				case __GLB_TAG__:
-					EXP = lookupGlobal(EXP)|0;
-					return 0;
-				case __LMB_TAG__:
-					EXP = capturePrc(EXP)|0;
-					return 0;
-				case __LMZ_TAG__:
-					EXP = capturePrz(EXP)|0;
-					return 0;
-			}
-			return 1;
-		}
 
 		function lookupLocal(lcl) {
 			lcl = lcl|0;
@@ -1465,7 +1435,8 @@ function SLIP(callbacks, size) {
 
 		function reclaim() {
 
-			STKALLOC(13);
+			STKALLOC(14);
+			STK[13] = __EMPTY_VEC__;
 			STK[12] = SYM;
 			STK[11] = PAT;
 			STK[10] = GLB;
@@ -1495,10 +1466,10 @@ function SLIP(callbacks, size) {
 			GLB = STK[10]|0;
 			PAT = STK[11]|0;
 			SYM = STK[12]|0;
-			STKUNWIND(13);
+			__EMPTY_VEC__ = STK[13]|0;
+			STKUNWIND(14);
 
 			loadSymbols();
-			__EMPTY_VEC__ = makeVector(0)|0;
 		}
 
 // **********************************************************************
