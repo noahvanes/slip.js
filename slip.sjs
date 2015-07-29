@@ -4343,36 +4343,60 @@ function SLIP(callbacks, size) {
 					IDX = (IDX + 1)|0;
 					EXP = vectorRef(ARG, IDX)|0;
 
-					if(evalSimpleExp()|0) {
-						claim();
-						if((IDX|0) == (LEN|0)) { 					//last mandatory argument
-							if((IDX|0) == (vectorLength(ARG)|0)) {	//last argument
-								STKALLOC(4);
-								STK[3] = makeImmediate(KON)|0;
-								STK[2] = VAL;
-								STK[1] = PAR;
-								STK[0] = makeImmediate(IDX)|0;
-								KON = E_przApply;
+					switch(tag(EXP)|0) {
+						case __NUL_TAG__: case __VOI_TAG__:
+						case __TRU_TAG__: case __FLS_TAG__:
+						case __NBR_TAG__: case __CHR_TAG__:
+						case __PAI_TAG__: case __PRC_TAG__:
+						case __VCT_TAG__: case __STR_TAG__:
+						case __FLT_TAG__: case __NAT_TAG__:
+						case __CNT_TAG__: case __PRZ_TAG__:
+							break;
+						case __QUO_TAG__:
+							EXP = quoExpression(EXP)|0;
+							break;
+						case __LCL_TAG__:
+							EXP = lookupLocal(EXP)|0;
+							break;
+						case __GLB_TAG__:
+							EXP = lookupGlobal(EXP)|0;
+							break;
+						case __LMB_TAG__:
+							EXP = capturePrc(EXP)|0;
+							break;
+						case __LMZ_TAG__:
+							EXP = capturePrz(EXP)|0;
+							break;				
+						default:
+							claim();
+							if((IDX|0) == (LEN|0)) { 					//last mandatory argument
+								if((IDX|0) == (vectorLength(ARG)|0)) {	//last argument
+									STKALLOC(4);
+									STK[3] = makeImmediate(KON)|0;
+									STK[2] = VAL;
+									STK[1] = PAR;
+									STK[0] = makeImmediate(IDX)|0;
+									KON = E_przApply;
+								} else {									
+									STKALLOC(5);
+									STK[4] = makeImmediate(KON)|0;
+									STK[3] = VAL;
+									STK[2] = PAR;
+									STK[1] = makeImmediate(IDX)|0;
+									STK[0] = ARG;
+									KON = E_c2_przArgs;
+								}
 							} else {									
-								STKALLOC(5);
-								STK[4] = makeImmediate(KON)|0;
-								STK[3] = VAL;
-								STK[2] = PAR;
-								STK[1] = makeImmediate(IDX)|0;
-								STK[0] = ARG;
-								KON = E_c2_przArgs;
+								STKALLOC(6);
+								STK[5] = makeImmediate(KON)|0;
+								STK[4] = VAL;
+								STK[3] = PAR;
+								STK[2] = makeImmediate(IDX)|0;
+								STK[1] = ARG;
+								STK[0] = makeImmediate(LEN)|0;
+								KON = E_c1_przArgs;
 							}
-						} else {									
-							STKALLOC(6);
-							STK[5] = makeImmediate(KON)|0;
-							STK[4] = VAL;
-							STK[3] = PAR;
-							STK[2] = makeImmediate(IDX)|0;
-							STK[1] = ARG;
-							STK[0] = makeImmediate(LEN)|0;
-							KON = E_c1_przArgs;
-						}
-						goto E_eval();
+							goto E_eval();
 					}
 					vectorSet(PAR, IDX, EXP);
 				}

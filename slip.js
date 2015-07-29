@@ -1448,7 +1448,7 @@ function SLIP(callbacks, size) {
             DGL = 2147483645;
         }
         function defineVar() {
-            if ((currentScpLvl | 0) == 0 & (currentFrmSiz | 0) == 64)
+            if ((currentScpLvl | 0) == 0 & (currentFrmSiz | 0) == 128)
                 err_globalOverflow();
             DFR = makeFrm(PAT, DFR) | 0;
             currentFrmSiz = currentFrmSiz + 1 | 0;
@@ -1506,9 +1506,9 @@ function SLIP(callbacks, size) {
             currentScpLvl = 0;
         }
         function initEnvironment() {
-            GLB = fillVector(64, 2147483647) | 0;
+            GLB = fillVector(128, 2147483647) | 0;
             FRM = GLB;
-            ENV = 2147483645;
+            ENV = __EMPTY_VEC__;
         }
         function extendEnv() {
             var env = 0;
@@ -4001,7 +4001,38 @@ function SLIP(callbacks, size) {
             for (IDX = 0; (IDX | 0) < (LEN | 0);) {
                 IDX = IDX + 1 | 0;
                 EXP = vectorRef(ARG, IDX) | 0;
-                if (evalSimpleExp() | 0) {
+                switch (tag(EXP) | 0) {
+                case 68:
+                case 67:
+                case 65:
+                case 66:
+                case 69:
+                case 64:
+                case 0:
+                case 4:
+                case 2:
+                case 5:
+                case 1:
+                case 70:
+                case 24:
+                case 36:
+                    break;
+                case 22:
+                    EXP = quoExpression(EXP) | 0;
+                    break;
+                case 7:
+                    EXP = lookupLocal(EXP) | 0;
+                    break;
+                case 9:
+                    EXP = lookupGlobal(EXP) | 0;
+                    break;
+                case 18:
+                    EXP = capturePrc(EXP) | 0;
+                    break;
+                case 34:
+                    EXP = capturePrz(EXP) | 0;
+                    break;
+                default:
                     claim();
                     if ((IDX | 0) == (LEN | 0)) {
                         if (//last mandatory argument
@@ -4460,7 +4491,7 @@ function SLIP(callbacks, size) {
                 KON = immediateVal(continuationKon(VAL) | 0) | 0;
                 restoreStack(continuationStk(VAL) | 0);
                 FRM = continuationFrm(VAL) | 0;
-                ENV = continuationStk(VAL) | 0;
+                ENV = continuationEnv(VAL) | 0;
                 VAL = pairCar(ARG) | 0;
                 return KON | 0;
             }

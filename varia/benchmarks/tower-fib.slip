@@ -12,7 +12,7 @@
       (set! newline native-newline)
       '(begin 
          (define (fib n) (if (< n 2) n (+ (fib (- n 2)) (fib (- n 1)))))
-         (exit (fib 16))))
+         (quit (fib 16))))
          
     (define (read-2 file)
       (set! read read-3)
@@ -26,12 +26,12 @@
     (set! display (lambda x #f))
     (set! newline (lambda x #f)))
   
-  (define exit '())
+  (define quit '())
   
   (define (test)
     (call-with-current-continuation
      (lambda (c)
-       (set! exit c)
+       (set! quit c)
        (load "varia/mceval.slip"))))
   
   (run-benchmark "TOWER-FIB" test fake-IO))
