@@ -12,10 +12,8 @@
       (set! newline native-newline)
       '(begin 
          (define (fib n) (if (< n 2) n (+ (fib (- n 2)) (fib (- n 1)))))
-         (define t (clock))
-         (fib 16)
-         (exit (- (clock) t))))
-    
+         (exit (fib 16))))
+         
     (define (read-2 file)
       (set! read read-3)
       (native-read file))

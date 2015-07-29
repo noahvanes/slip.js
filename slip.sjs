@@ -1262,7 +1262,7 @@ function SLIP(callbacks, size) {
 		function initEnvironment() {
 			GLB = fillVector(__GLOBAL_SIZ__, __VOID__)|0;
 			FRM = GLB;
-			ENV = __NULL__;
+			ENV = __EMPTY_VEC__;
 		}
 
 		function extendEnv() {
@@ -4832,7 +4832,7 @@ function SLIP(callbacks, size) {
 						KON = immediateVal(continuationKon(VAL)|0)|0;
 						restoreStack(continuationStk(VAL)|0);
 						FRM = continuationFrm(VAL)|0;
-						ENV = continuationStk(VAL)|0; 
+						ENV = continuationEnv(VAL)|0; 
 						VAL = pairCar(ARG)|0;
 						goto KON|0;
 				}

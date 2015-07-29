@@ -1448,7 +1448,7 @@ function SLIP(callbacks, size) {
             DGL = 2147483645;
         }
         function defineVar() {
-            if ((currentScpLvl | 0) == 0 & (currentFrmSiz | 0) == 128)
+            if ((currentScpLvl | 0) == 0 & (currentFrmSiz | 0) == 64)
                 err_globalOverflow();
             DFR = makeFrm(PAT, DFR) | 0;
             currentFrmSiz = currentFrmSiz + 1 | 0;
@@ -1506,7 +1506,7 @@ function SLIP(callbacks, size) {
             currentScpLvl = 0;
         }
         function initEnvironment() {
-            GLB = fillVector(128, 2147483647) | 0;
+            GLB = fillVector(64, 2147483647) | 0;
             FRM = GLB;
             ENV = 2147483645;
         }
@@ -1521,41 +1521,6 @@ function SLIP(callbacks, size) {
                 vectorSet(env, idx, vectorRef(ENV, idx) | 0);
             vectorSet(env, len, FRM);
             return env | 0;
-        }
-        function evalSimpleExp() {
-            switch (tag(EXP) | 0) {
-            case 68:
-            case 67:
-            case 65:
-            case 66:
-            case 69:
-            case 64:
-            case 0:
-            case 4:
-            case 2:
-            case 5:
-            case 1:
-            case 70:
-            case 24:
-            case 36:
-                return 0;
-            case 22:
-                EXP = quoExpression(EXP) | 0;
-                return 0;
-            case 7:
-                EXP = lookupLocal(EXP) | 0;
-                return 0;
-            case 9:
-                EXP = lookupGlobal(EXP) | 0;
-                return 0;
-            case 18:
-                EXP = capturePrc(EXP) | 0;
-                return 0;
-            case 34:
-                EXP = capturePrz(EXP) | 0;
-                return 0;
-            }
-            return 1;
         }
         function lookupLocal(lcl) {
             lcl = lcl | 0;
@@ -1679,7 +1644,8 @@ function SLIP(callbacks, size) {
             }
         }
         function reclaim() {
-            STKTOP = STKTOP - 52 | 0;
+            STKTOP = STKTOP - 56 | 0;
+            MEM32[STKTOP + 52 >> 2] = __EMPTY_VEC__;
             MEM32[STKTOP + 48 >> 2] = SYM;
             MEM32[STKTOP + 44 >> 2] = PAT;
             MEM32[STKTOP + 40 >> 2] = GLB;
@@ -1707,9 +1673,9 @@ function SLIP(callbacks, size) {
             GLB = MEM32[STKTOP + 40 >> 2] | 0;
             PAT = MEM32[STKTOP + 44 >> 2] | 0;
             SYM = MEM32[STKTOP + 48 >> 2] | 0;
-            STKTOP = STKTOP + 52 | 0;
+            __EMPTY_VEC__ = MEM32[STKTOP + 52 >> 2] | 0;
+            STKTOP = STKTOP + 56 | 0;
             loadSymbols();
-            __EMPTY_VEC__ = makeVector(0) | 0;
         }
         function _N_add() {
             for (TMP = 0, IDX = 1; (IDX | 0) <= (LEN | 0); IDX = IDX + 1 | 0) {
