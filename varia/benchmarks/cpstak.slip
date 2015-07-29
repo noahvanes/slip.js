@@ -1,9 +1,8 @@
 (begin
   
-  (define (not x) (eq? x #f)) 
   (define (cpstak x y z)
     (define (tak x y z k)
-      (if (not (< y x))
+      (if (>= y x)
           (k z)
           (tak (- x 1)
                y

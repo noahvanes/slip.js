@@ -131,189 +131,47 @@
 ;; EXAMPLE/TEST
 ;;
 
-(define PROGRAM
+(define DESTRUCT
   '(begin
-     (define div quotient)
-     (define (odd? x) 
-       (= (remainder x 2) 1))
-     (define (max . args)
-       (define (loop cur lrg)
-         (if (null? cur) 
-             lrg
-             (let ((first (car cur)))
-               (loop
-                (cdr cur)
-                (if (> first lrg)
-                    first
-                    lrg)))))
-       (loop (cdr args) (car args)))
-     
-     (define (three-partitions m)
-       (let loop1 ((lst '())
-                   (nc1 (div m 3)))
-         (if (< nc1 0)
-             lst
-             (let loop2 ((lst lst)
-                         (nc2 (div (- m nc1) 2)))
-               (if (< nc2 nc1)
-                   (loop1 lst
-                          (- nc1 1))
-                   (loop2 (cons (vector nc1 nc2 (- m (+ nc1 nc2))) lst)
-                          (- nc2 1)))))))
-     
-     (define (four-partitions m)
-       (let loop1 ((lst '())
-                   (nc1 (div m 4)))
-         (if (< nc1 0)
-             lst
-             (let loop2 ((lst lst)
-                         (nc2 (div (- m nc1) 3)))
-               (if (< nc2 nc1)
-                   (loop1 lst
-                          (- nc1 1))
-                   (let ((start (max nc2 (- (div (+ m 1) 2) (+ nc1 nc2)))))
-                     (let loop3 ((lst lst)
-                                 (nc3 (div (- m (+ nc1 nc2)) 2)))
-                       (if (< nc3 start)
-                           (loop2 lst (- nc2 1))
-                           (loop3 (cons (vector nc1 nc2 nc3 (- m (+ nc1 (+ nc2 nc3)))) lst)
-                                  (- nc3 1))))))))))
-     
-     (define (gen n)
-       (let* ((n/2 (div n 2))
-              (radicals (make-vector (+ n/2 1) '(H))))
-         
-         (define (rads-of-size n)
-           (let loop1 ((ps
-                        (three-partitions (- n 1)))
-                       (lst
-                        '()))
-             (if (null? ps)
-                 lst
-                 (let* ((p (car ps))
-                        (nc1 (vector-ref p 0))
-                        (nc2 (vector-ref p 1))
-                        (nc3 (vector-ref p 2)))
-                   (let loop2 ((rads1
-                                (vector-ref radicals nc1))
-                               (lst
-                                (loop1 (cdr ps)
-                                       lst)))
-                     (if (null? rads1)
-                         lst
-                         (let loop3 ((rads2
-                                      (if (= nc1 nc2)
-                                          rads1
-                                          (vector-ref radicals nc2)))
-                                     (lst
-                                      (loop2 (cdr rads1)
-                                             lst)))
-                           (if (null? rads2)
-                               lst
-                               (let loop4 ((rads3
-                                            (if (= nc2 nc3)
-                                                rads2
-                                                (vector-ref radicals nc3)))
-                                           (lst
-                                            (loop3 (cdr rads2)
-                                                   lst)))
-                                 (if (null? rads3)
-                                     lst
-                                     (cons (vector 'C
-                                                   (car rads1)
-                                                   (car rads2)
-                                                   (car rads3))
-                                           (loop4 (cdr rads3)
-                                                  lst))))))))))))
-         
-         (define (bcp-generator j)
-           (if (odd? j)
-               '()
-               (let loop1 ((rads1
-                            (vector-ref radicals (div j 2)))
-                           (lst
-                            '()))
-                 (if (null? rads1)
-                     lst
-                     (let loop2 ((rads2
-                                  rads1)
-                                 (lst
-                                  (loop1 (cdr rads1)
-                                         lst)))
-                       (if (null? rads2)
-                           lst
-                           (cons (vector 'BCP
-                                         (car rads1)
-                                         (car rads2))
-                                 (loop2 (cdr rads2)
-                                        lst))))))))
-         
-         (define (ccp-generator j)
-           (let loop1 ((ps
-                        (four-partitions (- j 1)))
-                       (lst
-                        '()))
-             (if (null? ps)
-                 lst
-                 (let* ((p (car ps))
-                        (nc1 (vector-ref p 0))
-                        (nc2 (vector-ref p 1))
-                        (nc3 (vector-ref p 2))
-                        (nc4 (vector-ref p 3)))
-                   (let loop2 ((rads1
-                                (vector-ref radicals nc1))
-                               (lst
-                                (loop1 (cdr ps)
-                                       lst)))
-                     (if (null? rads1)
-                         lst
-                         (let loop3 ((rads2
-                                      (if (= nc1 nc2)
-                                          rads1
-                                          (vector-ref radicals nc2)))
-                                     (lst
-                                      (loop2 (cdr rads1)
-                                             lst)))
-                           (if (null? rads2)
-                               lst
-                               (let loop4 ((rads3
-                                            (if (= nc2 nc3)
-                                                rads2
-                                                (vector-ref radicals nc3)))
-                                           (lst
-                                            (loop3 (cdr rads2)
-                                                   lst)))
-                                 (if (null? rads3)
-                                     lst
-                                     (let loop5 ((rads4
-                                                  (if (= nc3 nc4)
-                                                      rads3
-                                                      (vector-ref radicals nc4)))
-                                                 (lst
-                                                  (loop4 (cdr rads3)
-                                                         lst)))
-                                       (if (null? rads4)
-                                           lst
-                                           (cons (vector 'CCP
-                                                         (car rads1)
-                                                         (car rads2)
-                                                         (car rads3)
-                                                         (car rads4))
-                                                 (loop5 (cdr rads4)
-                                                        lst))))))))))))))
-         
-         (let loop ((i 1))
-           (if (> i n/2)
-               (vector (bcp-generator n)
-                       (ccp-generator n))
-               (begin
-                 (vector-set! radicals i (rads-of-size i))
-                 (loop (+ i 1)))))))
-     
-     (define (nb n)
-       (let ((x (gen n)))
-         (+ (length (vector-ref x 0))
-            (length (vector-ref x 1)))))))
+     (define (append-to-tail! x y)
+       (if (null? x)
+           y
+           (let loop ((a x) (b (cdr x)))
+             (if (null? b)
+                 (begin
+                   (set-cdr! a y)
+                   x)
+                 (loop b (cdr b)))))) 
+     (define (destructive n m)
+       (let ((l (do ((i 10 (- i 1)) (a '() (cons '() a)))
+                  ((= i 0) a))))
+         (do ((i n (- i 1)))
+           ((= i 0) l)
+           (cond ((null? (car l))
+                  (do ((l l (cdr l)))
+                    ((null? l))
+                    (if (null? (car l)) (set-car! l (cons '() '())))
+                    (append-to-tail! (car l)
+                                     (do ((j m (- j 1)) (a '() (cons '() a)))
+                                       ((= j 0) a)))))
+                 (else
+                  (do ((l1 l (cdr l1)) (l2 (cdr l) (cdr l2)))
+                    ((null? l2))
+                    (set-cdr! (do ((j (quotient (length (car l2)) 2) (- j 1))
+                                   (a (car l2) (cdr a)))
+                                ((zero? j) a)
+                                (set-car! a i))
+                              (let ((n (quotient (length (car l1)) 2)))
+                                (cond ((= n 0)
+                                       (set-car! l1 '())
+                                       (car l1))
+                                      (else
+                                       (do ((j n (- j 1)) (a (car l1) (cdr a)))
+                                         ((= j 1)
+                                          (let ((x (cdr a)))
+                                            (set-cdr! a '())
+                                            x))
+                                         (set-car! a i))))))))))))))
 
 
-(transform PROGRAM)
+(transform DESTRUCT)

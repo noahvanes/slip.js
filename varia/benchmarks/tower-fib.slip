@@ -1,5 +1,11 @@
 (begin 
-  
+
+  (define load
+    ((lambda (read)
+      (lambda (f)
+        (eval (read f))))
+     read))
+
   (define (fake-IO)
     
     (define native-read read)
