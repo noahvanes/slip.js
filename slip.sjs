@@ -713,9 +713,16 @@ function SLIP(callbacks, size) {
 		function restoreStack(vct) {
 			vct = vct|0;
 			var len = 0;
+			var exp = 0;
+			len = vectorLength(vct)|0;
+			claimSiz(len);
+			STKALLOC(len);
 			emptyStk();
-			for(len=vectorLength(vct)|0;len;len=(len-1)|0)
-				push(vectorRef(vct, len)|0)
+			while(len) {
+				exp = vectorRef(vct, len)|0;
+				len = (len - 1)|0;
+				STK[len] = exp;
+			}
 		}
 
 		typecheck __VCT_TAG__ => isVector
@@ -1397,13 +1404,10 @@ function SLIP(callbacks, size) {
 			loadSymbols();
 			initDictionary();
 			initEnvironment();
-			initNatives();
 			EXP = __NULL__;
 			VAL = __NULL__;
 			LST = __NULL__;
-			PAR = __NULL__;
-			ARG = __NULL__;
-			PAT = __NULL__;
+			initNatives();
 		}
 
 		function Slip_REPL() {
@@ -2177,9 +2181,14 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				claimSiz(LEN);
-				VAL = (LEN? __ZERO__:(vectorRef(PAR, 2)|0));
-				VAL = fillVector(LEN, VAL)|0;
+				if (LEN) {
+					claimSiz(LEN);
+					VAL = (LEN? __ZERO__:(vectorRef(PAR, 2)|0));
+					VAL = fillVector(LEN, VAL)|0;
+				} else {
+					VAL = __EMPTY_VEC__;
+				}
+
 				goto KON|0;
 			}
 

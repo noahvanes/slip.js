@@ -1615,13 +1615,10 @@ function SLIP(callbacks, size) {
             loadSymbols();
             initDictionary();
             initEnvironment();
-            initNatives();
             EXP = 2147483645;
             VAL = 2147483645;
             LST = 2147483645;
-            PAR = 2147483645;
-            ARG = 2147483645;
-            PAT = 2147483645;
+            initNatives();
         }
         function Slip_REPL() {
             initREPL();
@@ -2214,9 +2211,13 @@ function SLIP(callbacks, size) {
                 err_invalidLength(LEN | 0);
                 return 164;
             }
-            claimSiz(LEN);
-            VAL = LEN ? 1 : vectorRef(PAR, 2) | 0;
-            VAL = fillVector(LEN, VAL) | 0;
+            if (LEN) {
+                claimSiz(LEN);
+                VAL = LEN ? 1 : vectorRef(PAR, 2) | 0;
+                VAL = fillVector(LEN, VAL) | 0;
+            } else {
+                VAL = __EMPTY_VEC__;
+            }
             return KON | 0;
         }
         function _N_vectorRef() {
