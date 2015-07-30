@@ -39,7 +39,7 @@
     (define (loop i)
       (if (= i size)
           vec
-          (begin (vector-set! vec i (* 1000 (random)))
+          (begin (vector-set! vec i (random))
                  (loop (+ i 1)))))
     (loop 0))
    

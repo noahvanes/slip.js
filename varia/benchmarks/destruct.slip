@@ -23,7 +23,7 @@
                    (begin
                      (define (loop2 l)
                        (if (null? l)
-                         (begin)
+                         #f
                          (begin
                            (if (null? (car l)) (set-car! l (cons '() '())))
                            (append-to-tail!
@@ -40,7 +40,7 @@
                    (begin
                      (define (loop4 l1 l2)
                        (if (null? l2)
-                         (begin)
+                         #f
                          (begin
                            (set-cdr!
                             (begin

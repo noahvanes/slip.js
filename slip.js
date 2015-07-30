@@ -575,12 +575,18 @@ function SLIP(callbacks, size) {
             }
             return vct | 0;
         }
-        function restoreStack(vct) {
-            vct = vct | 0;
+        function restoreStack() {
             var len = 0;
+            var exp = 0;
             emptyStk();
-            for (len = vectorLength(vct) | 0; len; len = len - 1 | 0)
-                push(vectorRef(vct, len) | 0);
+            len = vectorLength(PAR) | 0;
+            claimSiz(len);
+            STKTOP = STKTOP - (len << 2) | 0;
+            while (len) {
+                exp = vectorRef(PAR, len) | 0;
+                len = len - 1 | 0;
+                MEM32[STKTOP + (len << 2) >> 2] = exp;
+            }
         }
         function isVector(x) {
             x = x | 0;
@@ -1427,8 +1433,11 @@ function SLIP(callbacks, size) {
         }
         function enterPool(sym) {
             sym = sym | 0;
-            if ((__POOL_TOP__ | 0) == (__POOL_SIZ__ | 0))
+            if ((__POOL_TOP__ | 0) == (__POOL_SIZ__ | 0)) {
+                PAT = sym;
                 growPool();
+                sym = PAT;
+            }
             __POOL_TOP__ = __POOL_TOP__ + 1 | 0;
             vectorSet(SYM, __POOL_TOP__, sym);
             return __POOL_TOP__ | 0;
@@ -1448,8 +1457,9 @@ function SLIP(callbacks, size) {
             DGL = 2147483645;
         }
         function defineVar() {
-            if ((currentScpLvl | 0) == 0 & (currentFrmSiz | 0) == 128)
+            if ((currentScpLvl | 0) == 0 & (currentFrmSiz | 0) == 128) {
                 err_globalOverflow();
+            }
             DFR = makeFrm(PAT, DFR) | 0;
             currentFrmSiz = currentFrmSiz + 1 | 0;
             return currentFrmSiz | 0;
@@ -1521,24 +1531,6 @@ function SLIP(callbacks, size) {
                 vectorSet(env, idx, vectorRef(ENV, idx) | 0);
             vectorSet(env, len, FRM);
             return env | 0;
-        }
-        function lookupLocal(lcl) {
-            lcl = lcl | 0;
-            return vectorRef(FRM, localOfs(lcl) | 0) | 0;
-        }
-        function lookupGlobal(glb) {
-            glb = glb | 0;
-            return vectorRef(vectorRef(ENV, globalScp(glb) | 0) | 0, globalOfs(glb) | 0) | 0;
-        }
-        function capturePrc(exp) {
-            exp = exp | 0;
-            claim();
-            return makePrc(lmbArgc(exp) | 0, lmbFrmSiz(exp) | 0, lmbBdy(exp) | 0, extendEnv() | 0) | 0;
-        }
-        function capturePrz(exp) {
-            exp = exp | 0;
-            claim();
-            return makePrz(lmzArgc(exp) | 0, lmzFrmSiz(exp) | 0, lmzBdy(exp) | 0, extendEnv() | 0) | 0;
         }
         function preserveEnv() {
             if ((KON | 0) != 143) {
@@ -1629,6 +1621,7 @@ function SLIP(callbacks, size) {
         }
         function claim() {
             if ((available() | 0) < 128) {
+                //print("claiming...: " + arguments.callee.caller.name);
                 reclaim();
                 if ((available() | 0) < 128)
                     err_fatalMemory();
@@ -1638,6 +1631,7 @@ function SLIP(callbacks, size) {
             amount = amount | 0;
             amount = (imul(amount, 4) | 0) + 128 | 0;
             if ((available() | 0) < (amount | 0)) {
+                //print("claiming* : " + arguments.callee.caller.name);
                 reclaim();
                 if ((available() | 0) < (amount | 0))
                     err_fatalMemory();
@@ -2642,8 +2636,10 @@ function SLIP(callbacks, size) {
         }
         function _R_c3_LBR() {
             IDX = immediateVal(pop() | 0) | 0;
-            for (; IDX; IDX = IDX - 1 | 0)
+            for (; IDX; IDX = IDX - 1 | 0) {
+                claim();
                 VAL = makePair(pop() | 0, VAL) | 0;
+            }
             KON = immediateVal(pop() | 0) | 0;
             return KON | 0;
         }
@@ -2908,7 +2904,7 @@ function SLIP(callbacks, size) {
             for (LST = PAR; isPair(LST) | 0; LST = pairCdr(LST) | 0) {
                 PAT = pairCar(LST) | 0;
                 if (!(isSymbol(PAT) | 0)) {
-                    err_invalidParameter();
+                    err_invalidParameter(PAT | 0);
                     return 164;
                 }
                 claim();
@@ -3211,16 +3207,16 @@ function SLIP(callbacks, size) {
                 VAL = quoExpression(EXP) | 0;
                 return KON | 0;
             case 7:
-                VAL = lookupLocal(EXP) | 0;
+                VAL = vectorRef(FRM, localOfs(EXP) | 0) | 0;
                 return KON | 0;
             case 9:
-                VAL = lookupGlobal(EXP) | 0;
+                VAL = vectorRef(vectorRef(ENV, globalScp(EXP) | 0) | 0, globalOfs(EXP) | 0) | 0;
                 return KON | 0;
             case 18:
-                VAL = capturePrc(EXP) | 0;
+                VAL = (DCT = extendEnv() | 0, makePrc(lmbArgc(EXP) | 0, lmbFrmSiz(EXP) | 0, lmbBdy(EXP) | 0, DCT) | 0);
                 return KON | 0;
             case 34:
-                VAL = capturePrz(EXP) | 0;
+                VAL = (DCT = extendEnv() | 0, makePrz(lmzArgc(EXP) | 0, lmzFrmSiz(EXP) | 0, lmzBdy(EXP) | 0, DCT) | 0);
                 return KON | 0;
             case 16:
                 return _E_setLocal() | 0;
@@ -3323,15 +3319,15 @@ function SLIP(callbacks, size) {
             return KON | 0;
         }
         function _E_evalDff() {
-            claim();
-            VAL = makePrc(dffArgc(EXP) | 0, dffFrmSiz(EXP) | 0, dffBdy(EXP) | 0, extendEnv() | 0) | 0;
+            DCT = extendEnv() | 0;
+            VAL = makePrc(dffArgc(EXP) | 0, dffFrmSiz(EXP) | 0, dffBdy(EXP) | 0, DCT) | 0;
             OFS = immediateVal(dffOfs(EXP) | 0) | 0;
             vectorSet(FRM, OFS, VAL);
             return KON | 0;
         }
         function _E_evalDfz() {
-            claim();
-            VAL = makePrz(dfzArgc(EXP) | 0, dfzFrmSiz(EXP) | 0, dfzBdy(EXP) | 0, extendEnv() | 0) | 0;
+            DCT = extendEnv() | 0;
+            VAL = makePrz(dfzArgc(EXP) | 0, dfzFrmSiz(EXP) | 0, dfzBdy(EXP) | 0, DCT) | 0;
             OFS = immediateVal(dfzOfs(EXP) | 0) | 0;
             vectorSet(FRM, OFS, VAL);
             return KON | 0;
@@ -3706,16 +3702,16 @@ function SLIP(callbacks, size) {
                 EXP = quoExpression(EXP) | 0;
                 break;
             case 7:
-                EXP = lookupLocal(EXP) | 0;
+                EXP = vectorRef(FRM, localOfs(EXP) | 0) | 0;
                 break;
             case 9:
-                EXP = lookupGlobal(EXP) | 0;
+                EXP = vectorRef(vectorRef(ENV, globalScp(EXP) | 0) | 0, globalOfs(EXP) | 0) | 0;
                 break;
             case 18:
-                EXP = capturePrc(EXP) | 0;
+                EXP = (DCT = extendEnv() | 0, makePrc(lmbArgc(EXP) | 0, lmbFrmSiz(EXP) | 0, lmbBdy(EXP) | 0, DCT) | 0);
                 break;
             case 34:
-                EXP = capturePrz(EXP) | 0;
+                EXP = (DCT = extendEnv() | 0, makePrz(lmzArgc(EXP) | 0, lmzFrmSiz(EXP) | 0, lmzBdy(EXP) | 0, DCT) | 0);
                 break;
             default:
                 claim();
@@ -3725,9 +3721,10 @@ function SLIP(callbacks, size) {
                 return _E_eval() | 0;
             }
             KON = immediateVal(continuationKon(VAL) | 0) | 0;
-            restoreStack(continuationStk(VAL) | 0);
+            PAR = continuationStk(VAL) | 0;
             FRM = continuationFrm(VAL) | 0;
             ENV = continuationEnv(VAL) | 0;
+            restoreStack();
             VAL = EXP;
             return KON | 0;
         }
@@ -3735,9 +3732,10 @@ function SLIP(callbacks, size) {
             EXP = MEM32[STKTOP >> 2] | 0;
             //no need to unwind
             KON = immediateVal(continuationKon(EXP) | 0) | 0;
-            restoreStack(continuationStk(EXP) | 0);
+            PAR = continuationStk(EXP) | 0;
             FRM = continuationFrm(EXP) | 0;
             ENV = continuationEnv(EXP) | 0;
+            restoreStack();
             return KON | 0;
         }
         function _E_nativeArgs() {
@@ -3764,16 +3762,16 @@ function SLIP(callbacks, size) {
                     EXP = quoExpression(EXP) | 0;
                     break;
                 case 7:
-                    EXP = lookupLocal(EXP) | 0;
+                    EXP = vectorRef(FRM, localOfs(EXP) | 0) | 0;
                     break;
                 case 9:
-                    EXP = lookupGlobal(EXP) | 0;
+                    EXP = vectorRef(vectorRef(ENV, globalScp(EXP) | 0) | 0, globalOfs(EXP) | 0) | 0;
                     break;
                 case 18:
-                    EXP = capturePrc(EXP) | 0;
+                    EXP = (DCT = extendEnv() | 0, makePrc(lmbArgc(EXP) | 0, lmbFrmSiz(EXP) | 0, lmbBdy(EXP) | 0, DCT) | 0);
                     break;
                 case 34:
-                    EXP = capturePrz(EXP) | 0;
+                    EXP = (DCT = extendEnv() | 0, makePrz(lmzArgc(EXP) | 0, lmzFrmSiz(EXP) | 0, lmzBdy(EXP) | 0, DCT) | 0);
                     break;
                 default:
                     claim();
@@ -3829,16 +3827,16 @@ function SLIP(callbacks, size) {
                     EXP = quoExpression(EXP) | 0;
                     break;
                 case 7:
-                    EXP = lookupLocal(EXP) | 0;
+                    EXP = vectorRef(FRM, localOfs(EXP) | 0) | 0;
                     break;
                 case 9:
-                    EXP = lookupGlobal(EXP) | 0;
+                    EXP = vectorRef(vectorRef(ENV, globalScp(EXP) | 0) | 0, globalOfs(EXP) | 0) | 0;
                     break;
                 case 18:
-                    EXP = capturePrc(EXP) | 0;
+                    EXP = (DCT = extendEnv() | 0, makePrc(lmbArgc(EXP) | 0, lmbFrmSiz(EXP) | 0, lmbBdy(EXP) | 0, DCT) | 0);
                     break;
                 case 34:
-                    EXP = capturePrz(EXP) | 0;
+                    EXP = (DCT = extendEnv() | 0, makePrz(lmzArgc(EXP) | 0, lmzFrmSiz(EXP) | 0, lmzBdy(EXP) | 0, DCT) | 0);
                     break;
                 default:
                     if ((IDX | 0) == (LEN | 0)) {
@@ -3890,16 +3888,16 @@ function SLIP(callbacks, size) {
                     EXP = quoExpression(EXP) | 0;
                     break;
                 case 7:
-                    EXP = lookupLocal(EXP) | 0;
+                    EXP = vectorRef(FRM, localOfs(EXP) | 0) | 0;
                     break;
                 case 9:
-                    EXP = lookupGlobal(EXP) | 0;
+                    EXP = vectorRef(vectorRef(ENV, globalScp(EXP) | 0) | 0, globalOfs(EXP) | 0) | 0;
                     break;
                 case 18:
-                    EXP = capturePrc(EXP) | 0;
+                    EXP = (DCT = extendEnv() | 0, makePrc(lmbArgc(EXP) | 0, lmbFrmSiz(EXP) | 0, lmbBdy(EXP) | 0, DCT) | 0);
                     break;
                 case 34:
-                    EXP = capturePrz(EXP) | 0;
+                    EXP = (DCT = extendEnv() | 0, makePrz(lmzArgc(EXP) | 0, lmzFrmSiz(EXP) | 0, lmzBdy(EXP) | 0, DCT) | 0);
                     break;
                 default:
                     claim();
@@ -3959,16 +3957,16 @@ function SLIP(callbacks, size) {
                     EXP = quoExpression(EXP) | 0;
                     break;
                 case 7:
-                    EXP = lookupLocal(EXP) | 0;
+                    EXP = vectorRef(FRM, localOfs(EXP) | 0) | 0;
                     break;
                 case 9:
-                    EXP = lookupGlobal(EXP) | 0;
+                    EXP = vectorRef(vectorRef(ENV, globalScp(EXP) | 0) | 0, globalOfs(EXP) | 0) | 0;
                     break;
                 case 18:
-                    EXP = capturePrc(EXP) | 0;
+                    EXP = (DCT = extendEnv() | 0, makePrc(lmbArgc(EXP) | 0, lmbFrmSiz(EXP) | 0, lmbBdy(EXP) | 0, DCT) | 0);
                     break;
                 case 34:
-                    EXP = capturePrz(EXP) | 0;
+                    EXP = (DCT = extendEnv() | 0, makePrz(lmzArgc(EXP) | 0, lmzFrmSiz(EXP) | 0, lmzBdy(EXP) | 0, DCT) | 0);
                     break;
                 default:
                     MEM32[STKTOP + 4 >> 2] = makeImmediate(IDX) | 0;
@@ -4025,16 +4023,16 @@ function SLIP(callbacks, size) {
                     EXP = quoExpression(EXP) | 0;
                     break;
                 case 7:
-                    EXP = lookupLocal(EXP) | 0;
+                    EXP = vectorRef(FRM, localOfs(EXP) | 0) | 0;
                     break;
                 case 9:
-                    EXP = lookupGlobal(EXP) | 0;
+                    EXP = vectorRef(vectorRef(ENV, globalScp(EXP) | 0) | 0, globalOfs(EXP) | 0) | 0;
                     break;
                 case 18:
-                    EXP = capturePrc(EXP) | 0;
+                    EXP = (DCT = extendEnv() | 0, makePrc(lmbArgc(EXP) | 0, lmbFrmSiz(EXP) | 0, lmbBdy(EXP) | 0, DCT) | 0);
                     break;
                 case 34:
-                    EXP = capturePrz(EXP) | 0;
+                    EXP = (DCT = extendEnv() | 0, makePrz(lmzArgc(EXP) | 0, lmzFrmSiz(EXP) | 0, lmzBdy(EXP) | 0, DCT) | 0);
                     break;
                 default:
                     claim();
@@ -4111,16 +4109,16 @@ function SLIP(callbacks, size) {
                     EXP = quoExpression(EXP) | 0;
                     break;
                 case 7:
-                    EXP = lookupLocal(EXP) | 0;
+                    EXP = vectorRef(FRM, localOfs(EXP) | 0) | 0;
                     break;
                 case 9:
-                    EXP = lookupGlobal(EXP) | 0;
+                    EXP = vectorRef(vectorRef(ENV, globalScp(EXP) | 0) | 0, globalOfs(EXP) | 0) | 0;
                     break;
                 case 18:
-                    EXP = capturePrc(EXP) | 0;
+                    EXP = (DCT = extendEnv() | 0, makePrc(lmbArgc(EXP) | 0, lmbFrmSiz(EXP) | 0, lmbBdy(EXP) | 0, DCT) | 0);
                     break;
                 case 34:
-                    EXP = capturePrz(EXP) | 0;
+                    EXP = (DCT = extendEnv() | 0, makePrz(lmzArgc(EXP) | 0, lmzFrmSiz(EXP) | 0, lmzBdy(EXP) | 0, DCT) | 0);
                     break;
                 default:
                     MEM32[STKTOP + 8 >> 2] = makeImmediate(IDX) | 0;
@@ -4188,16 +4186,16 @@ function SLIP(callbacks, size) {
                     EXP = quoExpression(EXP) | 0;
                     break;
                 case 7:
-                    EXP = lookupLocal(EXP) | 0;
+                    EXP = vectorRef(FRM, localOfs(EXP) | 0) | 0;
                     break;
                 case 9:
-                    EXP = lookupGlobal(EXP) | 0;
+                    EXP = vectorRef(vectorRef(ENV, globalScp(EXP) | 0) | 0, globalOfs(EXP) | 0) | 0;
                     break;
                 case 18:
-                    EXP = capturePrc(EXP) | 0;
+                    EXP = (DCT = extendEnv() | 0, makePrc(lmbArgc(EXP) | 0, lmbFrmSiz(EXP) | 0, lmbBdy(EXP) | 0, DCT) | 0);
                     break;
                 case 34:
-                    EXP = capturePrz(EXP) | 0;
+                    EXP = (DCT = extendEnv() | 0, makePrz(lmzArgc(EXP) | 0, lmzFrmSiz(EXP) | 0, lmzBdy(EXP) | 0, DCT) | 0);
                     break;
                 default:
                     if ((IDX | 0) == (SIZ | 0)) {
@@ -4255,16 +4253,16 @@ function SLIP(callbacks, size) {
                     EXP = quoExpression(EXP) | 0;
                     break;
                 case 7:
-                    EXP = lookupLocal(EXP) | 0;
+                    EXP = vectorRef(FRM, localOfs(EXP) | 0) | 0;
                     break;
                 case 9:
-                    EXP = lookupGlobal(EXP) | 0;
+                    EXP = vectorRef(vectorRef(ENV, globalScp(EXP) | 0) | 0, globalOfs(EXP) | 0) | 0;
                     break;
                 case 18:
-                    EXP = capturePrc(EXP) | 0;
+                    EXP = (DCT = extendEnv() | 0, makePrc(lmbArgc(EXP) | 0, lmbFrmSiz(EXP) | 0, lmbBdy(EXP) | 0, DCT) | 0);
                     break;
                 case 34:
-                    EXP = capturePrz(EXP) | 0;
+                    EXP = (DCT = extendEnv() | 0, makePrz(lmzArgc(EXP) | 0, lmzFrmSiz(EXP) | 0, lmzBdy(EXP) | 0, DCT) | 0);
                     break;
                 default:
                     if ((IDX | 0) == (SIZ | 0)) {
@@ -4493,10 +4491,11 @@ function SLIP(callbacks, size) {
                     return 164;
                 }
                 KON = immediateVal(continuationKon(VAL) | 0) | 0;
-                restoreStack(continuationStk(VAL) | 0);
                 FRM = continuationFrm(VAL) | 0;
+                PAR = continuationStk(VAL) | 0;
                 ENV = continuationEnv(VAL) | 0;
                 VAL = pairCar(ARG) | 0;
+                restoreStack();
                 return KON | 0;
             }
             err_invalidOperator(VAL | 0);
@@ -5225,7 +5224,7 @@ function SLIP(callbacks, size) {
     function SYMBOLS() {
         'use strict';
         var __POOL__ = Object.create(null);
-        var makeSymbol, symbolSet, symbolAt, symbolLength, addToPool, poolAt;
+        var makeSymbol, symbolSet, symbolAt, symbolLength, addToPool, poolAt, claimSiz;
         function link(asm$2) {
             makeSymbol = asm$2.makeSymbol;
             symbolSet = asm$2.symbolSet;
@@ -5233,10 +5232,12 @@ function SLIP(callbacks, size) {
             symbolLength = asm$2.symbolLength;
             addToPool = asm$2.enterPool;
             poolAt = asm$2.poolAt;
+            claimSiz = asm$2.claimSiz;
         }
         function buildSymbol(txt) {
             var len = txt.length;
-            var sym = makeSymbol(len);
+            var //claimSiz(len);
+            sym = makeSymbol(len);
             for (var i = 0; i < len; ++i)
                 symbolSet(sym, i, txt.charCodeAt(i));
             return sym;
@@ -5251,8 +5252,9 @@ function SLIP(callbacks, size) {
         function enterPool(str) {
             var idx;
             if (//already in pool
-                idx = __POOL__[str])
+                idx = __POOL__[str]) {
                 return poolAt(idx);
+            }
             var //not in pool yet
             sym = buildSymbol(str);
             idx = addToPool(sym);
@@ -5515,8 +5517,8 @@ function SLIP(callbacks, size) {
         function invalidSyntax() {
             report('invalid syntax');
         }
-        function invalidParameter() {
-            report('invalid parameter');
+        function invalidParameter(exp) {
+            report('invalid parameter: ' + printExp(exp));
         }
         function invalidSequence() {
             report('invalid sequence');
@@ -5541,6 +5543,7 @@ function SLIP(callbacks, size) {
         }
         function globalOverflow() {
             report('too many global variables');
+            throw 'SLIP ERROR:: global overflow';
         }
         function undefinedVariable(exp) {
             report('undefined variable: ' + printExp(exp));

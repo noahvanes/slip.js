@@ -67,7 +67,7 @@ function SLIP(callbacks, size) {
 	define __TWO__ 0x5
 
 	function SLIP_ASM(stdlib, foreign, heap) {
-		"use asm"
+		"use asm";
 
 		/* -- IMPORTS & VARIABLES -- */
 
@@ -536,6 +536,12 @@ function SLIP(callbacks, size) {
 					(STKTOP = (STKTOP - $dec)|0)
 				}
 			}
+			case {_($n:ident)} => {
+				var nbr = unwrapSyntax(#{$n});
+				return #{
+					(STKTOP = (STKTOP - ($n << 2))|0)
+				}
+			}
 		}
 
 
@@ -710,16 +716,15 @@ function SLIP(callbacks, size) {
 			return vct|0;
 		}
 
-		function restoreStack(vct) {
-			vct = vct|0;
+		function restoreStack() {
 			var len = 0;
 			var exp = 0;
-			len = vectorLength(vct)|0;
+			emptyStk();
+			len = vectorLength(PAR)|0;
 			claimSiz(len);
 			STKALLOC(len);
-			emptyStk();
 			while(len) {
-				exp = vectorRef(vct, len)|0;
+				exp = vectorRef(PAR, len)|0;
 				len = (len - 1)|0;
 				STK[len] = exp;
 			}
@@ -1170,8 +1175,11 @@ function SLIP(callbacks, size) {
 
 		function enterPool(sym) {
 			sym = sym|0;
-			if ((__POOL_TOP__|0) == (__POOL_SIZ__|0))
+			if ((__POOL_TOP__|0) == (__POOL_SIZ__|0)) {
+				PAT = sym;
 				growPool();
+				sym = PAT;
+			}
 			__POOL_TOP__ = (__POOL_TOP__+1)|0;
 			vectorSet(SYM, __POOL_TOP__, sym);
 			return __POOL_TOP__|0;
@@ -1199,8 +1207,9 @@ function SLIP(callbacks, size) {
 
 		function defineVar() {
 			if (((currentScpLvl|0)==0)
-				&((currentFrmSiz|0)==__GLOBAL_SIZ__))
+				&((currentFrmSiz|0)==__GLOBAL_SIZ__)) {
 				err_globalOverflow();
+			}
 			DFR = makeFrm(PAT, DFR)|0;
 			currentFrmSiz = (currentFrmSiz+1)|0;
 			return currentFrmSiz|0;
@@ -1289,34 +1298,60 @@ function SLIP(callbacks, size) {
 // ********************** EVALUATOR AUXILIARIES *************************
 // **********************************************************************
 
-		function lookupLocal(lcl) {
-			lcl = lcl|0;
-			return vectorRef(FRM,localOfs(lcl)|0)|0;
+		macro lookupLocal {
+			case {_ $R1 => $R2} => {
+				letstx $FRM = [makeIdent('FRM', #{$R1})];
+				return #{
+					$R2 = vectorRef($FRM,localOfs($R1)|0)|0;
+				}
+			} 
 		}
 
-		function lookupGlobal(glb) {
-			glb = glb|0;
-			return vectorRef(vectorRef(ENV, globalScp(glb)|0)|0,
-							 globalOfs(glb)|0)|0;
+		macro lookupGlobal {
+			case {_ $R1 => $R2} => {
+				letstx $ENV = [makeIdent('ENV', #{$R1})];
+				return #{
+					$R2 = vectorRef(vectorRef($ENV, globalScp($R1)|0)|0,
+							 		globalOfs($R1)|0)|0;
+				}
+			} 
 		}
 
-		function capturePrc(exp) {
-			exp = exp|0;
-			claim();
-			return makePrc(lmbArgc(exp)|0,
-						   lmbFrmSiz(exp)|0,
-						   lmbBdy(exp)|0,
-						   extendEnv()|0)|0;
-		}	
+		macro capturePrc {
+			case {_($exp)} => {
+				letstx $lmbArgc = [makeIdent('lmbArgc', #{$exp})];
+				letstx $lmbFrmSiz = [makeIdent('lmbFrmSiz', #{$exp})];
+				letstx $lmbBdy = [makeIdent('lmbBdy', #{$exp})];
+				letstx $extendEnv = [makeIdent('extendEnv', #{$exp})];
+				letstx $makePrc = [makeIdent('makePrc', #{$exp})];
+				letstx $DCT = [makeIdent('DCT', #{$exp})];
+				return #{
+					($DCT = $extendEnv()|0,
+					$makePrc($lmbArgc($exp)|0,
+						   $lmbFrmSiz($exp)|0,
+						   $lmbBdy($exp)|0,
+						   $DCT)|0)
+				}
+			}
+		}
 
-		function capturePrz(exp) {
-			exp = exp|0;
-			claim();
-			return makePrz(lmzArgc(exp)|0,
-						  lmzFrmSiz(exp)|0,
-						  lmzBdy(exp)|0,
-						  extendEnv()|0)|0;
-		}				
+		macro capturePrz {
+			case {_($exp)} => {
+				letstx $lmzArgc = [makeIdent('lmzArgc', #{$exp})];
+				letstx $lmzFrmSiz = [makeIdent('lmzFrmSiz', #{$exp})];
+				letstx $lmzBdy = [makeIdent('lmzBdy', #{$exp})];
+				letstx $extendEnv = [makeIdent('extendEnv', #{$exp})];
+				letstx $makePrz = [makeIdent('makePrz', #{$exp})];
+				letstx $DCT = [makeIdent('DCT', #{$exp})];
+				return #{
+					($DCT = $extendEnv()|0,
+					$makePrz($lmzArgc($exp)|0,
+						   $lmzFrmSiz($exp)|0,
+						   $lmzBdy($exp)|0,
+						   $DCT)|0)
+				}
+			}
+		}
 
 		function preserveEnv() {
 			if((KON|0) != E_c_return) {
@@ -1424,6 +1459,7 @@ function SLIP(callbacks, size) {
 
 		function claim() {
 			if((available()|0) < __MARGIN__) {
+				//print("claiming...: " + arguments.callee.caller.name);
 				reclaim();
 				if((available()|0) < __MARGIN__)
 					err_fatalMemory();
@@ -1434,6 +1470,7 @@ function SLIP(callbacks, size) {
 			amount = amount|0;
 			amount = ((imul(amount, __UNIT_SIZ__)|0) + __MARGIN__)|0;
 			if((available()|0) < (amount|0)) {
+				//print("claiming* : " + arguments.callee.caller.name);
 				reclaim();
 				if((available()|0) < (amount|0))
 					err_fatalMemory();
@@ -2719,8 +2756,10 @@ function SLIP(callbacks, size) {
 			R_c3_LBR {
 
 				IDX = immediateVal(pop()|0)|0;
-				for(;IDX; IDX=(IDX-1)|0)
+				for(;IDX;IDX=(IDX-1)|0) {
+					claim();
 					VAL = makePair(pop()|0, VAL)|0;
+				}
 				KON = immediateVal(pop()|0)|0;
 				goto KON|0;
 			}
@@ -2766,7 +2805,7 @@ function SLIP(callbacks, size) {
 						push(makeImmediate(KON)|0);
 						push(__ONE__);
 						KON = R_c_vector;
-						goto R_read
+						goto R_read;
 				}
 
 				err_invalidSyntax();
@@ -3060,7 +3099,7 @@ function SLIP(callbacks, size) {
 				for(LST=PAR;isPair(LST)|0;LST=pairCdr(LST)|0) {
 						PAT = pairCar(LST)|0;
 						if(!(isSymbol(PAT)|0)) {
-							err_invalidParameter();
+							err_invalidParameter(PAT|0);
 							goto error;
 						}
 						claim();
@@ -3446,16 +3485,16 @@ function SLIP(callbacks, size) {
 						VAL = quoExpression(EXP)|0;
 						goto KON|0;
 					case __LCL_TAG__:
-						VAL = lookupLocal(EXP)|0;
+						lookupLocal EXP => VAL
 						goto KON|0;
 					case __GLB_TAG__:
-						VAL = lookupGlobal(EXP)|0;
+						lookupGlobal EXP => VAL
 						goto KON|0;
 					case __LMB_TAG__:
-						VAL = capturePrc(EXP)|0;
+						VAL = capturePrc(EXP);
 						goto KON|0;
 					case __LMZ_TAG__:
-						VAL = capturePrz(EXP)|0;
+						VAL = capturePrz(EXP);
 						goto KON|0;
 					case __SLC_TAG__:
 						goto E_setLocal();
@@ -3573,11 +3612,11 @@ function SLIP(callbacks, size) {
 
 			E_evalDff {
 
-				claim();
+				DCT = extendEnv()|0;
 				VAL = makePrc(dffArgc(EXP)|0,
 							  dffFrmSiz(EXP)|0,
 							  dffBdy(EXP)|0,
-							  extendEnv()|0)|0;
+							  DCT)|0;
 				OFS = immediateVal(dffOfs(EXP)|0)|0;
 				vectorSet(FRM, OFS, VAL);
 				goto KON|0;
@@ -3585,11 +3624,11 @@ function SLIP(callbacks, size) {
 
 			E_evalDfz {
 
-				claim();
+				DCT = extendEnv()|0;
 				VAL = makePrz(dfzArgc(EXP)|0,
 							  dfzFrmSiz(EXP)|0,
 							  dfzBdy(EXP)|0,
-							  extendEnv()|0)|0;
+							  DCT)|0;
 				OFS = immediateVal(dfzOfs(EXP)|0)|0;
 				vectorSet(FRM, OFS, VAL);
 				goto KON|0;
@@ -4052,16 +4091,16 @@ function SLIP(callbacks, size) {
 						EXP = quoExpression(EXP)|0;
 						break;
 					case __LCL_TAG__:
-						EXP = lookupLocal(EXP)|0;
+						lookupLocal EXP => EXP
 						break;
 					case __GLB_TAG__:
-						EXP = lookupGlobal(EXP)|0;
+						lookupGlobal EXP => EXP
 						break;
 					case __LMB_TAG__:
-						EXP = capturePrc(EXP)|0;
+						EXP = capturePrc(EXP);
 						break;
 					case __LMZ_TAG__:
-						EXP = capturePrz(EXP)|0;
+						EXP = capturePrz(EXP);
 						break;				
 					default:
 						claim();
@@ -4072,9 +4111,10 @@ function SLIP(callbacks, size) {
 				}
 
 				KON = immediateVal(continuationKon(VAL)|0)|0;
-				restoreStack(continuationStk(VAL)|0);
+				PAR = continuationStk(VAL)|0;
 				FRM = continuationFrm(VAL)|0;
 				ENV = continuationEnv(VAL)|0;
+				restoreStack();
 				VAL = EXP;
 				goto KON|0;
 			}
@@ -4083,9 +4123,10 @@ function SLIP(callbacks, size) {
 
 				EXP = STK[0]|0; //no need to unwind
 				KON = immediateVal(continuationKon(EXP)|0)|0;
-				restoreStack(continuationStk(EXP)|0);
+				PAR = continuationStk(EXP)|0;
 				FRM = continuationFrm(EXP)|0;
 				ENV = continuationEnv(EXP)|0;
+				restoreStack();
 				goto KON|0;
 			}
 
@@ -4111,16 +4152,16 @@ function SLIP(callbacks, size) {
 							EXP = quoExpression(EXP)|0;
 							break;
 						case __LCL_TAG__:
-							EXP = lookupLocal(EXP)|0;
+							lookupLocal EXP => EXP
 							break;
 						case __GLB_TAG__:
-							EXP = lookupGlobal(EXP)|0;
+							lookupGlobal EXP => EXP
 							break;
 						case __LMB_TAG__:
-							EXP = capturePrc(EXP)|0;
+							EXP = capturePrc(EXP);
 							break;
 						case __LMZ_TAG__:
-							EXP = capturePrz(EXP)|0;
+							EXP = capturePrz(EXP);
 							break;				
 						default:
 							claim();
@@ -4173,16 +4214,16 @@ function SLIP(callbacks, size) {
 							EXP = quoExpression(EXP)|0;
 							break;
 						case __LCL_TAG__:
-							EXP = lookupLocal(EXP)|0;
+							lookupLocal EXP => EXP
 							break;
 						case __GLB_TAG__:
-							EXP = lookupGlobal(EXP)|0;
+							lookupGlobal EXP => EXP
 							break;
 						case __LMB_TAG__:
-							EXP = capturePrc(EXP)|0;
+							EXP = capturePrc(EXP);
 							break;
 						case __LMZ_TAG__:
-							EXP = capturePrz(EXP)|0;
+							EXP = capturePrz(EXP);
 							break;				
 						default:
 							if((IDX|0) == (LEN|0)) { //last argument
@@ -4235,16 +4276,16 @@ function SLIP(callbacks, size) {
 							EXP = quoExpression(EXP)|0;
 							break;
 						case __LCL_TAG__:
-							EXP = lookupLocal(EXP)|0;
+							lookupLocal EXP => EXP
 							break;
 						case __GLB_TAG__:
-							EXP = lookupGlobal(EXP)|0;
+							lookupGlobal EXP => EXP
 							break;
 						case __LMB_TAG__:
-							EXP = capturePrc(EXP)|0;
+							EXP = capturePrc(EXP);
 							break;
 						case __LMZ_TAG__:
-							EXP = capturePrz(EXP)|0;
+							EXP = capturePrz(EXP);
 							break;				
 						default:
 							claim();
@@ -4300,17 +4341,17 @@ function SLIP(callbacks, size) {
 						case __QUO_TAG__:
 							EXP = quoExpression(EXP)|0;
 							break;
-						case __LCL_TAG__:
-							EXP = lookupLocal(EXP)|0;
+						case __LCL_TAG__:	
+							lookupLocal EXP => EXP
 							break;
 						case __GLB_TAG__:
-							EXP = lookupGlobal(EXP)|0;
+							lookupGlobal EXP => EXP
 							break;
 						case __LMB_TAG__:
-							EXP = capturePrc(EXP)|0;
+							EXP = capturePrc(EXP);
 							break;
 						case __LMZ_TAG__:
-							EXP = capturePrz(EXP)|0;
+							EXP = capturePrz(EXP);
 							break;				
 						default:
 							STK[1] = makeImmediate(IDX)|0;
@@ -4367,17 +4408,17 @@ function SLIP(callbacks, size) {
 						case __QUO_TAG__:
 							EXP = quoExpression(EXP)|0;
 							break;
-						case __LCL_TAG__:
-							EXP = lookupLocal(EXP)|0;
+						case __LCL_TAG__:	
+							lookupLocal EXP => EXP
 							break;
 						case __GLB_TAG__:
-							EXP = lookupGlobal(EXP)|0;
+							lookupGlobal EXP => EXP
 							break;
 						case __LMB_TAG__:
-							EXP = capturePrc(EXP)|0;
+							EXP = capturePrc(EXP);
 							break;
 						case __LMZ_TAG__:
-							EXP = capturePrz(EXP)|0;
+							EXP = capturePrz(EXP);
 							break;				
 						default:
 							claim();
@@ -4450,16 +4491,16 @@ function SLIP(callbacks, size) {
 							EXP = quoExpression(EXP)|0;
 							break;
 						case __LCL_TAG__:
-							EXP = lookupLocal(EXP)|0;
+							lookupLocal EXP => EXP
 							break;
 						case __GLB_TAG__:
-							EXP = lookupGlobal(EXP)|0;
+							lookupGlobal EXP => EXP
 							break;
 						case __LMB_TAG__:
-							EXP = capturePrc(EXP)|0;
+							EXP = capturePrc(EXP);
 							break;
 						case __LMZ_TAG__:
-							EXP = capturePrz(EXP)|0;
+							EXP = capturePrz(EXP);
 							break;				
 						default:
 							STK[2] = makeImmediate(IDX)|0;
@@ -4526,16 +4567,16 @@ function SLIP(callbacks, size) {
 							EXP = quoExpression(EXP)|0;
 							break;
 						case __LCL_TAG__:
-							EXP = lookupLocal(EXP)|0;
+							lookupLocal EXP => EXP
 							break;
 						case __GLB_TAG__:
-							EXP = lookupGlobal(EXP)|0;
+							lookupGlobal EXP => EXP
 							break;
 						case __LMB_TAG__:
-							EXP = capturePrc(EXP)|0;
+							EXP = capturePrc(EXP);
 							break;
 						case __LMZ_TAG__:
-							EXP = capturePrz(EXP)|0;
+							EXP = capturePrz(EXP);
 							break;				
 						default:
 							if((IDX|0) == (SIZ|0)) {
@@ -4592,16 +4633,16 @@ function SLIP(callbacks, size) {
 							EXP = quoExpression(EXP)|0;
 							break;
 						case __LCL_TAG__:
-							EXP = lookupLocal(EXP)|0;
+							lookupLocal EXP => EXP
 							break;
 						case __GLB_TAG__:
-							EXP = lookupGlobal(EXP)|0;
+							lookupGlobal EXP => EXP
 							break;
 						case __LMB_TAG__:
-							EXP = capturePrc(EXP)|0;
+							EXP = capturePrc(EXP);
 							break;
 						case __LMZ_TAG__:
-							EXP = capturePrz(EXP)|0;
+							EXP = capturePrz(EXP);
 							break;				
 						default:
 							if((IDX|0) == (SIZ|0)) { 
@@ -4866,10 +4907,11 @@ function SLIP(callbacks, size) {
 							goto error;
 						}
 						KON = immediateVal(continuationKon(VAL)|0)|0;
-						restoreStack(continuationStk(VAL)|0);
 						FRM = continuationFrm(VAL)|0;
+						PAR = continuationStk(VAL)|0;
 						ENV = continuationEnv(VAL)|0; 
 						VAL = pairCar(ARG)|0;
+						restoreStack();
 						goto KON|0;
 				}
 
@@ -5401,7 +5443,7 @@ function SLIP(callbacks, size) {
 
 		var __POOL__ = Object.create(null);
 		var makeSymbol, symbolSet, symbolAt,
-		symbolLength, addToPool, poolAt;
+		symbolLength, addToPool, poolAt, claimSiz;
 
 		function link(asm) {
 			makeSymbol = asm.makeSymbol;
@@ -5410,10 +5452,12 @@ function SLIP(callbacks, size) {
 			symbolLength = asm.symbolLength;
 			addToPool = asm.enterPool;
 			poolAt = asm.poolAt;
+			claimSiz = asm.claimSiz;
 		}
 
 		function buildSymbol(txt) {
 			var len = txt.length;
+			//claimSiz(len);
 			var sym = makeSymbol(len);
 			for(var i = 0; i < len; ++i)
 				symbolSet(sym, i, txt.charCodeAt(i));
@@ -5431,8 +5475,9 @@ function SLIP(callbacks, size) {
 		function enterPool(str) {
 			var idx;
 			//already in pool
-			if ((idx = __POOL__[str]))
+			if ((idx = __POOL__[str])) {
 				return poolAt(idx);
+			}
 			//not in pool yet
 			var sym = buildSymbol(str);
 			idx = addToPool(sym);
@@ -5832,8 +5877,8 @@ function SLIP(callbacks, size) {
 			report('invalid syntax');
 		}
 
-		function invalidParameter() {
-			report('invalid parameter');
+		function invalidParameter(exp) {
+			report('invalid parameter: ' + printExp(exp));
 		}
 
 		function invalidSequence() {
@@ -5865,7 +5910,8 @@ function SLIP(callbacks, size) {
 		}
 
 		function globalOverflow() {
-			report('too many global variables')
+			report('too many global variables');
+			throw 'SLIP ERROR:: global overflow';
 		}
 
 		function undefinedVariable(exp) {

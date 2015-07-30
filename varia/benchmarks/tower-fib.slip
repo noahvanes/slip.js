@@ -1,4 +1,6 @@
 (begin 
+  
+  (define quit ())
 
   (define (fake-IO)
     
@@ -25,8 +27,6 @@
     (set! read read-1)
     (set! display (lambda x #f))
     (set! newline (lambda x #f)))
-  
-  (define quit '())
   
   (define (test)
     (call-with-current-continuation
