@@ -1610,15 +1610,18 @@ function SLIP(callbacks, size) {
             vectorSet(FRM, OFS, VAL);
         }
         function init() {
+            __EMPTY_VEC__ = makeVector(0) | 0;
             initPool();
             loadSymbols();
             initDictionary();
             initEnvironment();
+            initNatives();
             EXP = 2147483645;
             VAL = 2147483645;
             LST = 2147483645;
-            __EMPTY_VEC__ = makeVector(0) | 0;
-            initNatives();
+            PAR = 2147483645;
+            ARG = 2147483645;
+            PAT = 2147483645;
         }
         function Slip_REPL() {
             initREPL();
@@ -4645,7 +4648,7 @@ function SLIP(callbacks, size) {
         }
         function _error() {
             FRM = GLB;
-            ENV = 2147483645;
+            ENV = __EMPTY_VEC__;
             dctRollback();
             emptyStk();
             return 160;

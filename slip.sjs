@@ -1392,15 +1392,18 @@ function SLIP(callbacks, size) {
 // **********************************************************************
 
 		function init() {
+			__EMPTY_VEC__ = makeVector(0)|0;
 			initPool();
 			loadSymbols();
 			initDictionary();
 			initEnvironment();
+			initNatives();
 			EXP = __NULL__;
 			VAL = __NULL__;
 			LST = __NULL__;
-			__EMPTY_VEC__ = makeVector(0)|0;
-			initNatives();
+			PAR = __NULL__;
+			ARG = __NULL__;
+			PAT = __NULL__;
 		}
 
 		function Slip_REPL() {
@@ -5053,7 +5056,7 @@ function SLIP(callbacks, size) {
 			error {
 
 				FRM = GLB;
-				ENV = __NULL__;
+				ENV = __EMPTY_VEC__;
 				dctRollback();
 				emptyStk();
 				goto REPL;
