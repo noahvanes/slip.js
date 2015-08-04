@@ -40,12 +40,11 @@ function SLIP(callbacks, size) {
 	define __FLT_TAG__ 0x01
 	define __SYM_TAG__ 0x03
 	define __STR_TAG__ 0x05
-	define __LCL_TAG__ 0x07
+	define __TGZ_TAG__ 0x07
 	define __GLB_TAG__ 0x09
-	define __ALZ_TAG__ 0x1B
-	define __TLZ_TAG__ 0x1D
-	define __AGZ_TAG__ 0x21
-	define __TGZ_TAG__ 0x23
+	define __ALZ_TAG__ 0x0B
+	define __TLZ_TAG__ 0x0D
+	define __AGZ_TAG__ 0x11
 
 	/* -- IMMEDIATES -- */
 	//(tags > maxTag = 0x3f)
@@ -56,6 +55,7 @@ function SLIP(callbacks, size) {
 	define __NUL_TAG__ 0x44
 	define __NBR_TAG__ 0x45
 	define __NAT_TAG__ 0x46
+	define __LCL_TAG__ 0x47
 
 	/* -- CONSTANT VALUES -- */
 	define __TRUE__ 0x7fffffe1
@@ -557,8 +557,9 @@ function SLIP(callbacks, size) {
 					return __CHR_TAG__;
 				case 0x15:
 					return __NAT_TAG__;
-				case 0x19: 
-				case 0x1D: /* TODO: put more tags here */
+				case 0x19:
+					return __LCL_TAG__;
+				case 0x1D: /* TODO: put another tag here */
 					return __VOI_TAG__;
 			}
 			return chunkTag(exp)|0;
@@ -617,6 +618,20 @@ function SLIP(callbacks, size) {
 		}
 
 		typecheck __NAT_TAG__ => isNative
+
+		/* ---- LOCAL VARIABLE ---- */
+
+		function makeLocal(lcl) {
+			lcl = lcl|0;
+			return (lcl << 5)|0x19;
+		}
+
+		function localOfs(lcl) {
+			lcl = lcl|0;
+			return (lcl >>> 5)|0;
+		}
+
+		typecheck __LCL_TAG__ => isLocal
 
 		/*==================*/
 		/* ---- CHUNKS ---- */
@@ -884,14 +899,6 @@ function SLIP(callbacks, size) {
 		} as __LMZ_TAG__
 
 		typecheck __LMZ_TAG__ => isLmz
-
-		/* ---- LOCAL VARIABLE ---- */
-
-		struct makeLocal {
-			ofs => localOfs;
-		} as __LCL_TAG__
-
-		typecheck __LCL_TAG__ => isLocal
 
 		/* ---- GLOBAL VARIABLE ---- */
 

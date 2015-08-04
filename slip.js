@@ -426,9 +426,10 @@ function SLIP(callbacks, size) {
             case 21:
                 return 70;
             case 25:
+                return 71;
             case 29:
-                /* TODO: put more tags here */
-                return 67    /* TODO: put more tags here */;
+                /* TODO: put another tag here */
+                return 67    /* TODO: put another tag here */;
             }
             return chunkTag(exp) | 0;
         }
@@ -483,6 +484,18 @@ function SLIP(callbacks, size) {
         function isNative(x) {
             x = x | 0;
             return (tag(x) | 0) == 70 | 0;
+        }
+        function makeLocal(lcl) {
+            lcl = lcl | 0;
+            return lcl << 5 | 25;
+        }
+        function localOfs(lcl) {
+            lcl = lcl | 0;
+            return lcl >>> 5 | 0;
+        }
+        function isLocal(x) {
+            x = x | 0;
+            return (tag(x) | 0) == 71 | 0;
         }
         function makePair(car, cdr) {
             car = car | 0;
@@ -989,21 +1002,6 @@ function SLIP(callbacks, size) {
             x = x | 0;
             return (tag(x) | 0) == 34 | 0;
         }
-        function makeLocal(ofs) {
-            ofs = ofs | 0;
-            var chk = 0;
-            chk = makeChunk(7, 1) | 0;
-            chunkSet(chk, 4, ofs);
-            return chk | 0;
-        }
-        function localOfs(chk) {
-            chk = chk | 0;
-            return chunkGet(chk, 4) | 0;
-        }
-        function isLocal(x) {
-            x = x | 0;
-            return (tag(x) | 0) == 7 | 0;
-        }
         function makeGlobal(scp, ofs) {
             scp = scp | 0;
             ofs = ofs | 0;
@@ -1124,7 +1122,7 @@ function SLIP(callbacks, size) {
         function makeAlz(ofs) {
             ofs = ofs | 0;
             var chk = 0;
-            chk = makeChunk(27, 1) | 0;
+            chk = makeChunk(11, 1) | 0;
             chunkSet(chk, 4, ofs);
             return chk | 0;
         }
@@ -1134,12 +1132,12 @@ function SLIP(callbacks, size) {
         }
         function isAlz(x) {
             x = x | 0;
-            return (tag(x) | 0) == 27 | 0;
+            return (tag(x) | 0) == 11 | 0;
         }
         function makeTlz(ofs) {
             ofs = ofs | 0;
             var chk = 0;
-            chk = makeChunk(29, 1) | 0;
+            chk = makeChunk(13, 1) | 0;
             chunkSet(chk, 4, ofs);
             return chk | 0;
         }
@@ -1149,13 +1147,13 @@ function SLIP(callbacks, size) {
         }
         function isTlz(x) {
             x = x | 0;
-            return (tag(x) | 0) == 29 | 0;
+            return (tag(x) | 0) == 13 | 0;
         }
         function makeAgz(scp, ofs) {
             scp = scp | 0;
             ofs = ofs | 0;
             var chk = 0;
-            chk = makeChunk(33, 2) | 0;
+            chk = makeChunk(17, 2) | 0;
             chunkSet(chk, 4, scp);
             chunkSet(chk, 8, ofs);
             return chk | 0;
@@ -1170,13 +1168,13 @@ function SLIP(callbacks, size) {
         }
         function isAgz(x) {
             x = x | 0;
-            return (tag(x) | 0) == 33 | 0;
+            return (tag(x) | 0) == 17 | 0;
         }
         function makeTgz(scp, ofs) {
             scp = scp | 0;
             ofs = ofs | 0;
             var chk = 0;
-            chk = makeChunk(35, 2) | 0;
+            chk = makeChunk(7, 2) | 0;
             chunkSet(chk, 4, scp);
             chunkSet(chk, 8, ofs);
             return chk | 0;
@@ -1191,7 +1189,7 @@ function SLIP(callbacks, size) {
         }
         function isTgz(x) {
             x = x | 0;
-            return (tag(x) | 0) == 35 | 0;
+            return (tag(x) | 0) == 7 | 0;
         }
         function makeApl(opr, opd) {
             opr = opr | 0;
@@ -3124,7 +3122,7 @@ function SLIP(callbacks, size) {
             TLC = pop() | 0;
             KON = numberVal(pop() | 0) | 0;
             switch (tag(VAL) | 0) {
-            case 7:
+            case 71:
                 OFS = localOfs(VAL) | 0;
                 VAL = (TLC | 0) == 2147483617 ? makeTlz(OFS) | 0 : makeAlz(OFS) | 0;
                 return KON | 0;
@@ -3171,7 +3169,7 @@ function SLIP(callbacks, size) {
             VAL = pop() | 0;
             KON = numberVal(pop() | 0) | 0;
             switch (tag(VAL) | 0) {
-            case 7:
+            case 71:
                 OFS = makeNumber(localOfs(VAL) | 0) | 0;
                 VAL = (TLC | 0) == 2147483617 ? makeTll(OFS, EXP) | 0 : makeAll(OFS, EXP) | 0;
                 return KON | 0;
@@ -3204,7 +3202,7 @@ function SLIP(callbacks, size) {
             case 22:
                 VAL = quoExpression(EXP) | 0;
                 return KON | 0;
-            case 7:
+            case 71:
                 VAL = vectorRef(FRM, localOfs(EXP) | 0) | 0;
                 return KON | 0;
             case 9:
@@ -3238,9 +3236,9 @@ function SLIP(callbacks, size) {
                 return _E_evalTtk() | 0;
             case 32:
                 return _E_evalThk() | 0;
-            case 27:
+            case 11:
                 return _E_evalAlz() | 0;
-            case 33:
+            case 17:
                 return _E_evalAgz() | 0;
             case 46:
                 return _E_evalApz() | 0;
@@ -3250,9 +3248,9 @@ function SLIP(callbacks, size) {
                 return _E_evalAll() | 0;
             case 52:
                 return _E_evalAgl() | 0;
-            case 29:
+            case 13:
                 return _E_evalTlz() | 0;
-            case 35:
+            case 7:
                 return _E_evalTgz() | 0;
             case 44:
                 return _E_evalTpz() | 0;
@@ -3699,7 +3697,7 @@ function SLIP(callbacks, size) {
             case 22:
                 EXP = quoExpression(EXP) | 0;
                 break;
-            case 7:
+            case 71:
                 EXP = vectorRef(FRM, localOfs(EXP) | 0) | 0;
                 break;
             case 9:
@@ -3759,7 +3757,7 @@ function SLIP(callbacks, size) {
                 case 22:
                     EXP = quoExpression(EXP) | 0;
                     break;
-                case 7:
+                case 71:
                     EXP = vectorRef(FRM, localOfs(EXP) | 0) | 0;
                     break;
                 case 9:
@@ -3824,7 +3822,7 @@ function SLIP(callbacks, size) {
                 case 22:
                     EXP = quoExpression(EXP) | 0;
                     break;
-                case 7:
+                case 71:
                     EXP = vectorRef(FRM, localOfs(EXP) | 0) | 0;
                     break;
                 case 9:
@@ -3885,7 +3883,7 @@ function SLIP(callbacks, size) {
                 case 22:
                     EXP = quoExpression(EXP) | 0;
                     break;
-                case 7:
+                case 71:
                     EXP = vectorRef(FRM, localOfs(EXP) | 0) | 0;
                     break;
                 case 9:
@@ -3954,7 +3952,7 @@ function SLIP(callbacks, size) {
                 case 22:
                     EXP = quoExpression(EXP) | 0;
                     break;
-                case 7:
+                case 71:
                     EXP = vectorRef(FRM, localOfs(EXP) | 0) | 0;
                     break;
                 case 9:
@@ -4020,7 +4018,7 @@ function SLIP(callbacks, size) {
                 case 22:
                     EXP = quoExpression(EXP) | 0;
                     break;
-                case 7:
+                case 71:
                     EXP = vectorRef(FRM, localOfs(EXP) | 0) | 0;
                     break;
                 case 9:
@@ -4106,7 +4104,7 @@ function SLIP(callbacks, size) {
                 case 22:
                     EXP = quoExpression(EXP) | 0;
                     break;
-                case 7:
+                case 71:
                     EXP = vectorRef(FRM, localOfs(EXP) | 0) | 0;
                     break;
                 case 9:
@@ -4183,7 +4181,7 @@ function SLIP(callbacks, size) {
                 case 22:
                     EXP = quoExpression(EXP) | 0;
                     break;
-                case 7:
+                case 71:
                     EXP = vectorRef(FRM, localOfs(EXP) | 0) | 0;
                     break;
                 case 9:
@@ -4250,7 +4248,7 @@ function SLIP(callbacks, size) {
                 case 22:
                     EXP = quoExpression(EXP) | 0;
                     break;
-                case 7:
+                case 71:
                     EXP = vectorRef(FRM, localOfs(EXP) | 0) | 0;
                     break;
                 case 9:
@@ -5392,7 +5390,7 @@ function SLIP(callbacks, size) {
             case 4:
             case 36:
                 return '#<procedure>';
-            case 7:
+            case 71:
                 return '#<local variable @ offset ' + ag.localOfs(exp) + '>';
             case 9:
                 return '#<variable @ scope-level/offset: ' + ag.globalScp(exp) + '/' + ag.globalOfs(exp) + '>';
@@ -5424,15 +5422,15 @@ function SLIP(callbacks, size) {
                 return '#<local assignment @ offset: ' + printExp(ag.slcOfs(exp)) + ' (value: ' + printExp(ag.slcVal(exp)) + ')>';
             case 46:
                 return '#<application (zero argument): ' + printExp(ag.apzOpr(exp)) + '>';
-            case 27:
+            case 11:
                 return '#<local application (zero argument) @ offset ' + ag.alzOfs(exp) + '>';
-            case 33:
+            case 17:
                 return '#<application (zero argument) @ scope-level/offset ' + ag.agzScp(exp) + '/' + ag.agzOfs(exp) + '>';
             case 44:
                 return '#<application* (zero argument): ' + printExp(ag.tpzOpr(exp)) + '>';
-            case 29:
+            case 13:
                 return '#<local application* (zero argument) @ offset ' + ag.tlzOfs(exp) + '>';
-            case 35:
+            case 7:
                 return '#<application* (zero argument) @ scope-level/offset ' + ag.tgzScp(exp) + '/' + ag.tgzOfs(exp) + '>';
             case 40:
                 return '#<application ' + printExp(ag.aplOpr(exp)) + ' @ ' + printExp(ag.aplOpd(exp)) + '>';
