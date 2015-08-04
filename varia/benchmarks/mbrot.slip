@@ -4,8 +4,8 @@
        (define max-count 64)
        (define radius^2 16.0)
        (begin
-         (define cr (+ r (* x step)))
-         (define ci (+ i (* y step)))
+         (define cr (+ r (* (* 1.0 x) step)))
+         (define ci (+ i (* (* 1.0 y) step)))
          (begin
            (define (loop zr zi c)
              (if (= c max-count)
