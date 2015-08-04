@@ -95,6 +95,7 @@ function SLIP(callbacks, size) {
         var err_invalidRange = foreign$2.invalidRange;
         var err_fatalMemory = foreign$2.fatalMemory;
         var err_globalOverflow = foreign$2.globalOverflow;
+        var err_maxScopeLvl = foreign$2.maxScopeLvl;
         //pool
         var __POOL_TOP__ = 0;
         var __POOL_SIZ__ = 0;
@@ -428,8 +429,7 @@ function SLIP(callbacks, size) {
             case 25:
                 return 71;
             case 29:
-                /* TODO: put another tag here */
-                return 67    /* TODO: put another tag here */;
+                return 72;
             }
             return chunkTag(exp) | 0;
         }
@@ -496,6 +496,23 @@ function SLIP(callbacks, size) {
         function isLocal(x) {
             x = x | 0;
             return (tag(x) | 0) == 71 | 0;
+        }
+        function makeGlobal(scp, ofs) {
+            scp = scp | 0;
+            ofs = ofs | 0;
+            return (scp << 16 | ofs) << 8 | 29;
+        }
+        function globalScp(glb) {
+            glb = glb | 0;
+            return glb >>> 24 | 0;
+        }
+        function globalOfs(glb) {
+            glb = glb | 0;
+            return glb >>> 8 & 65535;
+        }
+        function isGlobal(x) {
+            x = x | 0;
+            return (tag(x) | 0) == 72 | 0;
         }
         function makePair(car, cdr) {
             car = car | 0;
@@ -1002,27 +1019,6 @@ function SLIP(callbacks, size) {
             x = x | 0;
             return (tag(x) | 0) == 34 | 0;
         }
-        function makeGlobal(scp, ofs) {
-            scp = scp | 0;
-            ofs = ofs | 0;
-            var chk = 0;
-            chk = makeChunk(9, 2) | 0;
-            chunkSet(chk, 4, scp);
-            chunkSet(chk, 8, ofs);
-            return chk | 0;
-        }
-        function globalScp(chk) {
-            chk = chk | 0;
-            return chunkGet(chk, 4) | 0;
-        }
-        function globalOfs(chk) {
-            chk = chk | 0;
-            return chunkGet(chk, 8) | 0;
-        }
-        function isGlobal(x) {
-            x = x | 0;
-            return (tag(x) | 0) == 9 | 0;
-        }
         function makePrc(arc, frc, bdy, env) {
             arc = arc | 0;
             frc = frc | 0;
@@ -1153,7 +1149,7 @@ function SLIP(callbacks, size) {
             scp = scp | 0;
             ofs = ofs | 0;
             var chk = 0;
-            chk = makeChunk(17, 2) | 0;
+            chk = makeChunk(9, 2) | 0;
             chunkSet(chk, 4, scp);
             chunkSet(chk, 8, ofs);
             return chk | 0;
@@ -1168,7 +1164,7 @@ function SLIP(callbacks, size) {
         }
         function isAgz(x) {
             x = x | 0;
-            return (tag(x) | 0) == 17 | 0;
+            return (tag(x) | 0) == 9 | 0;
         }
         function makeTgz(scp, ofs) {
             scp = scp | 0;
@@ -1455,6 +1451,11 @@ function SLIP(callbacks, size) {
         function defineVar() {
             if ((currentScpLvl | 0) == 0 & (currentFrmSiz | 0) == 128) {
                 err_globalOverflow();
+                return 164;
+            }
+            if ((currentScpLvl | 0) > 255) {
+                err_maxScopeLvl();
+                return 164;
             }
             DFR = makeFrm(PAT, DFR) | 0;
             currentFrmSiz = currentFrmSiz + 1 | 0;
@@ -3126,7 +3127,7 @@ function SLIP(callbacks, size) {
                 OFS = localOfs(VAL) | 0;
                 VAL = (TLC | 0) == 2147483617 ? makeTlz(OFS) | 0 : makeAlz(OFS) | 0;
                 return KON | 0;
-            case 9:
+            case 72:
                 SCP = globalScp(VAL) | 0;
                 OFS = globalOfs(VAL) | 0;
                 VAL = (TLC | 0) == 2147483617 ? makeTgz(SCP, OFS) | 0 : makeAgz(SCP, OFS) | 0;
@@ -3173,7 +3174,7 @@ function SLIP(callbacks, size) {
                 OFS = makeNumber(localOfs(VAL) | 0) | 0;
                 VAL = (TLC | 0) == 2147483617 ? makeTll(OFS, EXP) | 0 : makeAll(OFS, EXP) | 0;
                 return KON | 0;
-            case 9:
+            case 72:
                 SCP = makeNumber(globalScp(VAL) | 0) | 0;
                 OFS = makeNumber(globalOfs(VAL) | 0) | 0;
                 VAL = (TLC | 0) == 2147483617 ? makeTgl(SCP, OFS, EXP) | 0 : makeAgl(SCP, OFS, EXP) | 0;
@@ -3205,7 +3206,7 @@ function SLIP(callbacks, size) {
             case 71:
                 VAL = vectorRef(FRM, localOfs(EXP) | 0) | 0;
                 return KON | 0;
-            case 9:
+            case 72:
                 VAL = vectorRef(vectorRef(ENV, globalScp(EXP) | 0) | 0, globalOfs(EXP) | 0) | 0;
                 return KON | 0;
             case 18:
@@ -3238,7 +3239,7 @@ function SLIP(callbacks, size) {
                 return _E_evalThk() | 0;
             case 11:
                 return _E_evalAlz() | 0;
-            case 17:
+            case 9:
                 return _E_evalAgz() | 0;
             case 46:
                 return _E_evalApz() | 0;
@@ -3700,7 +3701,7 @@ function SLIP(callbacks, size) {
             case 71:
                 EXP = vectorRef(FRM, localOfs(EXP) | 0) | 0;
                 break;
-            case 9:
+            case 72:
                 EXP = vectorRef(vectorRef(ENV, globalScp(EXP) | 0) | 0, globalOfs(EXP) | 0) | 0;
                 break;
             case 18:
@@ -3760,7 +3761,7 @@ function SLIP(callbacks, size) {
                 case 71:
                     EXP = vectorRef(FRM, localOfs(EXP) | 0) | 0;
                     break;
-                case 9:
+                case 72:
                     EXP = vectorRef(vectorRef(ENV, globalScp(EXP) | 0) | 0, globalOfs(EXP) | 0) | 0;
                     break;
                 case 18:
@@ -3825,7 +3826,7 @@ function SLIP(callbacks, size) {
                 case 71:
                     EXP = vectorRef(FRM, localOfs(EXP) | 0) | 0;
                     break;
-                case 9:
+                case 72:
                     EXP = vectorRef(vectorRef(ENV, globalScp(EXP) | 0) | 0, globalOfs(EXP) | 0) | 0;
                     break;
                 case 18:
@@ -3886,7 +3887,7 @@ function SLIP(callbacks, size) {
                 case 71:
                     EXP = vectorRef(FRM, localOfs(EXP) | 0) | 0;
                     break;
-                case 9:
+                case 72:
                     EXP = vectorRef(vectorRef(ENV, globalScp(EXP) | 0) | 0, globalOfs(EXP) | 0) | 0;
                     break;
                 case 18:
@@ -3955,7 +3956,7 @@ function SLIP(callbacks, size) {
                 case 71:
                     EXP = vectorRef(FRM, localOfs(EXP) | 0) | 0;
                     break;
-                case 9:
+                case 72:
                     EXP = vectorRef(vectorRef(ENV, globalScp(EXP) | 0) | 0, globalOfs(EXP) | 0) | 0;
                     break;
                 case 18:
@@ -4021,7 +4022,7 @@ function SLIP(callbacks, size) {
                 case 71:
                     EXP = vectorRef(FRM, localOfs(EXP) | 0) | 0;
                     break;
-                case 9:
+                case 72:
                     EXP = vectorRef(vectorRef(ENV, globalScp(EXP) | 0) | 0, globalOfs(EXP) | 0) | 0;
                     break;
                 case 18:
@@ -4107,7 +4108,7 @@ function SLIP(callbacks, size) {
                 case 71:
                     EXP = vectorRef(FRM, localOfs(EXP) | 0) | 0;
                     break;
-                case 9:
+                case 72:
                     EXP = vectorRef(vectorRef(ENV, globalScp(EXP) | 0) | 0, globalOfs(EXP) | 0) | 0;
                     break;
                 case 18:
@@ -4184,7 +4185,7 @@ function SLIP(callbacks, size) {
                 case 71:
                     EXP = vectorRef(FRM, localOfs(EXP) | 0) | 0;
                     break;
-                case 9:
+                case 72:
                     EXP = vectorRef(vectorRef(ENV, globalScp(EXP) | 0) | 0, globalOfs(EXP) | 0) | 0;
                     break;
                 case 18:
@@ -4251,7 +4252,7 @@ function SLIP(callbacks, size) {
                 case 71:
                     EXP = vectorRef(FRM, localOfs(EXP) | 0) | 0;
                     break;
-                case 9:
+                case 72:
                     EXP = vectorRef(vectorRef(ENV, globalScp(EXP) | 0) | 0, globalOfs(EXP) | 0) | 0;
                     break;
                 case 18:
@@ -5392,7 +5393,7 @@ function SLIP(callbacks, size) {
                 return '#<procedure>';
             case 71:
                 return '#<local variable @ offset ' + ag.localOfs(exp) + '>';
-            case 9:
+            case 72:
                 return '#<variable @ scope-level/offset: ' + ag.globalScp(exp) + '/' + ag.globalOfs(exp) + '>';
             case 6:
                 return '#<sequence ' + printSequence(exp) + '>';
@@ -5424,7 +5425,7 @@ function SLIP(callbacks, size) {
                 return '#<application (zero argument): ' + printExp(ag.apzOpr(exp)) + '>';
             case 11:
                 return '#<local application (zero argument) @ offset ' + ag.alzOfs(exp) + '>';
-            case 17:
+            case 9:
                 return '#<application (zero argument) @ scope-level/offset ' + ag.agzScp(exp) + '/' + ag.agzOfs(exp) + '>';
             case 44:
                 return '#<application* (zero argument): ' + printExp(ag.tpzOpr(exp)) + '>';
@@ -5539,7 +5540,9 @@ function SLIP(callbacks, size) {
         }
         function globalOverflow() {
             report('too many global variables');
-            throw 'SLIP ERROR:: global overflow';
+        }
+        function maxScopeLvl() {
+            report('maximum scope level reached');
         }
         function undefinedVariable(exp) {
             report('undefined variable: ' + printExp(exp));
@@ -5579,6 +5582,7 @@ function SLIP(callbacks, size) {
             invalidLength: invalidLength,
             invalidRange: invalidRange,
             globalOverflow: globalOverflow,
+            maxScopeLvl: maxScopeLvl,
             fatalMemory: fatalMemory,
             link: link
         };
@@ -5741,6 +5745,7 @@ function SLIP(callbacks, size) {
         invalidParamCount: errors.invalidParamCount,
         invalidArgument: errors.invalidArgument,
         invalidOperator: errors.invalidOperator,
+        maxScopeLvl: errors.maxScopeLvl,
         globalOverflow: errors.globalOverflow,
         invalidLength: errors.invalidLength,
         invalidRange: errors.invalidRange,

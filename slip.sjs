@@ -41,10 +41,9 @@ function SLIP(callbacks, size) {
 	define __SYM_TAG__ 0x03
 	define __STR_TAG__ 0x05
 	define __TGZ_TAG__ 0x07
-	define __GLB_TAG__ 0x09
+	define __AGZ_TAG__ 0x09
 	define __ALZ_TAG__ 0x0B
 	define __TLZ_TAG__ 0x0D
-	define __AGZ_TAG__ 0x11
 
 	/* -- IMMEDIATES -- */
 	//(tags > maxTag = 0x3f)
@@ -56,6 +55,7 @@ function SLIP(callbacks, size) {
 	define __NBR_TAG__ 0x45
 	define __NAT_TAG__ 0x46
 	define __LCL_TAG__ 0x47
+	define __GLB_TAG__ 0x48
 
 	/* -- CONSTANT VALUES -- */
 	define __TRUE__ 0x7fffffe1
@@ -145,6 +145,7 @@ function SLIP(callbacks, size) {
 		var err_invalidRange = foreign.invalidRange;
 		var err_fatalMemory = foreign.fatalMemory;
 		var err_globalOverflow = foreign.globalOverflow;
+		var err_maxScopeLvl = foreign.maxScopeLvl;
 
 		//pool
 		var __POOL_TOP__ = 0;
@@ -559,8 +560,8 @@ function SLIP(callbacks, size) {
 					return __NAT_TAG__;
 				case 0x19:
 					return __LCL_TAG__;
-				case 0x1D: /* TODO: put another tag here */
-					return __VOI_TAG__;
+				case 0x1D:
+					return __GLB_TAG__;
 			}
 			return chunkTag(exp)|0;
 		}
@@ -632,6 +633,26 @@ function SLIP(callbacks, size) {
 		}
 
 		typecheck __LCL_TAG__ => isLocal
+
+		/* ---- GLOBAL VARIABLE ---- */
+
+		function makeGlobal(scp, ofs) {
+			scp = scp|0;
+			ofs = ofs|0;
+			return (((scp<<16)|ofs)<<8)|0x1D;
+		}
+
+		function globalScp(glb) {
+			glb = glb|0;
+			return (glb >>> 24)|0;
+		}
+
+		function globalOfs(glb) {
+			glb = glb|0;
+			return (glb >>> 8)&0xFFFF;
+		}
+
+		typecheck __GLB_TAG__ => isGlobal
 
 		/*==================*/
 		/* ---- CHUNKS ---- */
@@ -899,15 +920,6 @@ function SLIP(callbacks, size) {
 		} as __LMZ_TAG__
 
 		typecheck __LMZ_TAG__ => isLmz
-
-		/* ---- GLOBAL VARIABLE ---- */
-
-		struct makeGlobal {
-			scp => globalScp;
-			ofs => globalOfs;
-		} as __GLB_TAG__
-
-		typecheck __GLB_TAG__ => isGlobal
 
 		/* ---- PROCEDURE (FIXED ARGC) ---- */
 
@@ -1186,6 +1198,8 @@ function SLIP(callbacks, size) {
 // **********************************************************************
 // *************************** DICTIONARY *******************************
 // **********************************************************************
+	
+		define __MAX_SCP_LVL__ 255
 
 		function initDictionary() {
 			DEN = __NULL__;
@@ -1197,6 +1211,11 @@ function SLIP(callbacks, size) {
 			if (((currentScpLvl|0)==0)
 				&((currentFrmSiz|0)==__GLOBAL_SIZ__)) {
 				err_globalOverflow();
+				return error;
+			}
+			if((currentScpLvl|0)>__MAX_SCP_LVL__) {
+				err_maxScopeLvl();
+				return error;
 			}
 			DFR = makeFrm(PAT, DFR)|0;
 			currentFrmSiz = (currentFrmSiz+1)|0;
@@ -2867,7 +2886,7 @@ function SLIP(callbacks, size) {
 				lexicalAdr();
 
 				if(OFS) {
-					VAL = (SCP? 
+					VAL = (SCP?
 							(makeGlobal(SCP,OFS)|0):
 							(makeLocal(OFS)|0));
 					goto KON|0;
@@ -5899,7 +5918,10 @@ function SLIP(callbacks, size) {
 
 		function globalOverflow() {
 			report('too many global variables');
-			throw 'SLIP ERROR:: global overflow';
+		}
+
+		function maxScopeLvl() {
+			report('maximum scope level reached');
 		}
 
 		function undefinedVariable(exp) {
@@ -5946,6 +5968,7 @@ function SLIP(callbacks, size) {
 			invalidLength: invalidLength,
 			invalidRange: invalidRange,
 			globalOverflow: globalOverflow,
+			maxScopeLvl: maxScopeLvl,
 			fatalMemory: fatalMemory,
 			link: link
 		}
@@ -6136,6 +6159,7 @@ function SLIP(callbacks, size) {
 		invalidParamCount: errors.invalidParamCount,
 		invalidArgument: errors.invalidArgument,
 		invalidOperator: errors.invalidOperator,
+		maxScopeLvl: errors.maxScopeLvl,
 		globalOverflow: errors.globalOverflow,
 		invalidLength: errors.invalidLength,
 		invalidRange: errors.invalidRange,
