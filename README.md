@@ -11,7 +11,7 @@ expander to facilitate the writing of asm.js code by hand.
 
 ## Running slip.js
 
-To run slip.js, simply open ```index.html``` for an interactive slip.js REPL in your browser of choice (preferably Firefox).
+To run slip.js, simply open ```index.html``` for an interactive slip.js REPL in your browser of choice (preferably Firefox). An up-to-date version is also hosted on [this link](http://wilma.vub.ac.be/~noahves/slip.js/latest) if you just want to try it out quickly!
 
 Alternatively, one can also open a slip.js REPL in a shell using either:
   - ```js spiderslip.js``` (for SpiderMonkey)
