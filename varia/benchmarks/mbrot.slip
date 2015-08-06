@@ -1,0 +1,52 @@
+(begin  
+   (define (count r i step x y)
+     (begin
+       (define max-count 64)
+       (define radius^2 16.0)
+       (begin
+         (define cr (+ r (* (* 1.0 x) step)))
+         (define ci (+ i (* (* 1.0 y) step)))
+         (begin
+           (define (loop zr zi c)
+             (if (= c max-count)
+               c
+               (begin
+                 (define zr^2 (* zr zr))
+                 (define zi^2 (* zi zi))
+                 (if (> (+ zr^2 zi^2) radius^2)
+                   c
+                   (begin
+                     (define new-zr (+ (- zr^2 zi^2) cr))
+                     (define new-zi (+ (* 2.0 (* zr zi)) ci))
+                     (loop new-zr new-zi (+ c 1)))))))
+           (loop cr ci 0)))))
+   (define (mbrot matrix r i step n)
+     (begin
+       (define (loop1 y)
+         (if (>= y 0)
+           (begin
+             (define (loop2 x)
+               (if (>= x 0)
+                 (begin
+                   (vector-set!
+                    (vector-ref matrix x)
+                    y
+                    (count r i step x y))
+                   (loop2 (- x 1)))
+                 (loop1 (- y 1))))
+             (loop2 (- n 1)))))
+       (loop1 (- n 1))))
+   (define (test n)
+     (begin
+       (define matrix (make-vector n))
+       (begin
+         (define (loop i)
+           (if (>= i 0)
+             (begin
+               (vector-set! matrix i (make-vector n))
+               (loop (- i 1)))))
+         (loop (- n 1)))
+       (mbrot matrix -1.0 -0.5 0.005 n)
+       (vector-ref (vector-ref matrix 0) 0)))
+   
+   (run-benchmark "MBROT" (lambda () (test 1000))))

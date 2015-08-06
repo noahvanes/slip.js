@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<!-- META -->
+<meta charset="UTF-8">
+<title>Slip.js REPL</title>
+<!-- STYLE -->
+<style type="text/css">
+.textelement {
+	float:left;
+	display:inline;
+}
+.textstyle {
+	font-size: 16px;
+}
+.inputbox {
+	border: 0px solid black;
+	display:inline;
+	resize:none;
+	float:left;
+	width:100%;   
+}
+.input {
+	overflow: hidden;
+	margin-left: 18px;
+}
+.log {
+	color:purple;
+}
+.error {
+	color:red;
+}
+</style>
+
+<!-- JQUERY -->
+<script src="lib/jquery.js"></script>
+<script type="text/javascript" src="jquery.console.js"></script>
+<!-- INTERPRETER COMPONENTS -->
+<script src="slip.js" async onload='init()'></script>
+
+</head>
+<body>
+
+<div id="terminal" style="width:100%"> </div>
+
+<script type="text/javascript">
+
+	/* --- I/O STUFF --- */
+
+	//workarounds
+	var __PRINT_STR__ = '';
+	var __INPUT_CLB__ = function() { //shouldn't be called
+		return 'slip.js is loading...'; 
+	}
+	var __OUTPUT_CLB__ = function(txt) {
+		//ignore it for now
+	}
+
+	//terminal configuration
+	var terminal = $('#terminal');
+	var controller = terminal.console({
+  		promptLabel: 'slip.js> ',
+  		autofocus:true,
+  		animateScroll:true,
+  		promptHistory:true,
+  		commandValidate: function(line) {
+    		return (line !== ""); 
+  		},
+  		charInsertTrigger: function() {
+  			return true;
+  		},
+  		commandHandle: function(line, report) {
+  			__OUTPUT_CLB__ = report;
+  			__READ_CLB__(line);
+  		}
+  	});
+
+  	function readExpression(clb) {
+  		__READ_CLB__ = clb;
+  	}
+
+  	function printOut(txt) {
+  		__OUTPUT_CLB__(txt);
+  	}
+
+  	function printLine(txt) {
+  		__OUTPUT_CLB__(txt);
+  	}
+
+  	function printError(txt) {
+  		__OUTPUT_CLB__(txt);
+  	}
+
+  	function printLog(txt) {
+  		__OUTPUT_CLB__(txt);
+  	}
+
+	function scanBrackets(txt) {
+
+		var idx = 0;
+		var count = 0;
+		var len = txt.length;
+		var currentChar;
+
+		while(idx < len) {
+			currentChar = txt.charAt(idx++);
+			if (currentChar === '(')
+				++count;
+			else if (currentChar === ')')
+				--count;
+		}
+
+		return count;
+	}
+
+	function loadFile(url, clb, err) {
+		
+		$.ajax(url, {
+			datatype: 'text',
+			success: clb,
+			error: err
+		});
+	}
+
+	/* --- START SLIP.JS REPL --- */
+
+	function init() {
+
+		var slip = SLIP({
+			stdlib: window,
+			readExpression: readExpression,
+			load: loadFile,
+			print: printOut,
+			printline: printLine,
+			printerror: function(err) {
+				printLine(err, 'error');
+			},
+			printlog: function(log) {
+				printOut(log, 'log');
+			},
+			evalJS: eval
+		}, 25);
+
+		slip.Slip_REPL();
+	}
+
+</script>
+</body>
+</html>

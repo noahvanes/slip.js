@@ -1,0 +1,39 @@
+(begin
+
+  (define BENCH_COUNT 3)
+  
+  (define (average nbrs)
+    (define len (vector-length nbrs))
+    (define (loop i acc)
+      (if (= i len)
+          (/ acc len)
+          (loop (+ i 1)
+                (+ acc (vector-ref nbrs i)))))
+    (loop 0 0))
+  
+  (define (run-benchmark name proc . pre)
+    (newline)
+    (display "Running benchmark: ") (display name) (newline)
+    (define results (make-vector BENCH_COUNT))
+    (define (loop i)
+      (if (= i BENCH_COUNT)
+          (begin
+            (newline)
+            (display "=> results: ")
+            (display results)
+            (newline)
+            (display "=> average: ")
+            (display (average results))
+            (newline))
+          (begin
+            (if (pair? pre) ((car pre)))
+            (collect)
+            (define start (clock))
+            (proc)
+            (define stop (clock))
+            (vector-set! results i (- stop start))
+            (display ".")
+            (loop (+ i 1)))))
+    (loop 0)))
+    
+  

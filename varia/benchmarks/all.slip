@@ -1,0 +1,13 @@
+(begin
+  (load "varia/benchmarks/init.slip")
+  (load "varia/benchmarks/tower-fib.slip")
+  (load "varia/benchmarks/nqueens.slip")
+  (load "varia/benchmarks/qsort.slip")
+  (load "varia/benchmarks/hanoi.slip")
+  (load "varia/benchmarks/tak.slip")
+  (load "varia/benchmarks/cpstak.slip")
+  (load "varia/benchmarks/ctak.slip")
+  (load "varia/benchmarks/destruct.slip")
+  (load "varia/benchmarks/array1.slip")
+  (load "varia/benchmarks/mbrot.slip")
+  (load "varia/benchmarks/primes.slip"))

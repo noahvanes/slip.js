@@ -1,0 +1,75 @@
+(begin
+   (define (append-to-tail! x y)
+     (if (null? x)
+       y
+       (begin
+         (define (loop a b)
+           (if (null? b) (begin (set-cdr! a y) x) (loop b (cdr b))))
+         (loop x (cdr x)))))
+   (define (destructive n m)
+     (begin
+       (define l
+         (begin
+           (define (loop0 i a)
+             (if (= i 0) (begin a) (begin (loop0 (- i 1) (cons '() a)))))
+           (loop0 10 '())))
+       (begin
+         (define (loop1 i)
+           (if (= i 0)
+             (begin l)
+             (begin
+               (if (null? (car l))
+                 (begin
+                   (begin
+                     (define (loop2 l)
+                       (if (null? l)
+                         #f
+                         (begin
+                           (if (null? (car l)) (set-car! l (cons '() '())))
+                           (append-to-tail!
+                            (car l)
+                            (begin
+                              (define (loop3 j a)
+                                (if (= j 0)
+                                  (begin a)
+                                  (begin (loop3 (- j 1) (cons '() a)))))
+                              (loop3 m '())))
+                           (loop2 (cdr l)))))
+                     (loop2 l)))
+                 (begin
+                   (begin
+                     (define (loop4 l1 l2)
+                       (if (null? l2)
+                         #f
+                         (begin
+                           (set-cdr!
+                            (begin
+                              (define (loop5 j a)
+                                (if (= j 0)
+                                  (begin a)
+                                  (begin
+                                    (set-car! a i)
+                                    (loop5 (- j 1) (cdr a)))))
+                              (loop5 (quotient (length (car l2)) 2) (car l2)))
+                            (begin
+                              (define n (quotient (length (car l1)) 2))
+                              (if (= n 0)
+                                (begin (set-car! l1 '()) (car l1))
+                                (begin
+                                  (begin
+                                    (define (loop6 j a)
+                                      (if (= j 1)
+                                        (begin
+                                          (begin
+                                            (define x (cdr a))
+                                            (set-cdr! a '())
+                                            x))
+                                        (begin
+                                          (set-car! a i)
+                                          (loop6 (- j 1) (cdr a)))))
+                                    (loop6 n (car l1)))))))
+                           (loop4 (cdr l1) (cdr l2)))))
+                     (loop4 l (cdr l)))))
+               (loop1 (- i 1)))))
+         (loop1 n))))
+   (run-benchmark "DESTRUCT" (lambda () (destructive 10000 1000))))

@@ -1,0 +1,27 @@
+(begin
+   (define (create-x n)
+     (define result (make-vector n))
+     (begin
+       (define (loop0 i)
+         (if (>= i n)
+           (begin result)
+           (begin (vector-set! result i i) (loop0 (+ i 1)))))
+       (loop0 0)))
+   (define (create-y x) 
+     (begin
+       (define n (vector-length x))
+       (define result (make-vector n))
+       (begin
+         (define (loop1 i)
+           (if (< i 0)
+             (begin result)
+             (begin (vector-set! result i (vector-ref x i)) (loop1 (- i 1)))))
+         (loop1 (- n 1)))))
+   (define (my-try n) (vector-length (create-y (create-x n))))
+   (define (go m n)
+     (begin
+       (define (loop repeat result)
+         (if (> repeat 0) (loop (- repeat 1) (my-try n)) result))
+       (loop m '())))
+   
+   (run-benchmark "ARRAY1" (lambda () (go 10 1000000))))
