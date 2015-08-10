@@ -31,9 +31,9 @@ function SLIP(callbacks, size) {
 	define __AGL_TAG__ 0x34
 	define __TGL_TAG__ 0x36
 	define __STL_TAG__ 0x38
+	define __ANL_TAG__ 0x3A
+	define __TNL_TAG__ 0x3C
 	//available: 
-	//			 0x3A, 
-	//			 0x3C, 
 	//			 0x3E
 
 	/* -- RAW CHUNKS -- */
@@ -44,6 +44,9 @@ function SLIP(callbacks, size) {
 	define __AGZ_TAG__ 0x09
 	define __ALZ_TAG__ 0x0B
 	define __TLZ_TAG__ 0x0D
+	define __NLC_TAG__ 0x0F
+	define __ANZ_TAG__ 0x11
+	define __TNZ_TAG__ 0x13
 
 	/* -- IMMEDIATES -- */
 	//(tags > maxTag = 0x3f)
@@ -145,8 +148,6 @@ function SLIP(callbacks, size) {
 		var err_invalidRange = foreign.invalidRange;
 		var err_fatalMemory = foreign.fatalMemory;
 		var err_globalOverflow = foreign.globalOverflow;
-		var err_maxScopeLvl = foreign.maxScopeLvl;
-
 		//pool
 		var __POOL_TOP__ = 0;
 		var __POOL_SIZ__ = 0;
@@ -636,20 +637,14 @@ function SLIP(callbacks, size) {
 
 		/* ---- GLOBAL VARIABLE ---- */
 
-		function makeGlobal(scp, ofs) {
-			scp = scp|0;
+		function makeGlobal(ofs) {
 			ofs = ofs|0;
-			return (((scp<<16)|ofs)<<8)|0x1D;
-		}
-
-		function globalScp(glb) {
-			glb = glb|0;
-			return (glb >>> 24)|0;
+			return (ofs << 5)|0x1D;
 		}
 
 		function globalOfs(glb) {
 			glb = glb|0;
-			return (glb >>> 8)&0xFFFF;
+			return (glb >>> 5)|0;
 		}
 
 		typecheck __GLB_TAG__ => isGlobal
@@ -951,6 +946,31 @@ function SLIP(callbacks, size) {
 
 		typecheck __APZ_TAG__ => isApz
 
+		/* ---- LOCAL APPLICATION (ZERO ARG) ---- */
+
+		struct makeAlz {
+			ofs => alzOfs;
+		} as __ALZ_TAG__
+
+		typecheck __ALZ_TAG__ => isAlz
+
+		/* ---- NON-LOCAL APPLICATION (ZERO ARG) ---- */
+
+		struct makeAnz {
+			scp => anzScp;
+			ofs => anzOfs;
+		} as __ANZ_TAG__
+
+		typecheck __ANZ_TAG__ => isAnz
+
+		/* ---- GLOBAL APPLICATION (ZERO ARG) ---- */
+
+		struct makeAgz {
+			ofs => agzOfs;
+		} as __AGZ_TAG__
+
+		typecheck __AGZ_TAG__ => isAgz
+
 		/* ---- TAIL CALL (ZERO ARG) ---- */
 
 		struct makeTpz {
@@ -958,14 +978,6 @@ function SLIP(callbacks, size) {
 		} as __TPZ_TAG__
 
 		typecheck __TPZ_TAG__ => isTpz
-
-		/* ---- LOCAL APPLICATION (ZERO ARG) ---- */
-
-		struct makeAlz {
-			ofs => alzOfs
-		} as __ALZ_TAG__
-
-		typecheck __ALZ_TAG__ => isAlz
 
 		/* ---- LOCAL TAIL CALL (ZERO ARG) ---- */
 
@@ -975,23 +987,23 @@ function SLIP(callbacks, size) {
 
 		typecheck __TLZ_TAG__ => isTlz
 
-		/* ---- GLOBAL APPLICATION (ZERO ARG) ---- */
+		/* ---- NON-LOCAL TAIL CALL (ZERO ARG) ---- */
 
-		struct makeAgz {
-			scp => agzScp;
-			ofs => agzOfs;
-		} as __AGZ_TAG__
+		struct makeTnz {
+			scp => tnzScp;
+			ofs => tnzOfs;
+		} as __TNZ_TAG__
 
-		typecheck __AGZ_TAG__ => isAgz
+		typecheck __TNZ_TAG__ => isTnz
 
 		/* ---- GLOBAL TAIL CALL (ZERO ARG) ---- */
 
 		struct makeTgz {
-			scp => tgzScp;
 			ofs => tgzOfs;
 		} as __TGZ_TAG__
 
 		typecheck __TGZ_TAG__ => isTgz
+
 
 		/* ---- APPLICATION (WITH ARGUMENTS) ---- */
 
@@ -1002,15 +1014,6 @@ function SLIP(callbacks, size) {
 
 		typecheck __APL_TAG__ => isApl
 
-		/* ---- TAIL CALL (WITH ARGUMENTS) ---- */
-
-		struct makeTpl {
-			opr => tplOpr;
-			opd => tplOpd;
-		} as __TPL_TAG__
-
-		typecheck __TPL_TAG__ => isTpl
-
 		/* ---- LOCAL APPLICATION (WITH ARGUMENTS) ---- */
 
 		struct makeAll {
@@ -1020,6 +1023,34 @@ function SLIP(callbacks, size) {
 
 		typecheck __ALL_TAG__ => isAll
 
+		/* ---- NON-LOCAL APPLICATION (WITH ARGUMENTS) ---- */
+
+		struct makeAnl {
+			scp => anlScp;
+			ofs => anlOfs;
+			opd => anlOpd;
+		} as __ANL_TAG__
+
+		typecheck __ANL_TAG__ => isAnl	
+
+		/* ---- GLOBAL APPLICATION (WITH ARGUMENTS) ---- */
+
+		struct makeAgl {
+			ofs => aglOfs;
+			opd => aglOpd;
+		} as __AGL_TAG__
+
+		typecheck __AGL_TAG__ => isAgl	
+	
+		/* ---- TAIL CALL (WITH ARGUMENTS) ---- */
+
+		struct makeTpl {
+			opr => tplOpr;
+			opd => tplOpd;
+		} as __TPL_TAG__
+
+		typecheck __TPL_TAG__ => isTpl
+
 		/* ---- LOCAL TAIL CALL (WITH ARGUMENTS) ---- */
 
 		struct makeTll {
@@ -1027,22 +1058,21 @@ function SLIP(callbacks, size) {
 			opd => tllOpd;
 		} as __TLL_TAG__
 
-		typecheck __TLL_TAG__ => isTll
+		typecheck __TLL_TAG__ => isTll		
 
-		/* ---- GLOBAL APPLICATION (WITH ARGUMENTS) ---- */
+		/* ---- NON-LOCAL TAIL CALL (WITH ARGUMENTS) ---- */
 
-		struct makeAgl {
-			scp => aglScp;
-			ofs => aglOfs;
-			opd => aglOpd;
-		} as __AGL_TAG__
+		struct makeTnl {
+			scp => tnlScp;
+			ofs => tnlOfs;
+			opd => tnlOpd;
+		} as __TNL_TAG__
 
-		typecheck __AGL_TAG__ => isAgl
+		typecheck __TNL_TAG__ => isTnl	
 
 		/* ---- GLOBAL TAIL CALL (WITH ARGUMENTS) ---- */
 
 		struct makeTgl {
-			scp => tglScp;
 			ofs => tglOfs;
 			opd => tglOpd;
 		} as __TGL_TAG__
@@ -1057,9 +1087,14 @@ function SLIP(callbacks, size) {
 
 		typecheck __STL_TAG__ => isStl
 
-		/*================*/
-		/* ---- RAWS ---- */
-		/*================*/
+		/* ---- NON-LOCAL VARIABLE ---- */
+
+		struct makeNlc {
+			scp => nlcScp;
+			ofs => nlcOfs;
+		} as __NLC_TAG__
+
+		typecheck __NLC_TAG__ => isNlc
 
 		/* --- FLOATS --- */
 
@@ -1198,8 +1233,6 @@ function SLIP(callbacks, size) {
 // **********************************************************************
 // *************************** DICTIONARY *******************************
 // **********************************************************************
-	
-		define __MAX_SCP_LVL__ 255
 
 		function initDictionary() {
 			DEN = __NULL__;
@@ -1211,10 +1244,6 @@ function SLIP(callbacks, size) {
 			if (((currentScpLvl|0)==0)
 				&((currentFrmSiz|0)==__GLOBAL_SIZ__)) {
 				err_globalOverflow();
-				return error;
-			}
-			if((currentScpLvl|0)>__MAX_SCP_LVL__) {
-				err_maxScopeLvl();
 				return error;
 			}
 			DFR = makeFrm(PAT, DFR)|0;
@@ -1316,10 +1345,19 @@ function SLIP(callbacks, size) {
 
 		macro lookupGlobal {
 			case {_ $R1 => $R2} => {
+				letstx $GLB = [makeIdent('GLB', #{$R1})];
+				return #{
+					$R2 = vectorRef($GLB,globalOfs($R1)|0)|0;
+				}
+			} 
+		}
+
+		macro lookupNlc {
+			case {_ $R1 => $R2} => {
 				letstx $ENV = [makeIdent('ENV', #{$R1})];
 				return #{
-					$R2 = vectorRef(vectorRef($ENV, globalScp($R1)|0)|0,
-							 		globalOfs($R1)|0)|0;
+					$R2 = vectorRef(vectorRef($ENV, nlcScp($R1)|0)|0,
+							 		nlcOfs($R1)|0)|0;
 				}
 			} 
 		}
@@ -2886,9 +2924,13 @@ function SLIP(callbacks, size) {
 				lexicalAdr();
 
 				if(OFS) {
-					VAL = (SCP?
-							(makeGlobal(SCP,OFS)|0):
-							(makeLocal(OFS)|0));
+					if(SCP) {						
+						VAL = ((currentScpLvl|0) == 1?
+								(makeGlobal(OFS)|0):
+								(makeNlc(SCP,OFS)|0));
+					} else {
+						VAL = makeLocal(OFS)|0;
+					}
 					goto KON|0;
 				}
 
@@ -3386,11 +3428,18 @@ function SLIP(callbacks, size) {
 						goto KON|0;
 
 					case __GLB_TAG__:
-						SCP = globalScp(VAL)|0;
 						OFS = globalOfs(VAL)|0;
 						VAL = ((TLC|0) == __TRUE__?
-							makeTgz(SCP, OFS)|0:
-							makeAgz(SCP, OFS)|0);
+							makeTgz(OFS)|0:
+							makeAgz(OFS)|0);
+						goto KON|0;
+
+					case __NLC_TAG__:
+						SCP = nlcScp(VAL)|0;
+						OFS = nlcOfs(VAL)|0;
+						VAL = ((TLC|0) == __TRUE__?
+							makeTnz(SCP, OFS)|0:
+							makeAnz(SCP, OFS)|0);
 						goto KON|0;
 				}
 
@@ -3451,11 +3500,18 @@ function SLIP(callbacks, size) {
 		 				goto KON|0;
 
 		 			case __GLB_TAG__:
-		 				SCP = makeNumber(globalScp(VAL)|0)|0;
 		 				OFS = makeNumber(globalOfs(VAL)|0)|0;
 		 				VAL = ((TLC|0) == __TRUE__?
-		 					makeTgl(SCP, OFS, EXP)|0:
-		 					makeAgl(SCP, OFS, EXP)|0);
+		 					makeTgl(OFS, EXP)|0:
+		 					makeAgl(OFS, EXP)|0);
+		 				goto KON|0;		 				
+
+		 			case __NLC_TAG__:
+		 				SCP = makeNumber(nlcScp(VAL)|0)|0;
+		 				OFS = makeNumber(nlcOfs(VAL)|0)|0;
+		 				VAL = ((TLC|0) == __TRUE__?
+		 					makeTnl(SCP, OFS, EXP)|0:
+		 					makeAnl(SCP, OFS, EXP)|0);
 		 				goto KON|0;
 		 		}		
 
@@ -3497,6 +3553,9 @@ function SLIP(callbacks, size) {
 					case __GLB_TAG__:
 						lookupGlobal EXP => VAL
 						goto KON|0;
+					case __NLC_TAG__:
+						lookupNlc EXP => VAL
+						goto KON|0;
 					case __LMB_TAG__:
 						VAL = capturePrc(EXP);
 						goto KON|0;
@@ -3527,6 +3586,8 @@ function SLIP(callbacks, size) {
 						goto E_evalThk();
 					case __ALZ_TAG__:
 						goto E_evalAlz();
+					case __ANZ_TAG__:
+						goto E_evalAnz();
 					case __AGZ_TAG__:
 						goto E_evalAgz();
 					case __APZ_TAG__: 
@@ -3535,10 +3596,14 @@ function SLIP(callbacks, size) {
 						goto E_evalApl();
 					case __ALL_TAG__:
 						goto E_evalAll();
+					case __ANL_TAG__:
+						goto E_evalAnl();
 					case __AGL_TAG__:
 						goto E_evalAgl();
 					case __TLZ_TAG__:
 						goto E_evalTlz();
+					case __TNZ_TAG__:
+						goto E_evalTnz();
 					case __TGZ_TAG__:
 						goto E_evalTgz();
 					case __TPZ_TAG__:
@@ -3547,6 +3612,8 @@ function SLIP(callbacks, size) {
 						goto E_evalTpl();
 					case __TLL_TAG__:
 						goto E_evalTll();
+					case __TNL_TAG__:
+						goto E_evalTnl();
 					case __TGL_TAG__:
 						goto E_evalTgl();
 				}
@@ -3749,9 +3816,16 @@ function SLIP(callbacks, size) {
 				goto E_evalAZ();
 			}
 
+			E_evalAnz {
+
+				VAL = vectorRef(vectorRef(ENV,anzScp(EXP)|0)|0,
+								anzOfs(EXP)|0)|0;
+				goto E_evalAZ();
+			}
+
 			E_evalAgz {
 
-				VAL = vectorRef(vectorRef(ENV,agzScp(EXP)|0)|0,agzOfs(EXP)|0)|0;
+				VAL = vectorRef(GLB, agzOfs(EXP)|0)|0;
 				goto E_evalAZ();
 			}
 
@@ -3831,9 +3905,16 @@ function SLIP(callbacks, size) {
 				goto E_evalTZ();
 			}
 
+			E_evalTnz {
+
+				VAL = vectorRef(vectorRef(ENV,tnzScp(EXP)|0)|0,
+								tnzOfs(EXP)|0)|0;
+				goto E_evalTZ();
+			}
+
 			E_evalTgz {
 
-				VAL = vectorRef(vectorRef(ENV,tgzScp(EXP)|0)|0,tgzOfs(EXP)|0)|0;
+				VAL = vectorRef(GLB,tgzOfs(EXP)|0)|0;
 				goto E_evalTZ();
 			}
 
@@ -3908,10 +3989,17 @@ function SLIP(callbacks, size) {
 				goto E_evalAL();
 			}
 
+			E_evalAnl {
+
+				VAL = vectorRef(vectorRef(ENV, numberVal(anlScp(EXP)|0)|0)|0,
+								numberVal(anlOfs(EXP)|0)|0)|0;
+				ARG = anlOpd(EXP)|0;
+				goto E_evalAL();
+			}
+
 			E_evalAgl {
 
-				VAL = vectorRef(vectorRef(ENV,numberVal(aglScp(EXP)|0)|0)|0, 
-								numberVal(aglOfs(EXP)|0)|0)|0;
+				VAL = vectorRef(GLB,numberVal(aglOfs(EXP)|0)|0)|0;
 				ARG = aglOpd(EXP)|0;
 				goto E_evalAL();
 			}
@@ -4003,10 +4091,17 @@ function SLIP(callbacks, size) {
 				goto E_evalTL();
 			}
 
+			E_evalTnl {
+
+				VAL = vectorRef(vectorRef(ENV,numberVal(tnlScp(EXP)|0)|0)|0,
+								numberVal(tnlOfs(EXP)|0)|0)|0;
+				ARG = tnlOpd(EXP)|0;
+				goto E_evalTL();
+			}
+
 			E_evalTgl {
 
-				VAL = vectorRef(vectorRef(ENV,numberVal(tglScp(EXP)|0)|0)|0, 
-								numberVal(tglOfs(EXP)|0)|0)|0;
+				VAL = vectorRef(GLB,numberVal(tglOfs(EXP)|0)|0)|0;
 				ARG = tglOpd(EXP)|0;
 				goto E_evalTL();
 			}
@@ -4103,6 +4198,9 @@ function SLIP(callbacks, size) {
 					case __GLB_TAG__:
 						lookupGlobal EXP => EXP
 						break;
+					case __NLC_TAG__:
+						lookupNlc EXP => EXP
+						break;
 					case __LMB_TAG__:
 						EXP = capturePrc(EXP);
 						break;
@@ -4163,6 +4261,9 @@ function SLIP(callbacks, size) {
 							break;
 						case __GLB_TAG__:
 							lookupGlobal EXP => EXP
+							break;
+						case __NLC_TAG__:
+							lookupNlc EXP => EXP
 							break;
 						case __LMB_TAG__:
 							EXP = capturePrc(EXP);
@@ -4226,6 +4327,9 @@ function SLIP(callbacks, size) {
 						case __GLB_TAG__:
 							lookupGlobal EXP => EXP
 							break;
+						case __NLC_TAG__:
+							lookupNlc EXP => EXP
+							break;
 						case __LMB_TAG__:
 							EXP = capturePrc(EXP);
 							break;
@@ -4287,6 +4391,9 @@ function SLIP(callbacks, size) {
 							break;
 						case __GLB_TAG__:
 							lookupGlobal EXP => EXP
+							break;
+						case __NLC_TAG__:
+							lookupNlc EXP => EXP
 							break;
 						case __LMB_TAG__:
 							EXP = capturePrc(EXP);
@@ -4354,6 +4461,9 @@ function SLIP(callbacks, size) {
 						case __GLB_TAG__:
 							lookupGlobal EXP => EXP
 							break;
+						case __NLC_TAG__:
+							lookupNlc EXP => EXP
+							break;
 						case __LMB_TAG__:
 							EXP = capturePrc(EXP);
 							break;
@@ -4420,6 +4530,9 @@ function SLIP(callbacks, size) {
 							break;
 						case __GLB_TAG__:
 							lookupGlobal EXP => EXP
+							break;
+						case __NLC_TAG__:
+							lookupNlc EXP => EXP
 							break;
 						case __LMB_TAG__:
 							EXP = capturePrc(EXP);
@@ -4503,6 +4616,9 @@ function SLIP(callbacks, size) {
 						case __GLB_TAG__:
 							lookupGlobal EXP => EXP
 							break;
+						case __NLC_TAG__:
+							lookupNlc EXP => EXP
+							break;
 						case __LMB_TAG__:
 							EXP = capturePrc(EXP);
 							break;
@@ -4579,6 +4695,9 @@ function SLIP(callbacks, size) {
 						case __GLB_TAG__:
 							lookupGlobal EXP => EXP
 							break;
+						case __NLC_TAG__:
+							lookupNlc EXP => EXP
+							break;
 						case __LMB_TAG__:
 							EXP = capturePrc(EXP);
 							break;
@@ -4644,6 +4763,9 @@ function SLIP(callbacks, size) {
 							break;
 						case __GLB_TAG__:
 							lookupGlobal EXP => EXP
+							break;
+						case __NLC_TAG__:
+							lookupNlc EXP => EXP
 							break;
 						case __LMB_TAG__:
 							EXP = capturePrc(EXP);
@@ -5260,9 +5382,8 @@ function SLIP(callbacks, size) {
 			slcVal: slcVal,
 			isSgl: isSgl,
 			isSlc: isSlc,
-			//variables
+			//local & global variables
 			localOfs: localOfs,
-			globalScp: globalScp,
 			globalOfs: globalOfs,
 			isLocal: isLocal,
 			isGlobal: isGlobal,
@@ -5271,17 +5392,21 @@ function SLIP(callbacks, size) {
 			isApz: isApz,
 			alzOfs: alzOfs,
 			isAlz: isAlz,
-			agzScp: agzScp,
 			agzOfs: agzOfs,
 			isAgz: isAgz,
+			anzScp: anzScp,
+			anzOfs: anzOfs,
+			isAnz: isAnz,
 			//tail calls (zero arg)
 			tpzOpr: tplOpr,
 			isTpz: isTpz,
 			tlzOfs: tlzOfs,
 			isTlz: isTlz,
-			tgzScp: tgzScp,
 			tgzOfs: tgzOfs,
 			isTgz: isTgz,
+			tnzScp: tnzScp,
+			tnzOfs: tnzOfs,
+			isTnz: isTnz,
 			//applications
 			aplOpr: aplOpr,
 			aplOpd: aplOpd,
@@ -5289,10 +5414,13 @@ function SLIP(callbacks, size) {
 			allOfs: allOfs,
 			allOpd: allOpd,
 			isAll: isAll,
-			aglScp: aglScp,
 			aglOfs: aglOfs,
 			aglOpd: aglOpd,
 			isAgl: isAgl,
+			anlScp: anlScp,
+			anlOfs: anlOfs,
+			anlOpd: anlOpd,
+			isAnl: isAnl,
 			//tail calls
 			tplOpr: tplOpr,
 			tplOpd: tplOpd,
@@ -5300,10 +5428,17 @@ function SLIP(callbacks, size) {
 			tllOfs: tllOfs,
 			tllOpd: tllOpd,
 			isTll: isTll,
-			tglScp: tglScp,
 			tglOfs: tglOfs,
 			tglOpd: tglOpd,
 			isTgl: isTgl,
+			tnlScp: tnlScp,
+			tnlOfs: tnlOfs,
+			tnlOpd: tnlOpd,
+			isTnl: isTnl,
+			//non-locals
+			nlcScp: nlcScp,
+			nlcOfs: nlcOfs,
+			isNlc: isNlc,
 			//sequence tail
 			stlExp: stlExp,
 			isStl: isStl,
@@ -5693,9 +5828,12 @@ function SLIP(callbacks, size) {
 					return '#<local variable @ offset '
 								+ ag.localOfs(exp) + '>';
 				case __GLB_TAG__:
-					return '#<variable @ scope-level/offset: '
-								+ ag.globalScp(exp) + '/'
+					return '#<global variable @ offset: '
 								+ ag.globalOfs(exp) + '>';
+				case __NLC_TAG__:
+					return '#<non-local variable @ scope-level/offset: '
+								+ ag.nlcScp(exp) + '/'
+								+ ag.nlcOfs(exp) + '>';
 				case __SEQ_TAG__:
 					return '#<sequence '
 								+ printSequence(exp) + '>';
@@ -5760,46 +5898,60 @@ function SLIP(callbacks, size) {
 				case __ALZ_TAG__:
 					return '#<local application (zero argument) @ offset '
 								+ ag.alzOfs(exp) + '>';
+				case __ANZ_TAG__:
+					return '#<non-local application (zero argument) @ scope/offset: '
+								+ ag.anzScp(exp) + '/'
+								+ ag.anzOfs(exp) + '>'
 				case __AGZ_TAG__:
-					return '#<application (zero argument) @ scope-level/offset '
-								+ ag.agzScp(exp) + '/' 
+					return '#<global application (zero argument) @ offset '
 								+ ag.agzOfs(exp) + '>';
 				case __TPZ_TAG__:
-					return '#<application* (zero argument): '
+					return '#<tail call (zero argument): '
 								+ printExp(ag.tpzOpr(exp)) + '>';
 				case __TLZ_TAG__:
-					return '#<local application* (zero argument) @ offset '
+					return '#<local tail call (zero argument) @ offset '
 								+ ag.tlzOfs(exp) + '>';
+				case __TNZ_TAG__:
+					return '#<non-local tail call (zero argument) @ scope/offset: '
+								+ ag.tnzScp(exp) + '/'
+								+ ag.tnzOfs(exp) + '>'
 				case __TGZ_TAG__:
-					return '#<application* (zero argument) @ scope-level/offset '
-								+ ag.tgzScp(exp) + '/' 
+					return '#<global tail call (zero argument) @ offset '
 								+ ag.tgzOfs(exp) + '>';
 				case __APL_TAG__:
 					return '#<application '
 								+ printExp(ag.aplOpr(exp)) + ' @ '
 								+ printExp(ag.aplOpd(exp)) + '>';				
 				case __ALL_TAG__:
-					return '#<local application (offset '
+					return '#<local application (offset: '
 								+ printExp(ag.allOfs(exp)) + ') @ '
 								+ printExp(ag.allOpd(exp)) + '>';
+				case __ANL_TAG__:
+					return '#<non-local application (scope/offset: '
+								+ printExp(ag.anlScp(exp)) + '/'
+								+ printExp(ag.anlOfs(exp)) + ') @ '
+								+ printExp(ag.anlOpd(exp)) + '>';
 				case __AGL_TAG__:
-					return '#<application (scope/offset: '
-								+ printExp(ag.aglScp(exp)) + '/'
+					return '#<global application (offset: '
 								+ printExp(ag.aglOfs(exp)) + ') @'
 								+ printExp(ag.aglOpd(exp)) + '>';
-				case __TLL_TAG__:
-					return '#<local application* (offset '
-								+ printExp(ag.tllOfs(exp)) + ') @ '
-								+ printExp(ag.tllOpd(exp)) + '>';
-				case __TGL_TAG__:
-					return '#<application* (scope/offset: '
-								+ printExp(ag.tglScp(exp)) + '/'
-								+ printExp(ag.tglOfs(exp)) + ') @'
-								+ printExp(ag.tglOpd(exp)) + '>';
 				case __TPL_TAG__:
-					return '#<application* '
+					return '#<tail call '
 								+ printExp(ag.tplOpr(exp)) + ' @ '
 								+ printExp(ag.tplOpd(exp)) + '>';
+				case __TLL_TAG__:
+					return '#<local tail call (offset '
+								+ printExp(ag.tllOfs(exp)) + ') @ '
+								+ printExp(ag.tllOpd(exp)) + '>';				
+				case __TNL_TAG__:
+					return '#<non-local tail call (scope/offset: '
+								+ printExp(ag.tnlScp(exp)) + '/'
+								+ printExp(ag.tnlOfs(exp)) + ') @ '
+								+ printExp(ag.tnlOpd(exp)) + '>';
+				case __TGL_TAG__:
+					return '#<global tail call (offset: '
+								+ printExp(ag.tglOfs(exp)) + ') @'
+								+ printExp(ag.tglOpd(exp)) + '>';
 				case __STL_TAG__:
 					return '#<sequence tail (body: '
 								+ printExp(ag.stlExp(exp)) + ')>';
@@ -5920,10 +6072,6 @@ function SLIP(callbacks, size) {
 			report('too many global variables');
 		}
 
-		function maxScopeLvl() {
-			report('maximum scope level reached');
-		}
-
 		function undefinedVariable(exp) {
 			report('undefined variable: ' + printExp(exp));
 		}
@@ -5968,7 +6116,6 @@ function SLIP(callbacks, size) {
 			invalidLength: invalidLength,
 			invalidRange: invalidRange,
 			globalOverflow: globalOverflow,
-			maxScopeLvl: maxScopeLvl,
 			fatalMemory: fatalMemory,
 			link: link
 		}
@@ -6159,7 +6306,6 @@ function SLIP(callbacks, size) {
 		invalidParamCount: errors.invalidParamCount,
 		invalidArgument: errors.invalidArgument,
 		invalidOperator: errors.invalidOperator,
-		maxScopeLvl: errors.maxScopeLvl,
 		globalOverflow: errors.globalOverflow,
 		invalidLength: errors.invalidLength,
 		invalidRange: errors.invalidRange,
