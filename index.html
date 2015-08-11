@@ -1,162 +1,174 @@
 <!DOCTYPE html>
 <html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
 
-<head>
-<!-- META -->
-<meta charset="UTF-8">
-<title>Slip.js REPL</title>
-<!-- STYLE -->
-<style type="text/css">
-.textelement {
-	float:left;
-	display:inline;
-}
-.textstyle {
-	font-size: 16px;
-	font-weight: bold;
-	color: white;
-}
-.inputbox {
-	border: 0px solid black;
-	color: white;
-	font-family: "Courier New", Courier, monospace;
-	font-weight: bold;
-	background-color: black;
-	display:inline;
-	resize:none;
-	float:left;
-	width:100%;   
-}
-.input {
-	overflow: hidden;
-	margin-left: 18px;
-}
-.log {
-	color:purple;
-}
-.error {
-	color:red;
-}
-#terminal {
-	background-color: black;
-}
-body {
-	background-color: black;
-}
-</style>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-dark.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print">
+	<script src="lib/jquery.js"></script>
+	<script src="slip.js" async onload='init()'></script>
 
-<!-- JQUERY -->
-<script src="lib/jquery.js"></script>
+    <title>slip.js</title>
 
-<!-- INTERPRETER COMPONENTS -->
-<script src="slip.js" async onload='init()'></script>
+	<style type="text/css">
+		.textelement {
+			float:left;
+			display:inline;
+		}
+		.textstyle {
+			font-size: 16px;
+		}
+		.inputbox {
+			border: 0px solid black;
+			display:inline;
+			resize:none;
+			float:left;
+			width:100%;   
+		}
+		.input {
+			overflow: hidden;
+			margin-left: 18px;
+		}
+		.log {
+			color:purple;
+		}
+		.error {
+			color:red;
+		}
+	</style>
 
-</head>
-<body>
+  </head>
+  <body>
+
+    <header>
+      <div class="container">
+        <h1>slip.js</h1>
+        <h2>A performant Scheme interpreter written in asm.js</h2>
+
+        <section id="downloads">
+          <a href="https://github.com/noahvanes/slip.js/zipball/master" class="btn">Download as .zip</a>
+          <a href="https://github.com/noahvanes/slip.js/tarball/master" class="btn">Download as .tar.gz</a>
+          <a href="https://github.com/noahvanes/slip.js" class="btn btn-github"><span class="icon"></span>View on GitHub</a>
+        </section>
+      </div>
+    </header>
+
+    <div class="container">
+      <section id="main_content">
+        <h3>
+<a id="what-is-slipjs" class="anchor" href="#what-is-slipjs" aria-hidden="true"><span class="octicon octicon-link"></span></a>What is slip.js?</h3>
+
+<p>Slip.js is a handwritten <a href="http://asmjs.org/spec/latest">asm.js</a> implementation of <a href="http://soft.vub.ac.be/%7Etjdhondt/PLE/introduction.html">Slip</a>. The language was originally designed as a variant of Scheme and implemented in C by Prof. T. D'Hondt at the Vrije Universiteit Brussel. This version aims to bring that same language to the web while maintaining similar performance as the original native Slip. For this reason, the interpreter runs on top of asm.js, a very optimizable low-level subset of JavaScript. </p>
+
+<h3>
+<a id="try-it-now" class="anchor" href="#try-it-now" aria-hidden="true"><span class="octicon octicon-link"></span></a>Try it now!</h3>
 
 <div id="terminal" style="width:100%"> </div>
+		<script type="text/javascript">
 
-<script type="text/javascript">
+			/* --- I/O STUFF --- */
 
-	/* --- I/O STUFF --- */
+			var terminal = $('#terminal');
 
-	var terminal = $('#terminal');
-
-	function HTMLString(str) {
-		return str.replace(/</g, '&lt').replace(/>/g, '&gt');
-	}
-
-	function printOut(str, style) {
-		style = style || '';
-		str = HTMLString(str);
-		terminal.append('<code class="textelement textstyle '+style+'">'+str+'</code>');
-	}
-
-	function printLine(str, style) {
-		printOut(str, style);
-		terminal.append('<br>');
-	}
-
-	function clearTerminal() {
-		terminal.empty();
-	}
-
-	function scanBrackets(txt) {
-
-		var idx = 0;
-		var count = 0;
-		var len = txt.length;
-		var currentChar;
-
-		while(idx < len) {
-			currentChar = txt.charAt(idx++);
-			if (currentChar === '(')
-				++count;
-			else if (currentChar === ')')
-				--count;
-		}
-
-		return count;
-	}
-
-	const __INPUT_HTML__ = '<div id="currentBox" class="input"><textarea id="currentInput" class="inputbox textstyle" rows=1></textarea></div>';
-
-	function readExpression(clb) { 
-
-		terminal.append(__INPUT_HTML__);
-
-		var currentBox = $('#currentBox');
-		var currentInput = $('#currentInput');
-
-		currentInput.keypress(function(ev) {
-			if(ev.which === 13) {
-				var text = currentInput.val();
-				if(scanBrackets(text) || !text.trim().length) {				
-					var rows = parseInt(currentInput.attr('rows'));
-					currentInput.attr({rows: rows + 1});
-				} else {
-					currentBox.empty();
-					currentBox.removeAttr('id');
-					currentBox.append('<code class="textstyle">'+text+'</code>');
-					clb(text);
-				}
+			function HTMLString(str) {
+				return str.replace(/</g, '&lt').replace(/>/g, '&gt');
 			}
-		});
 
-		currentInput.focus();
-	}
+			function printOut(str, style) {
+				style = style || '';
+				str = HTMLString(str);
+				terminal.append('<code class="textelement textstyle '+style+'">'+str+'</code>');
+			}
 
-	function loadFile(url, clb, err) {
-		
-		$.ajax(url, {
-			datatype: 'text',
-			success: clb,
-			error: err
-		});
-	}
+			function printLine(str, style) {
+				printOut(str, style);
+				terminal.append('<br>');
+			}
 
-	/* --- START SLIP.JS REPL --- */
+			function clearTerminal() {
+				terminal.empty();
+			}
 
-	function init() {
+			function scanBrackets(txt) {
 
-		var slip = SLIP({
-			stdlib: window,
-			readExpression: readExpression,
-			load: loadFile,
-			print: printOut,
-			printline: printLine,
-			printerror: function(err) {
-				printLine(err, 'error');
-			},
-			printlog: function(log) {
-				printOut(log, 'log');
-			},
-			evalJS: eval
-		}, 25);
+				var idx = 0;
+				var count = 0;
+				var len = txt.length;
+				var currentChar;
 
-		slip.Slip_REPL();
-	}
+				while(idx < len) {
+					currentChar = txt.charAt(idx++);
+					if (currentChar === '(')
+						++count;
+					else if (currentChar === ')')
+						--count;
+				}
 
-</script>
-</body>
+				return count;
+			}
+
+			const __INPUT_HTML__ = '<div id="currentBox" class="input"><textarea id="currentInput" class="inputbox textstyle" rows=1></textarea></div>';
+
+			function readExpression(clb) { 
+
+				terminal.append(__INPUT_HTML__);
+
+				var currentBox = $('#currentBox');
+				var currentInput = $('#currentInput');
+
+				currentInput.keypress(function(ev) {
+					if(ev.which === 13) {
+						var text = currentInput.val();
+						if(scanBrackets(text) || !text.trim().length) {				
+							var rows = parseInt(currentInput.attr('rows'));
+							currentInput.attr({rows: rows + 1});
+						} else {
+							currentBox.empty();
+							currentBox.removeAttr('id');
+							currentBox.append('<code class="textstyle">'+text+'</code>');
+							clb(text);
+						}
+					}
+				});
+
+				currentInput.focus();
+			}
+
+			function loadFile(url, clb, err) {
+				
+				$.ajax(url, {
+					datatype: 'text',
+					success: clb,
+					error: err
+				});
+			}
+
+			/* --- START SLIP.JS REPL --- */
+
+			function init() {
+
+				var slip = SLIP({
+					stdlib: window,
+					readExpression: readExpression,
+					load: loadFile,
+					print: printOut,
+					printline: printLine,
+					printerror: function(err) {
+						printLine(err, 'error');
+					},
+					printlog: function(log) {
+						printOut(log, 'log');
+					},
+					evalJS: eval
+				}, 25);
+
+				slip.Slip_REPL();
+			}
+
+		</script>
+      </section>
+    </div>
+  </body>
 </html>
