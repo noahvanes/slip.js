@@ -4487,7 +4487,7 @@ function SLIP(callbacks, size) {
 				EXP = prcBdy(VAL)|0;
 				KON = numberVal(STK[4]|0)|0;
 				STKUNWIND(5);
-				goto E_eval;
+				goto E_eval();
 			}
 
 			E_prcApply {
@@ -4501,7 +4501,7 @@ function SLIP(callbacks, size) {
 				EXP = prcBdy(EXP)|0;
 				KON = numberVal(STK[3]|0)|0;
 				STKUNWIND(4);
-				goto E_eval;
+				goto E_eval();
 			}
 
 			/* ---- ARGUMENTS (PRZ) ---- */
@@ -4648,7 +4648,7 @@ function SLIP(callbacks, size) {
 					EXP = przBdy(VAL)|0;
 					KON = numberVal(STK[5]|0)|0;
 					STKUNWIND(6);
-					goto E_eval;
+					goto E_eval();
 				}
 
 				STKUNWIND(4);
@@ -4802,7 +4802,7 @@ function SLIP(callbacks, size) {
 				EXP = przBdy(VAL)|0;
 				KON = numberVal(STK[1]|0)|0;
 				STKUNWIND(2);
-				goto E_eval;
+				goto E_eval();
 			}
 
 			E_c_przVarArgs {
@@ -4831,7 +4831,7 @@ function SLIP(callbacks, size) {
 				EXP = przBdy(EXP)|0;
 				KON = numberVal(STK[3]|0)|0;
 				STKUNWIND(4);
-				goto E_eval;
+				goto E_eval();
 			}
 
 			E_przApply {
@@ -4845,7 +4845,7 @@ function SLIP(callbacks, size) {
 				EXP = przBdy(EXP)|0;
 				KON = numberVal(STK[3]|0)|0;
 				STKUNWIND(4);
-				goto E_eval;
+				goto E_eval();
 			}
 
 			/* ---- RETURN ---- */

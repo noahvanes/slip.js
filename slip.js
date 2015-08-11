@@ -4121,7 +4121,7 @@ function SLIP(callbacks, size) {
             EXP = prcBdy(VAL) | 0;
             KON = numberVal(MEM32[STKTOP + 16 >> 2] | 0) | 0;
             STKTOP = STKTOP + 20 | 0;
-            return 89;
+            return _E_eval() | 0;
         }
         function _E_prcApply() {
             IDX = numberVal(MEM32[STKTOP >> 2] | 0) | 0;
@@ -4133,7 +4133,7 @@ function SLIP(callbacks, size) {
             EXP = prcBdy(EXP) | 0;
             KON = numberVal(MEM32[STKTOP + 12 >> 2] | 0) | 0;
             STKTOP = STKTOP + 16 | 0;
-            return 89;
+            return _E_eval() | 0;
         }
         function _E_przArgs() {
             for (IDX = 0; (IDX | 0) < (LEN | 0);) {
@@ -4287,7 +4287,7 @@ function SLIP(callbacks, size) {
                 EXP = przBdy(VAL) | 0;
                 KON = numberVal(MEM32[STKTOP + 20 >> 2] | 0) | 0;
                 STKTOP = STKTOP + 24 | 0;
-                return 89;
+                return _E_eval() | 0;
             }
             STKTOP = STKTOP + 16 | 0;
             LEN = IDX + 1 | 0;
@@ -4439,7 +4439,7 @@ function SLIP(callbacks, size) {
             EXP = przBdy(VAL) | 0;
             KON = numberVal(MEM32[STKTOP + 4 >> 2] | 0) | 0;
             STKTOP = STKTOP + 8 | 0;
-            return 89;
+            return _E_eval() | 0;
         }
         function _E_c_przVarArgs() {
             claim();
@@ -4464,7 +4464,7 @@ function SLIP(callbacks, size) {
             EXP = przBdy(EXP) | 0;
             KON = numberVal(MEM32[STKTOP + 12 >> 2] | 0) | 0;
             STKTOP = STKTOP + 16 | 0;
-            return 89;
+            return _E_eval() | 0;
         }
         function _E_przApply() {
             IDX = numberVal(MEM32[STKTOP >> 2] | 0) | 0;
@@ -4476,7 +4476,7 @@ function SLIP(callbacks, size) {
             EXP = przBdy(EXP) | 0;
             KON = numberVal(MEM32[STKTOP + 12 >> 2] | 0) | 0;
             STKTOP = STKTOP + 16 | 0;
-            return 89;
+            return _E_eval() | 0;
         }
         function _E_c_return() {
             FRM = MEM32[STKTOP >> 2] | 0;
