@@ -510,6 +510,11 @@ function SLIP(callbacks, size) {
 				return #{
 					(STKTOP = (STKTOP + $inc)|0)
 				}
+			}			
+			case {_($n:ident)} => {
+				return #{
+					(STKTOP = (STKTOP + ($n << 2))|0)
+				}
 			}
 		}
 
@@ -523,7 +528,6 @@ function SLIP(callbacks, size) {
 				}
 			}
 			case {_($n:ident)} => {
-				var nbr = unwrapSyntax(#{$n});
 				return #{
 					(STKTOP = (STKTOP - ($n << 2))|0)
 				}
@@ -1586,10 +1590,8 @@ function SLIP(callbacks, size) {
 
 			N_add {
 
-				for(TMP=0,IDX=1;
-					(IDX|0)<=(LEN|0);
-					IDX=(IDX+1)|0) {
-					EXP = vectorRef(PAR, IDX)|0;
+				for(TMP=0,IDX=0;(IDX|0)<(LEN|0);IDX=(IDX+1)|0) {
+					EXP = STK[IDX]|0;
 					switch(tag(EXP)|0) {
 						case __NBR_TAG__:
 							TMP = (TMP + (numberVal(EXP)|0))|0;
@@ -1604,6 +1606,7 @@ function SLIP(callbacks, size) {
 				}
 
 				VAL = makeNumber(TMP)|0;
+				STKUNWIND(LEN);
 				goto KON|0;
 			}
 
@@ -1614,9 +1617,10 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				VAL = vectorRef(PAR, 1)|0;
+				VAL = STK[0]|0;
 
 				if((LEN|0) == 1) {
+					STKUNWIND(1);
 					switch(tag(VAL)|0) {
 						case __NBR_TAG__:
 							VAL = makeNumber(-(numberVal(VAL)|0)|0)|0;
@@ -1631,13 +1635,11 @@ function SLIP(callbacks, size) {
 					}
 				}
 
-				IDX = 1;
 				switch(tag(VAL)|0) {
 					case __NBR_TAG__:
 						TMP = numberVal(VAL)|0;
-						while((IDX|0)<(LEN|0)) {
-							IDX = (IDX+1)|0;
-							EXP = vectorRef(PAR, IDX)|0;
+						for(IDX=1;(IDX|0)<(LEN|0);IDX=(IDX+1)|0) {
+							EXP = STK[IDX]|0;
 							switch(tag(EXP)|0) {
 								case __NBR_TAG__:
 									TMP = (TMP - (numberVal(EXP)|0))|0;
@@ -1651,11 +1653,12 @@ function SLIP(callbacks, size) {
 							}
 						}
 						VAL = makeNumber(TMP)|0;
+						STKUNWIND(LEN);
 						goto KON|0;
 
 					case __FLT_TAG__:
 						FLT = fround(floatNumber(VAL));
-						goto N_substractFloats;
+						goto N_substractFloats();
 				}
 
 				err_invalidArgument(VAL|0);
@@ -1664,13 +1667,11 @@ function SLIP(callbacks, size) {
 
 			N_multiply {
 
-				TMP = 1; IDX = 0; 
-				while((IDX|0)<(LEN|0)) {
-					IDX = (IDX + 1)|0;
-					EXP = vectorRef(PAR, IDX)|0;
+				for(TMP=1,IDX=0;(IDX|0)<(LEN|0);IDX=(IDX+1)|0) {
+					EXP = STK[IDX]|0;
 					switch(tag(EXP)|0) {
 						case __NBR_TAG__:
-							TMP = imul(TMP, numberVal(EXP)|0)|0;
+							TMP = imul(TMP,numberVal(EXP)|0)|0;
 							break;
 						case __FLT_TAG__:
 							FLT = fround(fround(TMP|0)*fround(floatNumber(EXP)));
@@ -1682,6 +1683,7 @@ function SLIP(callbacks, size) {
 				}
 
 				VAL = makeNumber(TMP)|0;
+				STKUNWIND(LEN);
 				goto KON|0;
 			}
 
@@ -1693,9 +1695,10 @@ function SLIP(callbacks, size) {
 				}
 
 				claim();
-				VAL = vectorRef(PAR, 1)|0;
+				VAL = STK[0]|0;
 
 				if((LEN|0) == 1) {
+					STKUNWIND(1);
 					switch(tag(VAL)|0) {
 						case __NBR_TAG__:
 							VAL = makeFloat(fround(fround(1.0)/fround(numberVal(VAL)|0)))|0;
@@ -1721,8 +1724,8 @@ function SLIP(callbacks, size) {
 						goto error;
 				}
 
-				for(IDX=2;(IDX|0)<=(LEN|0);IDX=(IDX+1)|0) {
-					EXP = vectorRef(PAR, IDX)|0;
+				for(IDX=1;(IDX|0)<(LEN|0);IDX=(IDX+1)|0) {
+					EXP = STK[IDX]|0;
 					switch(tag(EXP)|0) {
 						case __NBR_TAG__:
 							FLT = fround(FLT/fround(numberVal(EXP)|0));
@@ -1737,6 +1740,7 @@ function SLIP(callbacks, size) {
 				}
 
 				VAL = makeFloat(FLT)|0;
+				STKUNWIND(LEN);
 				goto KON|0;
 			}
 
@@ -1748,8 +1752,8 @@ function SLIP(callbacks, size) {
 				}
 
 				claim();
-				VAL = makePair(vectorRef(PAR, 1)|0,
-							   vectorRef(PAR, 2)|0)|0;
+				VAL = makePair(STK[0]|0,STK[1]|0)|0;
+				STKUNWIND(2);
 				goto KON|0;
 			}
 
@@ -1760,7 +1764,8 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				ARG = vectorRef(PAR, 1)|0;
+				ARG = STK[0]|0;
+				STKUNWIND(1);
 				if(isPair(ARG)|0) {
 					VAL = pairCar(ARG)|0;
 					goto KON|0;
@@ -1777,7 +1782,8 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				ARG = vectorRef(PAR, 1)|0;
+				ARG = STK[0]|0;
+				STKUNWIND(1);
 				if(isPair(ARG)|0) {
 					VAL = pairCdr(ARG)|0;
 					goto KON|0;
@@ -1794,8 +1800,9 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				ARG = vectorRef(PAR, 1)|0;
-				VAL = vectorRef(PAR, 2)|0;
+				ARG = STK[0]|0;
+				VAL = STK[1]|0;
+				STKUNWIND(2);
 
 				if(isPair(ARG)|0) {
 					pairSetCar(ARG, VAL);
@@ -1813,8 +1820,9 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				ARG = vectorRef(PAR, 1)|0;
-				VAL = vectorRef(PAR, 2)|0;
+				ARG = STK[0]|0;
+				VAL = STK[1]|0;
+				STKUNWIND(2);
 
 				if(isPair(ARG)|0) {
 					pairSetCdr(ARG, VAL);
@@ -1828,8 +1836,10 @@ function SLIP(callbacks, size) {
 			N_list {
 
 				claimSiz(imul(3,LEN)|0);
-				for(VAL = __NULL__; LEN; LEN = (LEN - 1)|0)
-					VAL = makePair(vectorRef(PAR, LEN)|0, VAL)|0;
+				VAL = __NULL__;
+				for(IDX=(LEN-1)|0;IDX;IDX=(IDX-1)|0)
+					VAL = makePair(STK[IDX]|0, VAL)|0;
+				STKUNWIND(LEN);
 				goto KON|0;
 			}
 
@@ -1840,8 +1850,9 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				ARG = vectorRef(PAR, 1)|0;
-				EXP = vectorRef(PAR, 2)|0;
+				ARG = STK[0]|0;
+				EXP = STK[1]|0;
+				STKUNWIND(2);
 
 				switch(tag(ARG)|0) {
 
@@ -1885,8 +1896,9 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				ARG = vectorRef(PAR, 1)|0;
-				EXP = vectorRef(PAR, 2)|0;
+				ARG = STK[0]|0;
+				EXP = STK[1]|0;
+				STKUNWIND(2);
 
 				switch(tag(ARG)|0) {
 
@@ -1930,8 +1942,9 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				ARG = vectorRef(PAR, 1)|0;
-				EXP = vectorRef(PAR, 2)|0;
+				ARG = STK[0]|0;
+				EXP = STK[1]|0;
+				STKUNWIND(2);
 
 				switch(tag(ARG)|0) {
 
@@ -1975,8 +1988,9 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				ARG = vectorRef(PAR, 1)|0;
-				EXP = vectorRef(PAR, 2)|0;
+				ARG = STK[0]|0;
+				EXP = STK[1]|0;
+				STKUNWIND(2);
 
 				switch(tag(ARG)|0) {
 
@@ -2020,8 +2034,9 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				ARG = vectorRef(PAR, 1)|0;
-				EXP = vectorRef(PAR, 2)|0;
+				ARG = STK[0]|0;
+				EXP = STK[1]|0;
+				STKUNWIND(2);
 
 				switch(tag(ARG)|0) {
 
@@ -2064,8 +2079,9 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				PAT = vectorRef(PAR, 1)|0;
-				LST = vectorRef(PAR, 2)|0;
+				PAT = STK[0]|0;
+				LST = STK[1]|0;
+				STKUNWIND(2);
 
 				while(isPair(LST)|0) {
 					VAL = pairCar(LST)|0;
@@ -2090,8 +2106,9 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				VAL = vectorRef(PAR, 1)|0;
-				LST = vectorRef(PAR, 2)|0;
+				VAL = STK[0]|0;
+				LST = STK[1]|0;
+				STKUNWIND(2);
 
 				if((LST|0) == __NULL__) {
 					VAL = __NULL__;
@@ -2132,8 +2149,8 @@ function SLIP(callbacks, size) {
 				}
 
 				claim();
-				EXP = vectorRef(PAR, 1)|0;
-				STKALLOC(3);
+				EXP = STK[0]|0;
+				STKALLOC(2);
 				STK[2] = makeNumber(KON)|0;
 				STK[1] = ENV;
 				STK[0] = FRM;
@@ -2149,8 +2166,9 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				VAL = vectorRef(PAR, 1)|0;
-				ARG = vectorRef(PAR, 2)|0;
+				VAL = STK[0]|0;
+				ARG = STK[1]|0;
+				STKUNWIND(2);
 				
 				goto N_apply();
 			}
@@ -2162,8 +2180,9 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				printLog(vectorRef(PAR, 1)|0);
+				printLog(STK[0]|0);
 				VAL = __VOID__;
+				STKUNWIND(1);
 				goto KON|0;
 			}
 
@@ -2171,6 +2190,7 @@ function SLIP(callbacks, size) {
 
 				printNewline();
 				VAL = __VOID__;
+				STKUNWIND(LEN);
 				goto KON|0;
 			}
 
@@ -2181,7 +2201,8 @@ function SLIP(callbacks, size) {
 						promptUserInput();
 						halt;
 					case 1:
-						EXP = vectorRef(PAR, 1)|0;
+						EXP = STK[0]|0;
+						STKUNWIND(1);
 						loadFile(EXP|0);
 						halt;
 				}
@@ -2196,7 +2217,8 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				VAL = ((tag(vectorRef(PAR,1)|0)|0) == __PAI_TAG__? __TRUE__ : __FALSE__ );
+				VAL = ((tag(STK[0]|0)|0) == __PAI_TAG__? __TRUE__ : __FALSE__ );
+				STKUNWIND(1);
 				goto KON|0;
 			}
 
@@ -2207,7 +2229,8 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				VAL = ((tag(vectorRef(PAR,1)|0)|0) == __NUL_TAG__ ? __TRUE__ : __FALSE__ );
+				VAL = ((tag(STK[0]|0)|0) == __NUL_TAG__ ? __TRUE__ : __FALSE__ );
+				STKUNWIND(1);
 				goto KON|0;
 			}
 
@@ -2218,7 +2241,8 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				VAL = ((tag(vectorRef(PAR,1)|0)|0) == __SYM_TAG__ ? __TRUE__ : __FALSE__ );
+				VAL = ((tag(STK[0]|0)|0) == __SYM_TAG__ ? __TRUE__ : __FALSE__ );
+				STKUNWIND(1);
 				goto KON|0;
 			}
 
@@ -2229,7 +2253,8 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				VAL = ((tag(vectorRef(PAR,1)|0)|0) == __VCT_TAG__ ? __TRUE__ : __FALSE__ );
+				VAL = ((tag(STK[0]|0)|0) == __VCT_TAG__ ? __TRUE__ : __FALSE__ );
+				STKUNWIND(1);
 				goto KON|0;
 			}
 
@@ -2240,7 +2265,8 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				VAL = ((tag(vectorRef(PAR,1)|0)|0) == __STR_TAG__ ? __TRUE__ : __FALSE__ );
+				VAL = ((tag(STK[0]|0)|0) == __STR_TAG__ ? __TRUE__ : __FALSE__ );
+				STKUNWIND(1);
 				goto KON|0;
 			}
 
@@ -2251,7 +2277,8 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				ARG = vectorRef(PAR, 1)|0;
+				ARG = STK[0]|0;
+				STKUNWIND(1);
 
 				if(!(isNumber(ARG)|0)) {
 					err_invalidArgument(ARG|0);
@@ -2282,8 +2309,9 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				ARG = vectorRef(PAR, 1)|0;
-				EXP = vectorRef(PAR, 2)|0;
+				ARG = STK[0]|0;
+				EXP = STK[1]|0;
+				STKUNWIND(2);
 
 				if (!(isVector(ARG)|0)) {
 					err_invalidArgument(ARG|0);
@@ -2313,9 +2341,10 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				ARG = vectorRef(PAR, 1)|0;
-				EXP = vectorRef(PAR, 2)|0;
-				VAL = vectorRef(PAR, 3)|0;
+				ARG = STK[0]|0;
+				EXP = STK[1]|0;
+				VAL = STK[2]|0;
+				STKUNWIND(3);
 
 				if (!(isVector(ARG)|0)) {
 					err_invalidArgument(ARG|0);
@@ -2345,7 +2374,8 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				ARG = vectorRef(PAR,1)|0;
+				ARG = STK[0]|0;
+				STKUNWIND(1);
 				if(!(isVector(ARG)|0)) {
 					err_invalidArgument(ARG|0);
 					goto error;
@@ -2358,7 +2388,14 @@ function SLIP(callbacks, size) {
 
 			N_vector {
 
-				VAL = PAR;
+				claimSiz(LEN);
+				VAL = makeVector(LEN)|0;
+				for(IDX=0;(IDX|0)<(LEN|0);IDX=TMP) {
+					EXP = STK[IDX]|0;
+					TMP = (IDX+1)|0;
+					vectorSet(VAL,TMP,EXP);
+				}
+				STKUNWIND(LEN);
 				goto KON|0;
 			}
 
@@ -2392,7 +2429,8 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				VAL = ((vectorRef(PAR,1)|0)==(vectorRef(PAR,2)|0)? __TRUE__:__FALSE__);
+				VAL = ((STK[0]|0)==(STK[1]|0)? __TRUE__:__FALSE__);
+				STKUNWIND(2);
 				goto KON|0;
 			}
 
@@ -2403,8 +2441,10 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				EXP = vectorRef(PAR, 1)|0;
-				ARG = vectorRef(PAR, 2)|0;
+				EXP = STK[0]|0;
+				ARG = STK[1]|0;
+				STKUNWIND(2);
+
 				goto N_compare();
 			}
 
@@ -2412,12 +2452,14 @@ function SLIP(callbacks, size) {
 
 				reclaim();
 				VAL = makeNumber(available()|0)|0;
+				STKUNWIND(LEN);
 				goto KON|0;
 			}
 
 			N_available {
 
 				VAL = makeNumber(available()|0)|0;
+				STKUNWIND(LEN);
 				goto KON|0;
 			}
 
@@ -2428,7 +2470,8 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				VAL = vectorRef(PAR, 1)|0;
+				VAL = STK[0]|0;
+				STKUNWIND(1);
 
 				switch(tag(VAL)|0) {
 					case __PRC_TAG__:
@@ -2452,8 +2495,9 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				ARG = vectorRef(PAR, 1)|0;
-				EXP = vectorRef(PAR, 2)|0;
+				ARG = STK[0]|0;
+				EXP = STK[1]|0;
+				STKUNWIND(2);
 
 				if(!(isString(ARG)|0)) {
 					err_invalidArgument(ARG|0);
@@ -2483,9 +2527,10 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				ARG = vectorRef(PAR, 1)|0;
-				EXP = vectorRef(PAR, 2)|0;
-				VAL = vectorRef(PAR, 3)|0;
+				ARG = STK[0]|0;
+				EXP = STK[1]|0;
+				VAL = STK[2]|0;
+				STKUNWIND(3);
 
 				if (!(isString(ARG)|0)) {
 					err_invalidArgument(ARG|0);
@@ -2520,7 +2565,8 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				ARG = vectorRef(PAR,1)|0;
+				ARG = STK[0]|0;
+				STKUNWIND(1);
 				if(!(isString(ARG)|0)) {
 					err_invalidArgument(ARG|0);
 					goto error;
@@ -2532,7 +2578,7 @@ function SLIP(callbacks, size) {
 
 			N_random {
 
-				if(LEN|0) {
+				if(LEN) {
 					err_invalidParamCount();
 					goto error;
 				}
@@ -2549,14 +2595,14 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				ARG = vectorRef(PAR,1)|0;
+				ARG = STK[0]|0;
 				if(!(isString(ARG)|0)) {
 					err_invalidArgument(ARG|0);
 					goto error;
 				}
 
 				claim();
-				STKALLOC(3);
+				STKALLOC(2);
 				STK[2] = makeNumber(KON)|0;
 				STK[1] = ENV;
 				STK[0] = FRM;
@@ -2572,8 +2618,9 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				ARG = vectorRef(PAR, 1)|0;
-				EXP = vectorRef(PAR, 2)|0;
+				ARG = STK[0]|0;
+				EXP = STK[1]|0;
+				STKUNWIND(2);
 
 				switch(tag(ARG)|0) {
 
@@ -2621,8 +2668,9 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				ARG = vectorRef(PAR, 1)|0;
-				EXP = vectorRef(PAR, 2)|0;
+				ARG = STK[0]|0;
+				EXP = STK[1]|0;
+				STKUNWIND(2);
 
 				switch(tag(ARG)|0) {
 
@@ -2672,6 +2720,7 @@ function SLIP(callbacks, size) {
 				}
 
 				ARG = vectorRef(PAR, 1)|0;
+				STKUNWIND(1);
 				printError(ARG|0);
 				goto error;
 			}
@@ -2684,7 +2733,8 @@ function SLIP(callbacks, size) {
 				}
 
 				LEN = 0;
-				ARG = vectorRef(PAR, 1)|0;
+				ARG = STK[0]|0;
+				STKUNWIND(1);
 				while(isPair(ARG)|0) {
 					ARG = pairCdr(ARG)|0;
 					LEN = (LEN + 1)|0;
@@ -2706,9 +2756,10 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
+				ARG = STK[0]|0;
+				STKUNWIND(1);
 				claim();
-				ARG = vectorRef(PAR, 1)|0;
-				
+
 				switch(tag(ARG)|0) {
 					case __NBR_TAG__:
 						REA = +sin(+(numberVal(ARG)|0));
@@ -3879,7 +3930,7 @@ function SLIP(callbacks, size) {
 						STK[2] = makeNumber(KON)|0;
 						STK[1] = ENV;
 						STK[0] = FRM;
-						FRM = (SIZ? (fillVector(SIZ, __NULL__)|0):__EMPTY_VEC__)
+						FRM = fillVector(SIZ, __NULL__)|0;
 						ENV = przEnv(VAL)|0;
 						EXP = przBdy(VAL)|0;
 						KON = E_c_return;
@@ -3949,6 +4000,8 @@ function SLIP(callbacks, size) {
 						if(SIZ) {
 							claimSiz(SIZ);
 							FRM = fillVector(SIZ, __VOID__)|0;
+						} else {
+							FRM = __EMPTY_VEC__;
 						}
 						ENV = prcEnv(VAL)|0;
 						EXP = prcBdy(VAL)|0;
@@ -3959,11 +4012,9 @@ function SLIP(callbacks, size) {
 							err_invalidParamCount();
 							goto error;
 						}
-						SIZ = numberVal(przFrmSiz(VAL)|0)|0;						
-						if(SIZ) {
-							claimSiz(SIZ);
-							FRM = fillVector(SIZ, __VOID__)|0;
-						}
+						SIZ = numberVal(przFrmSiz(VAL)|0)|0;
+						claimSiz(SIZ);
+						FRM = fillVector(SIZ, __NULL__)|0;
 						ENV = przEnv(VAL)|0;
 						EXP = przBdy(VAL)|0;
 						goto E_eval;
@@ -4067,7 +4118,7 @@ function SLIP(callbacks, size) {
 					case __NAT_TAG__:
 						LEN = vectorLength(ARG)|0;
 						claimSiz(LEN);
-						PAR = fillVector(LEN, __VOID__)|0;
+						STKALLOC(LEN);
 						goto E_nativeArgs();
 
 					case __CNT_TAG__:
@@ -4159,7 +4210,7 @@ function SLIP(callbacks, size) {
 					case __NAT_TAG__:
 						LEN = vectorLength(ARG)|0;
 						claimSiz(LEN);
-						PAR = fillVector(LEN, __VOID__)|0;
+						STKALLOC(LEN);
 						goto E_nativeArgs();
 
 					case __CNT_TAG__:
@@ -4240,10 +4291,10 @@ function SLIP(callbacks, size) {
 
 			E_nativeArgs {
 
-				for(IDX=0;(IDX|0)<(LEN|0);) {
+				for(IDX=0;(IDX|0)<(LEN|0);IDX=TMP) {
 
-					IDX = (IDX + 1)|0;
-					EXP = vectorRef(ARG, IDX)|0;
+					TMP = (IDX + 1)|0;
+					EXP = vectorRef(ARG,TMP)|0;
 
 					switch(tag(EXP)|0) {
 						case __NUL_TAG__: case __VOI_TAG__:
@@ -4291,7 +4342,7 @@ function SLIP(callbacks, size) {
 							}
 							goto E_eval();
 					}
-					vectorSet(PAR, IDX, EXP);
+					STK[IDX] = EXP;
 				}
 
 				goto nativePtr(VAL)|0;
@@ -4303,12 +4354,12 @@ function SLIP(callbacks, size) {
 				ARG = STK[1]|0;
 				PAR = STK[2]|0;
 				LEN = vectorLength(ARG)|0;
-				vectorSet(PAR, IDX, VAL);
+				STK[IDX+5] = VAL;
 
-				while((IDX|0)<(LEN|0)) {
+				for(IDX=(IDX+1)|0;(IDX|0)<(LEN|0);IDX=TMP) {
 
-					IDX = (IDX + 1)|0;
-					EXP = vectorRef(ARG, IDX)|0;
+					TMP = (IDX+1)|0;
+					EXP = vectorRef(ARG, TMP)|0;
 
 					switch(tag(EXP)|0) {
 						case __NUL_TAG__: case __VOI_TAG__:
@@ -4346,7 +4397,7 @@ function SLIP(callbacks, size) {
 							}
 							goto E_eval();
 					}
-					vectorSet(PAR, IDX, EXP);
+					STK[IDX+5] = EXP;
 				}
 				
 				VAL = STK[3]|0;
@@ -4359,7 +4410,7 @@ function SLIP(callbacks, size) {
 
 				PAR = STK[0]|0;
 				LEN = vectorLength(PAR)|0;
-				vectorSet(PAR, LEN, VAL);
+				STK[LEN+3] = VAL;
 				VAL = STK[1]|0;
 				KON = numberVal(STK[2]|0)|0;
 				STKUNWIND(3);
@@ -4866,9 +4917,8 @@ function SLIP(callbacks, size) {
 
 			N_addFloats {
 
-				while((IDX|0)<(LEN|0)) {
-					IDX=(IDX+1)|0;
-					EXP = vectorRef(PAR, IDX)|0;
+				for(IDX=(IDX+1)|0;(IDX|0)<(LEN|0);IDX=(IDX+1)|0) {
+					EXP = STK[IDX]|0;
 					switch(tag(EXP)|0) {
 						case __NBR_TAG__:
 							FLT = fround(FLT + fround(numberVal(EXP)|0));
@@ -4883,14 +4933,14 @@ function SLIP(callbacks, size) {
 				}
 				claim();
 				VAL = makeFloat(FLT)|0;
+				STKUNWIND(LEN);
 				goto KON|0;
 			}
 
 	 		N_substractFloats {
 
-	 			while((IDX|0)<(LEN|0)) {
-	 				IDX = (IDX + 1)|0;
-	 				EXP = vectorRef(PAR, IDX)|0;
+				for(IDX=(IDX+1)|0;(IDX|0)<(LEN|0);IDX=(IDX+1)|0) {
+					EXP = STK[IDX]|0;
 	 				switch(tag(EXP)|0) {
 	 					case __NBR_TAG__:
 	 						FLT = fround(FLT - fround(numberVal(EXP)|0));
@@ -4905,14 +4955,14 @@ function SLIP(callbacks, size) {
 	 			}
 	 			claim();
 	 			VAL = makeFloat(FLT)|0;
+				STKUNWIND(LEN);
 	 			goto KON|0;
 	 		}
 
 	 		N_multiplyFloats {
 
-				while((IDX|0) < (LEN|0)) {
-					IDX = (IDX + 1)|0;
-					EXP = vectorRef(PAR, IDX)|0;
+				for(IDX=(IDX+1)|0;(IDX|0)<(LEN|0);IDX=(IDX+1)|0) {
+					EXP = STK[IDX]|0;
 					switch(tag(EXP)|0) {
 						case __NBR_TAG__:
 							FLT = fround(FLT * fround(numberVal(EXP)|0));
@@ -4927,6 +4977,7 @@ function SLIP(callbacks, size) {
 				}
 				claim();
 				VAL = makeFloat(FLT)|0;
+				STKUNWIND(1);
 				goto KON|0;
 			}
 
@@ -5019,11 +5070,11 @@ function SLIP(callbacks, size) {
 							goto error;
 						}
 						claimSiz(LEN);
-						PAR = makeVector(LEN)|0;
-						for(IDX=1;(IDX|0)<=(LEN|0);IDX=(IDX+1)|0) {
+						STKALLOC(LEN);
+						for(IDX=0;(IDX|0)<(LEN|0);IDX=(IDX+1)|0) {
 							TMP = pairCar(ARG)|0;
 							ARG = pairCdr(ARG)|0;
-							vectorSet(PAR, IDX, TMP);
+							STK[IDX] = TMP;
 						}
 						goto nativePtr(VAL)|0;
 				
