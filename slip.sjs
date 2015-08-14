@@ -237,6 +237,7 @@ function SLIP(callbacks, size) {
 
 		//other
 		var __EMPTY_VEC__ = 0;
+		var __GC_COUNT__ = 0;
 
 		/* -- FUNCTIONS -- */
 
@@ -1557,8 +1558,8 @@ function SLIP(callbacks, size) {
 			SYM = STK[12]|0;
 			__EMPTY_VEC__ = STK[13]|0;
 			STKUNWIND(14);
-
 			loadSymbols();
+			__GC_COUNT__ = (__GC_COUNT__+1)|0;
 		}
 
 // **********************************************************************
@@ -5230,6 +5231,7 @@ function SLIP(callbacks, size) {
 			c3_repl {
 
 				printOutput(VAL|0);
+				printOutput(makeNumber(__GC_COUNT__)|0);
 				goto REPL;
 			}
 

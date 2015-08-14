@@ -179,6 +179,7 @@ function SLIP(callbacks, size) {
         random = foreign$2.random;
         //other
         var __EMPTY_VEC__ = 0;
+        var __GC_COUNT__ = 0;
         function available() {
             return STKTOP - MEMTOP | 0;
         }
@@ -1750,6 +1751,7 @@ function SLIP(callbacks, size) {
             __EMPTY_VEC__ = MEM32[STKTOP + 52 >> 2] | 0;
             STKTOP = STKTOP + 56 | 0;
             loadSymbols();
+            __GC_COUNT__ = __GC_COUNT__ + 1 | 0;
         }
         function _N_add() {
             for (TMP = 0, IDX = 1; (IDX | 0) <= (LEN | 0); IDX = IDX + 1 | 0) {
@@ -4792,6 +4794,7 @@ function SLIP(callbacks, size) {
         }
         function _c3_repl() {
             printOutput(VAL | 0);
+            printOutput(makeNumber(__GC_COUNT__) | 0);
             return 164;
         }
         function _error() {

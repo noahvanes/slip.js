@@ -49,6 +49,6 @@ var slip = SLIP({
 	printline: print,
 	printerror: print,
 	printlog: putstr
-}, 30);
+}, 25);
 
 slip.Slip_REPL();
