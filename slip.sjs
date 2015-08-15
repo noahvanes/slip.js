@@ -4317,27 +4317,22 @@ function SLIP(callbacks, size) {
 						case __NLC_TAG__:
 							lookupNlc EXP => EXP
 							break;
-						case __LMB_TAG__:
-							EXP = capturePrc(EXP);
-							break;
-						case __LMZ_TAG__:
-							EXP = capturePrz(EXP);
-							break;				
 						default:
-							claim();
-							if((IDX|0) == (LEN|0)) { //last argument
+							if((TMP|0) == (LEN|0)) { //last argument
+								STK[IDX] = __VOID__; //for GC
 								STKALLOC(3);
 								STK[2] = makeNumber(KON)|0;
 								STK[1] = VAL;
-								STK[0] = PAR;
+								STK[0] = makeNumber(TMP)|0;
 								KON = E_applyNative;
 							} else {
-								STKALLOC(5);								
-								STK[4] = makeNumber(KON)|0;
-								STK[3] = VAL;
-								STK[2] = PAR;
-								STK[1] = ARG;
-								STK[0] = makeNumber(IDX)|0;
+								for(;(IDX|0)<(LEN|0);IDX=(IDX+1)|0)
+									STK[IDX] = __VOID__;
+								STKALLOC(4);								
+								STK[3] = makeNumber(KON)|0;
+								STK[2] = VAL;
+								STK[1] = makeNumber(TMP)|0;
+								STK[0] = ARG;
 								KON = E_c_nativeArgs;
 							}
 							goto E_eval();
@@ -4350,15 +4345,14 @@ function SLIP(callbacks, size) {
 
 			E_c_nativeArgs {
 
-				IDX = numberVal(STK[0]|0)|0;
-				ARG = STK[1]|0;
-				PAR = STK[2]|0;
+				ARG = STK[0]|0;
+				IDX = numberVal(STK[1]|0)|0;
 				LEN = vectorLength(ARG)|0;
-				STK[IDX+5] = VAL;
+				STK[IDX+3] = VAL;
 
-				for(IDX=(IDX+1)|0;(IDX|0)<(LEN|0);IDX=TMP) {
+				for(;(IDX|0)<(LEN|0);IDX=TMP) {
 
-					TMP = (IDX+1)|0;
+					TMP = (IDX + 1)|0;
 					EXP = vectorRef(ARG, TMP)|0;
 
 					switch(tag(EXP)|0) {
@@ -4389,28 +4383,28 @@ function SLIP(callbacks, size) {
 							EXP = capturePrz(EXP);
 							break;				
 						default:
-							if((IDX|0) == (LEN|0)) { //last argument
+							if((TMP|0) == (LEN|0)) { //last argument
+								STKUNWIND(1);
+								STK[0] = makeNumber(TMP)|0;
 								KON = E_applyNative;
-								STKUNWIND(2);
 							} else {
-								STK[0] = makeNumber(IDX)|0;
+								STK[1] = makeNumber(TMP)|0;
 							}
 							goto E_eval();
 					}
-					STK[IDX+5] = EXP;
+					STK[IDX+4] = EXP;
 				}
 				
-				VAL = STK[3]|0;
-				KON = numberVal(STK[4]|0)|0;
-				STKUNWIND(5);
+				VAL = STK[2]|0;
+				KON = numberVal(STK[3]|0)|0;
+				STKUNWIND(4);
 				goto nativePtr(VAL)|0;
 			}
 
 			E_applyNative {
 
-				PAR = STK[0]|0;
-				LEN = vectorLength(PAR)|0;
-				STK[LEN+3] = VAL;
+				LEN = numberVal(STK[0]|0)|0;
+				STK[LEN+2] = VAL;
 				VAL = STK[1]|0;
 				KON = numberVal(STK[2]|0)|0;
 				STKUNWIND(3);
@@ -5282,7 +5276,6 @@ function SLIP(callbacks, size) {
 			c3_repl {
 
 				printOutput(VAL|0);
-				printOutput(makeNumber(__GC_COUNT__)|0);
 				goto REPL;
 			}
 

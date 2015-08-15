@@ -3944,29 +3944,26 @@ function SLIP(callbacks, size) {
                 case 15:
                     EXP = vectorRef(vectorRef(ENV, nlcScp(EXP) | 0) | 0, nlcOfs(EXP) | 0) | 0;
                     break;
-                case 18:
-                    EXP = (DCT = extendEnv() | 0, makePrc(lmbArgc(EXP) | 0, lmbFrmSiz(EXP) | 0, lmbBdy(EXP) | 0, DCT) | 0);
-                    break;
-                case 34:
-                    EXP = (DCT = extendEnv() | 0, makePrz(lmzArgc(EXP) | 0, lmzFrmSiz(EXP) | 0, lmzBdy(EXP) | 0, DCT) | 0);
-                    break;
                 default:
-                    claim();
-                    if ((IDX | 0) == (LEN | 0)) {
-                        STKTOP = STKTOP - 12 | 0    //last argument
+                    if ((TMP | 0) == (LEN | 0)) {
+                        MEM32[STKTOP    //last argument
++ (//last argument
+                        IDX << 2) >> 2] = 2147483629;
+                        STKTOP = STKTOP - 12 | 0    //for GC
 ;
-                        MEM32[STKTOP + 8 >> 2] = //last argument
+                        MEM32[STKTOP + 8 >> 2] = //for GC
                         makeNumber(KON) | 0;
                         MEM32[STKTOP + 4 >> 2] = VAL;
-                        MEM32[STKTOP >> 2] = PAR;
+                        MEM32[STKTOP >> 2] = makeNumber(TMP) | 0;
                         KON = 135;
                     } else {
-                        STKTOP = STKTOP - 20 | 0;
-                        MEM32[STKTOP + 16 >> 2] = makeNumber(KON) | 0;
-                        MEM32[STKTOP + 12 >> 2] = VAL;
-                        MEM32[STKTOP + 8 >> 2] = PAR;
-                        MEM32[STKTOP + 4 >> 2] = ARG;
-                        MEM32[STKTOP >> 2] = makeNumber(IDX) | 0;
+                        for (; (IDX | 0) < (LEN | 0); IDX = IDX + 1 | 0)
+                            MEM32[STKTOP + (IDX << 2) >> 2] = 2147483629;
+                        STKTOP = STKTOP - 16 | 0;
+                        MEM32[STKTOP + 12 >> 2] = makeNumber(KON) | 0;
+                        MEM32[STKTOP + 8 >> 2] = VAL;
+                        MEM32[STKTOP + 4 >> 2] = makeNumber(TMP) | 0;
+                        MEM32[STKTOP >> 2] = ARG;
                         KON = 134;
                     }
                     return _E_eval() | 0;
@@ -3976,12 +3973,11 @@ function SLIP(callbacks, size) {
             return nativePtr(VAL) | 0;
         }
         function _E_c_nativeArgs() {
-            IDX = numberVal(MEM32[STKTOP >> 2] | 0) | 0;
-            ARG = MEM32[STKTOP + 4 >> 2] | 0;
-            PAR = MEM32[STKTOP + 8 >> 2] | 0;
+            ARG = MEM32[STKTOP >> 2] | 0;
+            IDX = numberVal(MEM32[STKTOP + 4 >> 2] | 0) | 0;
             LEN = vectorLength(ARG) | 0;
-            MEM32[STKTOP + (IDX + 5 << 2) >> 2] = VAL;
-            for (IDX = IDX + 1 | 0; (IDX | 0) < (LEN | 0); IDX = TMP) {
+            MEM32[STKTOP + (IDX + 3 << 2) >> 2] = VAL;
+            for (; (IDX | 0) < (LEN | 0); IDX = TMP) {
                 TMP = IDX + 1 | 0;
                 EXP = vectorRef(ARG, TMP) | 0;
                 switch (tag(EXP) | 0) {
@@ -4019,26 +4015,27 @@ function SLIP(callbacks, size) {
                     EXP = (DCT = extendEnv() | 0, makePrz(lmzArgc(EXP) | 0, lmzFrmSiz(EXP) | 0, lmzBdy(EXP) | 0, DCT) | 0);
                     break;
                 default:
-                    if ((IDX | 0) == (LEN | 0)) {
-                        //last argument
+                    if ((TMP | 0) == (LEN | 0)) {
+                        STKTOP = STKTOP + 4 | 0    //last argument
+;
+                        MEM32[STKTOP >> 2] = //last argument
+                        makeNumber(TMP) | 0;
                         KON = 135;
-                        STKTOP = STKTOP + 8 | 0;
                     } else {
-                        MEM32[STKTOP >> 2] = makeNumber(IDX) | 0;
+                        MEM32[STKTOP + 4 >> 2] = makeNumber(TMP) | 0;
                     }
                     return _E_eval() | 0;
                 }
-                MEM32[STKTOP + (IDX + 5 << 2) >> 2] = EXP;
+                MEM32[STKTOP + (IDX + 4 << 2) >> 2] = EXP;
             }
-            VAL = MEM32[STKTOP + 12 >> 2] | 0;
-            KON = numberVal(MEM32[STKTOP + 16 >> 2] | 0) | 0;
-            STKTOP = STKTOP + 20 | 0;
+            VAL = MEM32[STKTOP + 8 >> 2] | 0;
+            KON = numberVal(MEM32[STKTOP + 12 >> 2] | 0) | 0;
+            STKTOP = STKTOP + 16 | 0;
             return nativePtr(VAL) | 0;
         }
         function _E_applyNative() {
-            PAR = MEM32[STKTOP >> 2] | 0;
-            LEN = vectorLength(PAR) | 0;
-            MEM32[STKTOP + (LEN + 3 << 2) >> 2] = VAL;
+            LEN = numberVal(MEM32[STKTOP >> 2] | 0) | 0;
+            MEM32[STKTOP + (LEN + 2 << 2) >> 2] = VAL;
             VAL = MEM32[STKTOP + 4 >> 2] | 0;
             KON = numberVal(MEM32[STKTOP + 8 >> 2] | 0) | 0;
             STKTOP = STKTOP + 12 | 0;
