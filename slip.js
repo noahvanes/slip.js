@@ -3565,13 +3565,13 @@ function SLIP(callbacks, size) {
             MEM32[STKTOP + 8 >> 2] = KON;
             MEM32[STKTOP + 4 >> 2] = EXP;
             MEM32[STKTOP >> 2] = 11;
-            EXP = sequenceAt(EXP, 1) | 0;
+            EXP = MEM32[EXP + 4 >> 2] | 0;
             KON = 197;
             return _E_eval() | 0;
         }
         function _E_c_sequence() {
             IDX = (MEM32[STKTOP >> 2] | 0) >> 2 | 0;
-            EXP = sequenceAt(MEM32[STKTOP + 4 >> 2] | 0, IDX) | 0;
+            EXP = MEM32[(MEM32[STKTOP + 4 >> 2] | 0) + (IDX << 2) >> 2] | 0;
             MEM32[STKTOP >> 2] = (IDX + 1 | 0) << 2 | 3 | 0;
             return _E_eval() | 0;
         }

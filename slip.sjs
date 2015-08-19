@@ -860,6 +860,23 @@ function SLIP(callbacks, size) {
 			return makeChunk(__SEQ_TAG__, siz)|0;
 		}
 
+		macro sequenceRef {
+			case { _($seq:expr, $idx:lit) } => {
+				var idx = unwrapSyntax(#{$idx});
+				letstx $nbr = [makeValue(idx<<2, #{here})];
+				letstx $get = [makeIdent('chunkGet', #{$here})];
+				return #{
+					$get($seq, $nbr)
+				}
+			}
+			case { _($seq:expr, $idx:expr) } => {
+				letstx $get = [makeIdent('chunkGet', #{$here})];
+				return #{
+					$get($seq, $idx<<2)
+				}
+			}
+		}
+
 		function sequenceAt(seq, idx) {
 			seq = seq|0;
 			idx = idx|0;
@@ -1660,7 +1677,7 @@ function SLIP(callbacks, size) {
 				letstx $coll = [makeIdent('claimSizCollect', #{here})];
 				return #{
 					if(($avail()|0) < (((imul($a,__UNIT_SIZ__)|0)+__MARGIN__)|0)) {
-						$coll(((imul($a,__UNIT_SIZ__)|0)+__MARGIN__)|0);
+						$coll(((imul($a,__UNIT_SIZ__)|0)+__MARGIN__)|0)
 					}
 				}
 			}
@@ -3920,7 +3937,7 @@ function SLIP(callbacks, size) {
 				STK[2] = KON;
 				STK[1] = EXP;
 				STK[0] = __TWO__;
-				EXP = sequenceAt(EXP, 1)|0;
+				EXP = sequenceRef(EXP, 1)|0;
 				KON = E_c_sequence;
 				goto E_eval();
 			}
@@ -3928,7 +3945,7 @@ function SLIP(callbacks, size) {
 			E_c_sequence {
 
 				IDX = numberVal(STK[0]|0)|0;
-				EXP = sequenceAt(STK[1]|0, IDX)|0;
+				EXP = sequenceRef(STK[1]|0, IDX)|0;
 				STK[0] = makeNumber((IDX+1)|0)|0;
 				goto E_eval();
 			}
