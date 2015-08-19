@@ -247,8 +247,20 @@ function SLIP(callbacks, size) {
 
 		/* MEMORY MANAGEMENT & GARBAGE COLLECTION */
 
-		function available() {
-			return (STKTOP - MEMTOP)|0;
+		define __MEMBOTTOM__ 0x20
+
+		function initMemory() {
+			MEMTOP = __MEMBOTTOM__;
+		}
+
+		macro available {
+			case {_()} => {
+				letstx $STK = [makeIdent('STKTOP', #{here})];
+				letstx $MEM = [makeIdent('MEMTOP', #{here})];
+				return #{
+					($STK - $MEM)
+				}
+			}
 		}
 
 		function collectGarbage() {
@@ -307,6 +319,8 @@ function SLIP(callbacks, size) {
 			var len = 0;
 			var siz = 0;
 			var cur = 0;
+			src = __MEMBOTTOM__;
+			dst = __MEMBOTTOM__;
 			while((src|0) < (MEMTOP|0)) {
 				cel = MEM32[src >> 2]|0;
 				if(cel & 0x2) { //marked chunk
@@ -340,6 +354,8 @@ function SLIP(callbacks, size) {
 			var dst = 0;
 			var len = 0;
 			var cel = 0;
+			src = __MEMBOTTOM__;
+			dst = __MEMBOTTOM__;
 			while((src|0) < (MEMTOP|0)) {
 				cel = MEM32[src>>2]|0;
 				len = headerSize(cel)|0;
@@ -370,19 +386,22 @@ function SLIP(callbacks, size) {
 			return (hdr << 2)|0;
 		}
 
-		function headerSize(hdr) {
-			hdr = hdr|0;
-			return (hdr >>> 8)|0;
+		macro headerSize {
+			rule {($hdr:expr)} => {
+				($hdr >>> 8)
+			}
 		}
 
-		function makeFree(ofs) {
-			ofs = ofs|0;
-			return (ofs & 0xFFFFFFFD)|0;
+		macro makeFree {
+			rule {($ofs:expr)} => {
+				($ofs & 0xFFFFFFFD)
+			}
 		}
 
-		function makeBusy(ofs) {
-			ofs = ofs|0;
-			return (ofs | 0x2)|0;
+		macro makeBusy {
+			rule {($ofs:expr)} => {
+				($ofs | 0x2)
+			}
 		}
 
 		/* CHUNKS */
@@ -397,57 +416,77 @@ function SLIP(callbacks, size) {
 			return adr|0;
 		}
 
-		function chunkTag(ptr) {
-			ptr = ptr|0;
-			var hdr = 0;
-			hdr = MEM32[ptr >> 2]|0;
-			return ((hdr >>> 2) & 0x3F)|0;
+		macro chunkTag {
+			case {_($ptr:expr)} => {
+				letstx $mem = [makeIdent('MEM32', #{here})];
+				return #{
+					(((MEM32[$ptr>>2]|0)>>>2)&0x3F)
+				}
+			}
 		}
 
-		function chunkSize(ptr) {
-			ptr = ptr|0;
-			var hdr = 0;
-			hdr = MEM32[ptr >> 2]|0;
-			return headerSize(hdr)|0;
+		macro chunkSize {
+			case {_($ptr:expr)} => {
+				letstx $mem = [makeIdent('MEM32', #{here})];
+				letstx $siz = [makeIdent('headerSize', #{here})];
+				return #{
+					(headerSize(MEM32[$ptr>>2]|0))
+				}
+			}
 		}
 
-		function chunkGet(ptr, idx) {
-			ptr = ptr|0;
-			idx = idx|0;
-			return MEM32[(ptr + idx) >> 2]|0;
+		macro chunkGet {
+			case {_($ptr:expr, $idx:expr)} => {
+				letstx $mem = [makeIdent('MEM32', #{here})];
+				return #{
+					$mem[($ptr + $idx) >> 2]
+				}
+			}
 		}
 
-		function chunkGetByte(ptr, idx) {
-			ptr = ptr|0;
-			idx = idx|0;
-			return MEM8[(ptr + idx)|0]|0;
+		macro chunkGetByte {
+			case {_($ptr:expr, $idx:expr)} => {
+				letstx $mem = [makeIdent('MEM8', #{here})];
+				return #{
+					$mem[($ptr + $idx)|0]
+				}
+			}
 		}
 
-		function chunkGetFloat(ptr, idx) {
-			ptr = ptr|0;
-			idx = idx|0;
-			return fround(FLT32[(ptr + idx) >> 2]);
+		macro chunkGetFloat {
+			case {_($ptr:expr, $idx:expr)} => {
+				letstx $mem = [makeIdent('FLT32', #{here})];
+				return #{
+					$mem[($ptr + $idx) >> 2]
+				}
+			}
 		}
 
-		function chunkSet(ptr, idx, val) {
-			ptr = ptr|0;
-			idx = idx|0;
-			val = val|0;
-			MEM32[(ptr + idx) >> 2] = val|0;
+		macro chunkSet {
+			case {_($ptr:expr, $idx:expr, $val:expr)} => {
+				letstx $mem = [makeIdent('MEM32', #{here})];
+				return #{
+					$mem[($ptr + $idx) >> 2] = $val
+				}
+			}
 		}
 
-		function chunkSetByte(ptr, idx, byt) {
-			ptr = ptr|0;
-			idx = idx|0;
-			byt = byt|0;
-			MEM8[(ptr + idx)|0] = byt;
+		macro chunkSetByte {
+			case {_($ptr:expr, $idx:expr, $val:expr)} => {
+				letstx $mem = [makeIdent('MEM8', #{here})];
+				return #{
+					$mem[($ptr + $idx)|0] = $val
+				}
+			}
 		}
 
-		function chunkSetFloat(ptr, idx, flt) {
-			ptr = ptr|0;
-			idx = idx|0;
-			flt = fround(flt);
-			FLT32[(ptr + idx) >> 2] = flt;
+		macro chunkSetFloat {
+			case {_($ptr:expr, $idx:expr, $val:expr)} => {
+				letstx $mem = [makeIdent('FLT32', #{here})];
+				return #{
+					$mem[($ptr + $idx) >> 2] = $val
+				}
+			}
 		}
 
 		/* STACK */
@@ -534,42 +573,41 @@ function SLIP(callbacks, size) {
 			}
 		}
 
-
-
 // **********************************************************************
 // ************************* ABSTRACT GRAMMAR ***************************
 // **********************************************************************
 
-		function tag(exp) {
-			exp = exp|0;
-			switch(exp&0x1F) {
-				case 0x3:
-				case 0x7:
-				case 0xB:
-				case 0xF:
-				case 0x13:
-				case 0x17:
-				case 0x1B:
-				case 0x1F:
-					return __NBR_TAG__; 
-				case 0x1:
-					return __TRU_TAG__;
-				case 0x5:
-					return __FLS_TAG__;
-				case 0x9:
-					return __NUL_TAG__;
-				case 0xD:
-					return __VOI_TAG__;
-				case 0x11:
-					return __CHR_TAG__;
-				case 0x15:
-					return __NAT_TAG__;
-				case 0x19:
-					return __LCL_TAG__;
-				case 0x1D:
-					return __GLB_TAG__;
+		macro tag {
+			case {_($v:expr)} => {
+				letstx $mem = [makeIdent('MEM8',#{here})];
+				return #{
+					($v&0x1?$mem[$v&0x1F]|0:chunkTag($v)|0)
+				}
 			}
-			return chunkTag(exp)|0;
+		}
+
+		function ftag(exp) {
+			exp = exp|0;
+			return tag(exp)|0;
+		}
+
+		function initTags() {
+			MEM8[0x3] = __NBR_TAG__;
+			MEM8[0x7] = __NBR_TAG__;
+			MEM8[0xB] = __NBR_TAG__;
+			MEM8[0xF] = __NBR_TAG__;
+			MEM8[0x13] = __NBR_TAG__;
+			MEM8[0x17] = __NBR_TAG__;
+			MEM8[0x1B] = __NBR_TAG__;
+			MEM8[0x1F] = __NBR_TAG__;
+			MEM8[0x1] = __TRU_TAG__;
+			MEM8[0x5] = __FLS_TAG__;
+			MEM8[0x9] = __NUL_TAG__;
+			MEM8[0xD] = __VOI_TAG__;
+			MEM8[0x11] = __CHR_TAG__;
+			MEM8[0x15] = __NAT_TAG__;
+			MEM8[0x19] = __LCL_TAG__;
+			MEM8[0x1D] = __GLB_TAG__;
 		}
 
 		/*==================*/
@@ -600,26 +638,44 @@ function SLIP(callbacks, size) {
 
 		/* ---- SMALL INTEGERS/NUMBERS ---- */
 
-		function makeNumber(val) {
+		macro makeNumber {
+			rule {($v:expr)} => {
+				(($v<<2)|0x3)
+			}
+		}
+
+		macro numberVal {
+			rule {($v:expr)} => {
+				($v>>2)
+			}
+		}
+
+		function fmakeNumber(val) {
 			val = val|0;
 			return (val << 2)|0x3;
 		}
 
-		function numberVal(val) {
+		function fnumberVal(val) {
 			val = val|0;
 			return (val >> 2)|0;
 		}
 
 		typecheck __NBR_TAG__ => isNumber
 
-		/* ---- NATIVES ----- */
+		/* ---- NATIVES ----- */		
+
+		macro nativePtr {
+			rule {($v:expr)} => {
+				($v>>>5)
+			}
+		}
 
 		function makeNative(nat) {
 			nat = nat|0;
 			return (nat << 5)|0x15;
 		}
 
-		function nativePtr(nat) {
+		function fnativePtr(nat) {
 			nat = nat|0;
 			return (nat >>> 5)|0;
 		}
@@ -633,9 +689,15 @@ function SLIP(callbacks, size) {
 			return (lcl << 5)|0x19;
 		}
 
-		function localOfs(lcl) {
+		function flocalOfs(lcl) {
 			lcl = lcl|0;
 			return (lcl >>> 5)|0;
+		}
+
+		macro localOfs {
+			rule {$ofs} => {
+				($ofs>>>5)
+			}
 		}
 
 		typecheck __LCL_TAG__ => isLocal
@@ -645,9 +707,15 @@ function SLIP(callbacks, size) {
 		function makeGlobal(ofs) {
 			ofs = ofs|0;
 			return (ofs << 5)|0x1D;
+		}		
+
+		macro globalOfs {
+			rule {$ofs} => {
+				($ofs>>>5)
+			}
 		}
 
-		function globalOfs(glb) {
+		function fglobalOfs(glb) {
 			glb = glb|0;
 			return (glb >>> 5)|0;
 		}
@@ -699,20 +767,56 @@ function SLIP(callbacks, size) {
 			return vct|0;
 		}
 
-		function vectorRef(vct, idx) {
+		macro vectorRef {
+			case { _($vct:expr, $idx:lit) } => {
+				var idx = unwrapSyntax(#{$idx});
+				letstx $nbr = [makeValue(idx<<2, #{here})];
+				letstx $get = [makeIdent('chunkGet', #{$vct})];
+				return #{
+					$get($vct, $nbr)
+				}
+			}
+			case { _($vct:expr, $idx:expr) } => {
+				letstx $get = [makeIdent('chunkGet', #{$vct})];
+				return #{
+					$get($vct, $idx<<2)
+				}
+			}
+		}
+
+		function vectorAt(vct, idx) {
 			vct = vct|0;
 			idx = idx|0;
 			return chunkGet(vct, idx<<2)|0;
 		}
 
-		function vectorSet(vct, idx, val) {
-			vct = vct|0;
-			idx = idx|0;
-			val = val|0;
-			chunkSet(vct, idx<<2, val);
+		macro vectorSet {
+			case { _($vct:expr, $idx:lit, $val:expr) } => {
+				var idx = unwrapSyntax(#{$idx});
+				letstx $nbr = [makeValue(idx<<2, #{here})];
+				letstx $set = [makeIdent('chunkSet', #{$vct})];
+				return #{
+					$set($vct, $nbr, $val)
+				}
+			}
+			case { _($vct:expr, $idx:expr, $val:expr) } => {
+				letstx $set = [makeIdent('chunkSet', #{$vct})];
+				return #{
+					$set($vct, $idx<<2, $val)
+				}
+			}
 		}
 
-		function vectorLength(vct) {
+		macro vectorLength {
+			case {_($vct:expr)} => {
+				letstx $siz = [makeIdent('chunkSize', #{$vct})];
+				return #{
+					$siz($vct)
+				}
+			}
+		}
+
+		function fvectorLength(vct) {
 			vct = vct|0;
 			return chunkSize(vct)|0;
 		}
@@ -1483,15 +1587,31 @@ function SLIP(callbacks, size) {
 // ****************************** MAIN **********************************
 // **********************************************************************
 
+		function initRegs() {
+			EXP = __VOID__;
+			VAL = __VOID__;
+			PAR = __VOID__;
+			ARG = __VOID__;
+			LST = __VOID__;
+			DEN = __VOID__;
+			DFR = __VOID__;
+			DGL = __VOID__;
+			ENV = __VOID__;
+			FRM = __VOID__;
+			GLB = __VOID__;
+			PAT = __VOID__;
+			SYM = __VOID__;
+		}
+
 		function init() {
+			initMemory();
+			initTags();
+			initRegs();
 			__EMPTY_VEC__ = makeVector(0)|0;
 			initPool();
 			loadSymbols();
 			initDictionary();
 			initEnvironment();
-			EXP = __NULL__;
-			VAL = __NULL__;
-			LST = __NULL__;
 			initNatives();
 		}
 
@@ -1507,23 +1627,56 @@ function SLIP(callbacks, size) {
 		define __MARGIN__ 128
 		define __UNIT_SIZ__ 4
 
-		function claim() {
+		function claimCollect() {
+			reclaim()
 			if((available()|0) < __MARGIN__) {
-				//print("claiming...: " + arguments.callee.caller.name);
-				reclaim();
-				if((available()|0) < __MARGIN__)
-					err_fatalMemory();
+				err_fatalMemory();
 			}
 		}
 
-		function claimSiz(amount) {
+		function claimSizCollect(siz) {
+			siz = siz|0;
+			reclaim()
+			if((available()|0) < (siz|0)) {
+				err_fatalMemory();
+			}
+		}
+
+		macro claim {
+			case {_()} => {
+				letstx $avail = [makeIdent('available', #{here})];
+				letstx $coll = [makeIdent('claimCollect', #{here})];
+				return #{
+					if(($avail()|0) < __MARGIN__) {
+						$coll();
+					}
+				}
+			}
+		}
+
+		macro claimSiz {
+			case {_($a:expr)} => {
+				letstx $avail = [makeIdent('available', #{here})];
+				letstx $coll = [makeIdent('claimSizCollect', #{here})];
+				return #{
+					if(($avail()|0) < (((imul($a,__UNIT_SIZ__)|0)+__MARGIN__)|0)) {
+						$coll(((imul($a,__UNIT_SIZ__)|0)+__MARGIN__)|0);
+					}
+				}
+			}
+		}
+
+		function fclaim() {
+			if((available()|0) < __MARGIN__) {
+				claimCollect();
+			}
+		}
+
+		function fclaimSiz(amount) {
 			amount = amount|0;
 			amount = ((imul(amount, __UNIT_SIZ__)|0) + __MARGIN__)|0;
 			if((available()|0) < (amount|0)) {
-				//print("claiming* : " + arguments.callee.caller.name);
-				reclaim();
-				if((available()|0) < (amount|0))
-					err_fatalMemory();
+				claimSizCollect(amount);
 			}
 		}
 
@@ -1626,7 +1779,7 @@ function SLIP(callbacks, size) {
 							VAL = makeNumber(-(numberVal(VAL)|0)|0)|0;
 							goto KON|0;
 						case __FLT_TAG__:
-							claim();
+							claim()
 							VAL = makeFloat(fround(-fround(floatNumber(VAL))))|0;
 							goto KON|0;
 						default:
@@ -1694,7 +1847,7 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				claim();
+				claim()
 				VAL = STK[0]|0;
 
 				if((LEN|0) == 1) {
@@ -1751,7 +1904,7 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				claim();
+				claim()
 				VAL = makePair(STK[0]|0,STK[1]|0)|0;
 				STKUNWIND(2);
 				goto KON|0;
@@ -2120,7 +2273,7 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				claim();
+				claim()
 				ARG = makePair(pairCar(LST)|0, __NULL__)|0;
 				LST = pairCdr(LST)|0;
 
@@ -2148,7 +2301,7 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				claim();
+				claim()
 				EXP = STK[0]|0;
 				STKALLOC(2);
 				STK[2] = KON;
@@ -2450,7 +2603,7 @@ function SLIP(callbacks, size) {
 
 			N_collect {
 
-				reclaim();
+				reclaim()
 				VAL = makeNumber(available()|0)|0;
 				STKUNWIND(LEN);
 				goto KON|0;
@@ -2583,7 +2736,7 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				claim();
+				claim()
 				VAL = makeFloat(fround(+random()))|0;
 				goto KON|0;
 			}
@@ -2601,7 +2754,7 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				claim();
+				claim()
 				STKALLOC(2);
 				STK[2] = KON;
 				STK[1] = ENV;
@@ -2682,7 +2835,7 @@ function SLIP(callbacks, size) {
 								VAL = makeNumber(TMP)|0;
 								goto KON|0;
 							case __FLT_TAG__:
-								claim();
+								claim()
 								REA = +((+(numberVal(ARG)|0))%(+(fround(floatNumber(EXP)))))
 								VAL = makeFloat(fround(REA))|0;
 								goto KON|0;
@@ -2692,7 +2845,7 @@ function SLIP(callbacks, size) {
 
 					case __FLT_TAG__:
 
-						claim();
+						claim()
 						REA = +fround(floatNumber(ARG));
 						switch(tag(EXP)|0) {
 							case __NBR_TAG__:
@@ -2758,7 +2911,7 @@ function SLIP(callbacks, size) {
 
 				ARG = STK[0]|0;
 				STKUNWIND(1);
-				claim();
+				claim()
 
 				switch(tag(ARG)|0) {
 					case __NBR_TAG__:
@@ -2814,7 +2967,7 @@ function SLIP(callbacks, size) {
 					VAL = __NULL__;
 					goto KON|0;
 				}
-				claim();
+				claim()
 				push(KON);
 				push(__ZERO__);
 				KON = R_c1_LBR;
@@ -2823,7 +2976,7 @@ function SLIP(callbacks, size) {
 
 			R_c1_LBR {
 
-				claim();
+				claim()
 				if ((look()|0) == RBR) {
 					skip();
 					VAL = makePair(VAL, __NULL__)|0;
@@ -2854,7 +3007,7 @@ function SLIP(callbacks, size) {
 
 				IDX = numberVal(pop()|0)|0;
 				for(;IDX;IDX=(IDX-1)|0) {
-					claim();
+					claim()
 					VAL = makePair(pop()|0, VAL)|0;
 				}
 				KON = pop()|0;
@@ -2863,7 +3016,7 @@ function SLIP(callbacks, size) {
 
 			R_readQUO {
 
-				claim();
+				claim()
 				skip();
 				push(KON);
 				KON = R_c_QUO;
@@ -2872,7 +3025,7 @@ function SLIP(callbacks, size) {
 
 			R_c_QUO {
 
-				claim();
+				claim()
 				VAL = makePair(VAL, __NULL__)|0;
 				VAL = makePair(__QUO_SYM__, VAL)|0;
 				KON = pop()|0;
@@ -2893,7 +3046,7 @@ function SLIP(callbacks, size) {
 						VAL = makeChar(read()|0)|0;
 						goto KON|0;
 					case LBR:
-						claim();
+						claim()
 						if ((look()|0) == RBR) {
 							skip();
 							VAL = makePair(__VEC_SYM__, __NULL__)|0;
@@ -2923,7 +3076,7 @@ function SLIP(callbacks, size) {
 					goto KON|0;
 				}
 
-				claim();
+				claim()
 				IDX = numberVal(peek()|0)|0;
 				poke(VAL);
 				push(makeNumber((IDX+1)|0)|0);
@@ -2971,7 +3124,7 @@ function SLIP(callbacks, size) {
 
 			C_compileSymbol {
 
-				claim();
+				claim()
 				PAT = EXP;
 				lexicalAdr();
 
@@ -3006,7 +3159,7 @@ function SLIP(callbacks, size) {
 				LST = pairCdr(LST)|0;
 
 				if(!(isNull(LST)|0)) {
-					claim();
+					claim()
 					STKALLOC(4);
 					STK[3] = KON;
 					STK[2] = __ONE__;
@@ -3038,7 +3191,7 @@ function SLIP(callbacks, size) {
 				if(isNull(LST)|0) {
 					KON = C_c2_sequence;
 				} else {
-					claim();
+					claim()
 					push(LST);
 					push(TLC);
 					TLC = __FALSE__;
@@ -3072,7 +3225,7 @@ function SLIP(callbacks, size) {
 				LST = pairCdr(LST)|0;
 
 				if(isNull(LST)|0) {
-					claim();
+					claim()
 					VAL = makeQuo(EXP)|0;
 					goto KON|0;
 				}
@@ -3083,7 +3236,7 @@ function SLIP(callbacks, size) {
 
 			C_compileInline {
 
-				claim();
+				claim()
 				enterScope();
 				push(EXP);
 				push(TLC);
@@ -3101,7 +3254,7 @@ function SLIP(callbacks, size) {
 				EXP = pop()|0;
 
 				if (SIZ) {
-					//claim();
+					//claim()
 					SIZ = makeNumber(SIZ)|0;
 					VAL = ((TLC|0) == __TRUE__ ? 
 							(makeTtk(VAL,SIZ)|0):
@@ -3127,7 +3280,7 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				claim();
+				claim()
 				push(KON);
 				push(LST);
 				push(TLC);
@@ -3150,7 +3303,7 @@ function SLIP(callbacks, size) {
 				}
 
 				if(isPair(LST)|0) {
-					claim();
+					claim()
 					push(LST);
 					push(TLC);
 					KON = C_c3_if;
@@ -3163,7 +3316,7 @@ function SLIP(callbacks, size) {
 
 			C_c2_if {
 
-				claim();
+				claim()
 				VAL = makeIfs(pop()|0, VAL)|0;
 				KON = pop()|0;
 				goto KON|0;
@@ -3188,7 +3341,7 @@ function SLIP(callbacks, size) {
 
 			C_c4_if {
 
-				claim();
+				claim()
 				EXP = pop()|0;
 				VAL = makeIff(pop()|0, EXP, VAL)|0;
 				KON = pop()|0;
@@ -3203,7 +3356,7 @@ function SLIP(callbacks, size) {
 							err_invalidParameter(PAT|0);
 							goto error;
 						}
-						claim();
+						claim()
 						defineVar()|0;
 				}
 				goto KON|0;
@@ -3212,7 +3365,7 @@ function SLIP(callbacks, size) {
 
 			C_compileDefine {
 
-				claim();
+				claim()
 				if (!(isPair(LST)|0)) {
 					err_invalidDefine();
 					goto error;
@@ -3263,7 +3416,7 @@ function SLIP(callbacks, size) {
 
 			C_c1_define {
 
-				claim();
+				claim()
 				OFS = pop()|0;
 				KON = pop()|0;
 				VAL = makeDfv(OFS, VAL)|0;
@@ -3284,7 +3437,7 @@ function SLIP(callbacks, size) {
 						goto C_compileSequence;
 
 					case __SYM_TAG__:
-						claim();
+						claim()
 						PAT = LST;
 						defineVar()|0;
 						LST = peek()|0;
@@ -3299,7 +3452,7 @@ function SLIP(callbacks, size) {
 
 			C_c3_define {
 
-				claim();
+				claim()
 				SIZ = makeNumber(exitScope()|0)|0;	//total frame size
 				TMP = pop()|0; 							//argument count
 				OFS = pop()|0;							//offset
@@ -3310,7 +3463,7 @@ function SLIP(callbacks, size) {
 
 			C_c4_define {
 
-				claim();
+				claim()
 				SIZ = makeNumber(exitScope()|0)|0;	//total frame size
 				TMP = pop()|0; 							//argument count
 				OFS = pop()|0;							//offset
@@ -3321,7 +3474,7 @@ function SLIP(callbacks, size) {
 
 			C_compileSet {
 
-				claim();
+				claim()
 
 				if(!(isPair(LST)|0)) {
 					err_invalidAssignment();
@@ -3362,7 +3515,7 @@ function SLIP(callbacks, size) {
 
 			C_c_set {
 
-				claim();
+				claim()
 				PAT = pop()|0;
 				lexicalAdr();
 
@@ -3389,7 +3542,7 @@ function SLIP(callbacks, size) {
 					goto error;
 				}
 
-				claim();
+				claim()
 				enterScope();
 				PAR = pairCar(LST)|0;
 				push(KON);
@@ -3412,7 +3565,7 @@ function SLIP(callbacks, size) {
 						goto C_compileSequence;
 
 					case __SYM_TAG__:
-						claim();
+						claim()
 						PAT = LST;
 						defineVar()|0;
 						LST = peek()|0;
@@ -3427,7 +3580,7 @@ function SLIP(callbacks, size) {
 
 			C_c2_lambda {
 
-				claim();
+				claim()
 				SIZ = makeNumber(exitScope()|0)|0;
 				TMP = pop()|0;
 				VAL = makeLmb(TMP, SIZ, VAL)|0;
@@ -3437,7 +3590,7 @@ function SLIP(callbacks, size) {
 
 			C_c3_lambda {
 
-				claim();
+				claim()
 				SIZ = makeNumber(exitScope()|0)|0;
 				TMP = pop()|0;
 				VAL = makeLmz(TMP, SIZ, VAL)|0;
@@ -3447,7 +3600,7 @@ function SLIP(callbacks, size) {
 
 			C_compileApplication {
 
-				claim();
+				claim()
 				push(KON);
 
 				if(isNull(LST)|0) {
@@ -3466,7 +3619,7 @@ function SLIP(callbacks, size) {
 
 			C_c1_application {
 
-				claim();
+				claim()
 				TLC = pop()|0;
 				KON = pop()|0;
 
@@ -3521,7 +3674,7 @@ function SLIP(callbacks, size) {
 					KON = C_c3_application;
 					push(TLC);
 				} else {
-					claim();
+					claim()
 					push(ARG);
 					push(TLC);
 					TLC = __FALSE__;
@@ -3676,7 +3829,7 @@ function SLIP(callbacks, size) {
 
 			E_setLocal {
 				
-				claim();
+				claim()
 				STKALLOC(2);
 				STK[1] = KON;
 				STK[0] = slcOfs(EXP)|0;
@@ -3696,7 +3849,7 @@ function SLIP(callbacks, size) {
 
 			E_setGlobal {
 
-				claim();
+				claim()
 				STKALLOC(3);
 				STK[2] = KON;
 				STK[1] = sglScp(EXP)|0;
@@ -3718,7 +3871,7 @@ function SLIP(callbacks, size) {
 
 			E_evalDfv {
 
-				claim();
+				claim()
 				STKALLOC(2);
 				STK[1] = KON;
 				STK[0] = dfvOfs(EXP)|0;
@@ -3762,7 +3915,7 @@ function SLIP(callbacks, size) {
 
 			E_evalSeq {
 
-				claim();
+				claim()
 				STKALLOC(3);
 				STK[2] = KON;
 				STK[1] = EXP;
@@ -3790,7 +3943,7 @@ function SLIP(callbacks, size) {
 
 			E_evalIfs {
 
-				claim();
+				claim()
 				STKALLOC(2);
 				STK[1] = KON;
 				STK[0] = ifsConsequence(EXP)|0;
@@ -3816,7 +3969,7 @@ function SLIP(callbacks, size) {
 
 			E_evalIff {
 
-				claim();
+				claim()
 				STKALLOC(2);
 				STK[1] = KON;
 				STK[0] = EXP;
@@ -3883,7 +4036,7 @@ function SLIP(callbacks, size) {
 
 			E_evalApz {
 
-				claim();
+				claim()
 				STKALLOC(1);
 				STK[0] = KON;
 				EXP = apzOpr(EXP)|0;
@@ -3972,7 +4125,7 @@ function SLIP(callbacks, size) {
 
 			E_evalTpz {
 
-				claim();
+				claim()
 				STKALLOC(1);
 				STK[0] = KON;
 				EXP = tpzOpr(EXP)|0;
@@ -4058,7 +4211,7 @@ function SLIP(callbacks, size) {
 
 			E_evalApl {
 
-				claim();
+				claim()
 				STKALLOC(2);
 				STK[1] = KON;
 				STK[0] = aplOpd(EXP)|0;
@@ -4160,7 +4313,7 @@ function SLIP(callbacks, size) {
 
 			E_evalTpl {
 
-				claim();
+				claim()
 				STKALLOC(2);
 				STK[1] = KON;
 				STK[0] = tplOpd(EXP)|0;
@@ -4260,7 +4413,7 @@ function SLIP(callbacks, size) {
 						EXP = capturePrz(EXP);
 						break;				
 					default:
-						claim();
+						claim()
 						STKALLOC(1);
 						STK[0] = VAL;
 						KON = E_c_continuationArg;
@@ -4448,7 +4601,7 @@ function SLIP(callbacks, size) {
 							EXP = capturePrz(EXP);
 							break;				
 						default:
-							claim();
+							claim()
 							if((IDX|0) == (LEN|0)) { //last argument
 								STKALLOC(4);
 								STK[3] = KON;
@@ -4587,7 +4740,7 @@ function SLIP(callbacks, size) {
 							EXP = capturePrz(EXP);
 							break;				
 						default:
-							claim();
+							claim()
 							if((IDX|0) == (LEN|0)) { 					//last mandatory argument
 								if((IDX|0) == (vectorLength(ARG)|0)) {	//last argument
 									STKALLOC(4);
@@ -4721,7 +4874,7 @@ function SLIP(callbacks, size) {
 
 					IDX = (IDX + 1)|0;
 					EXP = vectorRef(ARG, IDX)|0;
-					claim();
+					claim()
 
 					switch(tag(EXP)|0) {
 						case __NUL_TAG__: case __VOI_TAG__:
@@ -4790,7 +4943,7 @@ function SLIP(callbacks, size) {
 
 					IDX = (IDX + 1)|0;
 					EXP = vectorRef(ARG, IDX)|0;
-					claim();
+					claim()
 
 					switch(tag(EXP)|0) {
 						case __NUL_TAG__: case __VOI_TAG__:
@@ -4853,7 +5006,7 @@ function SLIP(callbacks, size) {
 
 			E_c_przVarArgs {
 
-				claim();
+				claim()
 				ARG = STK[0]|0;
 				IDX = numberVal(STK[1]|0)|0;
 				LEN = numberVal(STK[2]|0)|0;
@@ -4925,7 +5078,7 @@ function SLIP(callbacks, size) {
 							goto error;
 					}
 				}
-				claim();
+				claim()
 				VAL = makeFloat(FLT)|0;
 				STKUNWIND(LEN);
 				goto KON|0;
@@ -4947,7 +5100,7 @@ function SLIP(callbacks, size) {
 	 						goto error;
 	 				}
 	 			}
-	 			claim();
+	 			claim()
 	 			VAL = makeFloat(FLT)|0;
 				STKUNWIND(LEN);
 	 			goto KON|0;
@@ -4969,7 +5122,7 @@ function SLIP(callbacks, size) {
 							goto error;
 					}
 				}
-				claim();
+				claim()
 				VAL = makeFloat(FLT)|0;
 				STKUNWIND(1);
 				goto KON|0;
@@ -4977,7 +5130,7 @@ function SLIP(callbacks, size) {
 
 			N_c1_map {
 
-				claim();
+				claim()
 				VAL = reverse(makePair(VAL,STK[0]|0)|0)|0;
 				KON = STK[1]|0;
 				STKUNWIND(2);
@@ -4986,7 +5139,7 @@ function SLIP(callbacks, size) {
 
 			N_c2_map {
 
-				claim();
+				claim()
 				STK[2] = makePair(VAL,STK[2]|0)|0;
 				LST = STK[0]|0;
 
@@ -5168,7 +5321,7 @@ function SLIP(callbacks, size) {
 
 			N_comparePair {
 
-				claim();
+				claim()
 				STKALLOC(3);
 				STK[2] = pairCdr(EXP)|0;
 				STK[1] = pairCdr(ARG)|0;
@@ -5207,7 +5360,7 @@ function SLIP(callbacks, size) {
 				}
 
 				if((LEN|0) > 1) {
-					claim();
+					claim()
 					STKALLOC(4);
 					STK[3] = KON;
 					STK[2] = EXP;
@@ -5299,8 +5452,8 @@ function SLIP(callbacks, size) {
 			/**************/
 
 			init: init,
-			claim: claim,
-			claimSiz: claimSiz,
+			fclaim: fclaim,
+			fclaimSiz: fclaimSiz,
 			Slip_REPL: Slip_REPL,
 			inputReady: inputReady,
 
@@ -5308,7 +5461,6 @@ function SLIP(callbacks, size) {
 			/*** MEMORY ***/
 			/**************/
 
-			available: available,
 			collectGarbage: collectGarbage,
 
 			/************************/
@@ -5316,42 +5468,41 @@ function SLIP(callbacks, size) {
 			/************************/
 
 			//tag
-			tag: tag,
+			ftag: ftag,
 			//specials
 			isTrue: isTrue,
 			isFalse: isFalse,
 			isNull: isNull,
 			isVoid: isVoid,
 			//numbers
-			makeNumber: makeNumber,
-			numberVal: numberVal,
+			fmakeNumber: fmakeNumber,
+			fnumberVal: fnumberVal,
 			isNumber: isNumber,
 			//characters
 			makeChar: makeChar,
 			charCode: charCode,
 			isChar: isChar,
 			//pairs
-			pairCar: pairCar,
-			pairCdr: pairCdr,
-			pairSetCar: pairSetCar,
-			pairSetCdr: pairSetCdr,
+			fpairCar: fpairCar,
+			fpairCdr: fpairCdr,
+			fpairSetCar: fpairSetCar,
+			fpairSetCdr: fpairSetCdr,
 			isPair: isPair,
 			//procedures
-			prcArgc: prcArgc,
-			prcFrmSiz: prcFrmSiz,
-			prcBdy: prcBdy,
-			prcEnv: prcEnv,
-			przArgc: przArgc,
-			przFrmSiz: przFrmSiz,
-			przBdy: przBdy,
-			przEnv: przEnv,
+			fprcArgc: fprcArgc,
+			fprcFrmSiz: fprcFrmSiz,
+			fprcBdy: fprcBdy,
+			fprcEnv: fprcEnv,
+			fprzArgc: fprzArgc,
+			fprzFrmSiz: fprzFrmSiz,
+			fprzBdy: fprzBdy,
+			fprzEnv: fprzEnv,
 			isPrc: isPrc,
 			isPrz: isPrz,
 			//vectors
 			fillVector: fillVector,
-			vectorRef: vectorRef,
-			vectorSet: vectorSet,
-			vectorLength: vectorLength,
+			vectorAt: vectorAt,
+			fvectorLength: fvectorLength,
 			isVector: isVector,
 			//floats
 			makeFloat: makeFloat,
@@ -5370,7 +5521,7 @@ function SLIP(callbacks, size) {
 			symbolLength: textLength,
 			isSymbol: isSymbol,
 			//natives
-			nativePtr: nativePtr,
+			fnativePtr: fnativePtr,
 			isNative: isNative,
 			//sequences
 			sequenceAt: sequenceAt,
@@ -5378,115 +5529,115 @@ function SLIP(callbacks, size) {
 			sequenceLength: sequenceLength,
 			isSequence: isSequence,
 			//single if-statements
-			ifsPredicate: ifsPredicate,
-			ifsConsequence: ifsConsequence,
+			fifsPredicate: fifsPredicate,
+			fifsConsequence: fifsConsequence,
 			isIfs: isIfs,
 			//full if-statements
-			iffPredicate: iffPredicate,
-			iffConsequence: iffConsequence,
-			iffAlternative: iffAlternative,
+			fiffPredicate: fiffPredicate,
+			fiffConsequence: fiffConsequence,
+			fiffAlternative: fiffAlternative,
 			isIff: isIff,
 			//quotes
-			quoExpression: quoExpression,
+			fquoExpression: fquoExpression,
 			isQuo: isQuo,
 			//thunks
-			thunkExp: thunkExp,
-			thunkSiz: thunkSiz,
+			fthunkExp: fthunkExp,
+			fthunkSiz: fthunkSiz,
 			isThunk: isThunk,
-			ttkSiz: ttkSiz,
-			ttkExp: ttkExp,
+			fttkSiz: fttkSiz,
+			fttkExp: fttkExp,
 			isTtk: isTtk,
 			//lambdas
-			lmbFrmSiz: lmbFrmSiz,
-			lmbArgc: lmbArgc,
-			lmbBdy: lmbBdy,
+			flmbFrmSiz: flmbFrmSiz,
+			flmbArgc: flmbArgc,
+			flmbBdy: flmbBdy,
 			isLmb: isLmb,
-			lmzFrmSiz: lmzFrmSiz,
-			lmzArgc: lmzArgc,
-			lmzBdy: lmzBdy,
+			flmzFrmSiz: flmzFrmSiz,
+			flmzArgc: flmzArgc,
+			flmzBdy: flmzBdy,
 			isLmz: isLmz,
 			//variable definitions
-			dfvOfs: dfvOfs,
-			dfvVal: dfvVal,
+			fdfvOfs: fdfvOfs,
+			fdfvVal: fdfvVal,
 			isDfv: isDfv,
 			//function definitions
-			dffBdy: dffBdy,
-			dffArgc: dffArgc,
-			dffFrmSiz: dffFrmSiz,
-			dffOfs: dffOfs,
-			dfzBdy: dfzBdy,
-			dfzArgc: dfzArgc,
-			dfzFrmSiz: dfzFrmSiz,
-			dfzOfs: dfzOfs,
+			fdffBdy: fdffBdy,
+			fdffArgc: fdffArgc,
+			fdffFrmSiz: fdffFrmSiz,
+			fdffOfs: fdffOfs,
+			fdfzBdy: fdfzBdy,
+			fdfzArgc: fdfzArgc,
+			fdfzFrmSiz: fdfzFrmSiz,
+			fdfzOfs: fdfzOfs,
 			isDff: isDff,
 			isDfz: isDfz,
 			//assignments
-			sglScp: sglScp,
-			sglOfs: sglOfs,
-			sglVal: sglVal,
-			slcOfs: slcOfs,
-			slcVal: slcVal,
+			fsglScp: fsglScp,
+			fsglOfs: fsglOfs,
+			fsglVal: fsglVal,
+			fslcOfs: fslcOfs,
+			fslcVal: fslcVal,
 			isSgl: isSgl,
 			isSlc: isSlc,
 			//local & global variables
-			localOfs: localOfs,
-			globalOfs: globalOfs,
+			flocalOfs: flocalOfs,
+			fglobalOfs: fglobalOfs,
 			isLocal: isLocal,
 			isGlobal: isGlobal,
 			//applications (zero arg)
-			apzOpr: apzOpr,
+			fapzOpr: fapzOpr,
 			isApz: isApz,
-			alzOfs: alzOfs,
+			falzOfs: falzOfs,
 			isAlz: isAlz,
-			agzOfs: agzOfs,
+			fagzOfs: fagzOfs,
 			isAgz: isAgz,
-			anzScp: anzScp,
-			anzOfs: anzOfs,
+			fanzScp: fanzScp,
+			fanzOfs: fanzOfs,
 			isAnz: isAnz,
 			//tail calls (zero arg)
-			tpzOpr: tplOpr,
+			ftpzOpr: ftplOpr,
 			isTpz: isTpz,
-			tlzOfs: tlzOfs,
+			ftlzOfs: ftlzOfs,
 			isTlz: isTlz,
-			tgzOfs: tgzOfs,
+			ftgzOfs: ftgzOfs,
 			isTgz: isTgz,
-			tnzScp: tnzScp,
-			tnzOfs: tnzOfs,
+			ftnzScp: ftnzScp,
+			ftnzOfs: ftnzOfs,
 			isTnz: isTnz,
 			//applications
-			aplOpr: aplOpr,
-			aplOpd: aplOpd,
+			faplOpr: faplOpr,
+			faplOpd: faplOpd,
 			isApl: isApl,
-			allOfs: allOfs,
-			allOpd: allOpd,
+			fallOfs: fallOfs,
+			fallOpd: fallOpd,
 			isAll: isAll,
-			aglOfs: aglOfs,
-			aglOpd: aglOpd,
+			faglOfs: faglOfs,
+			faglOpd: faglOpd,
 			isAgl: isAgl,
-			anlScp: anlScp,
-			anlOfs: anlOfs,
-			anlOpd: anlOpd,
+			fanlScp: fanlScp,
+			fanlOfs: fanlOfs,
+			fanlOpd: fanlOpd,
 			isAnl: isAnl,
 			//tail calls
-			tplOpr: tplOpr,
-			tplOpd: tplOpd,
+			ftplOpr: ftplOpr,
+			ftplOpd: ftplOpd,
 			isTpl: isTpl,
-			tllOfs: tllOfs,
-			tllOpd: tllOpd,
+			ftllOfs: ftllOfs,
+			ftllOpd: ftllOpd,
 			isTll: isTll,
-			tglOfs: tglOfs,
-			tglOpd: tglOpd,
+			ftglOfs: ftglOfs,
+			ftglOpd: ftglOpd,
 			isTgl: isTgl,
-			tnlScp: tnlScp,
-			tnlOfs: tnlOfs,
-			tnlOpd: tnlOpd,
+			ftnlScp: ftnlScp,
+			ftnlOfs: ftnlOfs,
+			ftnlOpd: ftnlOpd,
 			isTnl: isTnl,
 			//non-locals
-			nlcScp: nlcScp,
-			nlcOfs: nlcOfs,
+			fnlcScp: fnlcScp,
+			fnlcOfs: fnlcOfs,
 			isNlc: isNlc,
 			//sequence tail
-			stlExp: stlExp,
+			fstlExp: fstlExp,
 			isStl: isStl,
 
 			/**************/
@@ -5517,10 +5668,10 @@ function SLIP(callbacks, size) {
 		function link(asm, pool) {
 			makeString = asm.makeString;
 			stringSet = asm.stringSet;
-			makeNumber = asm.makeNumber;
+			makeNumber = asm.fmakeNumber;
 			makeFloat = asm.makeFloat;
-			claimSiz = asm.claimSiz;
-			claim = asm.claim;
+			claimSiz = asm.fclaimSiz;
+			claim = asm.fclaim;
 			enterPool = pool.enterPool;
 		}
 
@@ -5640,12 +5791,12 @@ function SLIP(callbacks, size) {
 			symbolLength = asm.symbolLength;
 			addToPool = asm.enterPool;
 			poolAt = asm.poolAt;
-			claimSiz = asm.claimSiz;
+			claimSiz = asm.fclaimSiz;
 		}
 
 		function buildSymbol(txt) {
 			var len = txt.length;
-			//claimSiz(len);
+			claimSiz(len);
 			var sym = makeSymbol(len);
 			for(var i = 0; i < len; ++i)
 				symbolSet(sym, i, txt.charCodeAt(i));
@@ -5828,22 +5979,22 @@ function SLIP(callbacks, size) {
 		var getTag, numberVal, floatNumber, charCode,
 		stringText, symbolLength, symbolAt,
 		pairCar, pairCdr, isPair, isNull,
-		vectorRef, vectorLength, ag;
+		vectorAt, vectorLength, ag;
 
 		function link(asm) {
-			getTag = asm.tag;
-			numberVal = asm.numberVal;
+			getTag = asm.ftag;
+			numberVal = asm.fnumberVal;
 			floatNumber = asm.floatNumber;
 			charCode = asm.charCode;
 			stringText = asm.stringText;
 			symbolLength = asm.symbolLength;
 			symbolAt = asm.symbolAt;
-			pairCar = asm.pairCar;
-			pairCdr = asm.pairCdr;
+			pairCar = asm.fpairCar;
+			pairCdr = asm.fpairCdr;
 			isPair = asm.isPair;
 			isNull = asm.isNull;
-			vectorRef = asm.vectorRef;
-			vectorLength = asm.vectorLength;
+			vectorAt = asm.vectorAt;
+			vectorLength = asm.fvectorLength;
 			ag = asm;
 		}
 
@@ -5872,135 +6023,135 @@ function SLIP(callbacks, size) {
 					return '#<procedure>'
 				case __LCL_TAG__:
 					return '#<local variable @ offset '
-								+ ag.localOfs(exp) + '>';
+								+ ag.flocalOfs(exp) + '>';
 				case __GLB_TAG__:
 					return '#<global variable @ offset: '
-								+ ag.globalOfs(exp) + '>';
+								+ ag.fglobalOfs(exp) + '>';
 				case __NLC_TAG__:
 					return '#<non-local variable @ scope-level/offset: '
-								+ ag.nlcScp(exp) + '/'
-								+ ag.nlcOfs(exp) + '>';
+								+ ag.fnlcScp(exp) + '/'
+								+ ag.fnlcOfs(exp) + '>';
 				case __SEQ_TAG__:
 					return '#<sequence '
 								+ printSequence(exp) + '>';
 				case __IFS_TAG__:
 					return '#<simple-if '
-								+ printExp(ag.ifsPredicate(exp)) + ' '
-								+ printExp(ag.ifsConsequence(exp)) + '>';
+								+ printExp(ag.fifsPredicate(exp)) + ' '
+								+ printExp(ag.fifsConsequence(exp)) + '>';
 				case __IFF_TAG__:
 					return '#<full-if '
-								+ printExp(ag.iffPredicate(exp)) + ' '
-								+ printExp(ag.iffConsequence(exp)) + ' '
-								+ printExp(ag.iffAlternative(exp)) + '>';
+								+ printExp(ag.fiffPredicate(exp)) + ' '
+								+ printExp(ag.fiffConsequence(exp)) + ' '
+								+ printExp(ag.fiffAlternative(exp)) + '>';
 				case __THK_TAG__:
 					return '#<thunk (size: '
-								+ printExp(ag.thunkSiz(exp)) + '; body: '
-								+ printExp(ag.thunkExp(exp)) + ')>';
+								+ printExp(ag.fthunkSiz(exp)) + '; body: '
+								+ printExp(ag.fthunkExp(exp)) + ')>';
 				case __TTK_TAG__:
 					return '#<thunk* (size: '
-								+ printExp(ag.ttkSiz(exp)) + '; body: '
-								+ printExp(ag.ttkExp(exp)) + ')>';
+								+ printExp(ag.fttkSiz(exp)) + '; body: '
+								+ printExp(ag.fttkExp(exp)) + ')>';
 				case __QUO_TAG__:
 					return '#<quote '
-								+ printExp(ag.quoExpression(exp)) + '>';
+								+ printExp(ag.fquoExpression(exp)) + '>';
 				case __LMB_TAG__:
 					return '#<lambda (argument count: '
-								+ printExp(ag.lmbArgc(exp)) + '; frame size: '
-								+ printExp(ag.lmbFrmSiz(exp)) + '; body: '
-								+ printExp(ag.lmbBdy(exp)) + ')>';
+								+ printExp(ag.flmbArgc(exp)) + '; frame size: '
+								+ printExp(ag.flmbFrmSiz(exp)) + '; body: '
+								+ printExp(ag.flmbBdy(exp)) + ')>';
 				case __LMZ_TAG__:
 					return '#<lambda (argument* count: '
-								+ printExp(ag.lmzArgc(exp)) + '; frame size: '
-								+ printExp(ag.lmzFrmSiz(exp)) + '; body: '
-								+ printExp(ag.lmzBdy(exp)) + ')>';
+								+ printExp(ag.flmzArgc(exp)) + '; frame size: '
+								+ printExp(ag.flmzFrmSiz(exp)) + '; body: '
+								+ printExp(ag.flmzBdy(exp)) + ')>';
 				case __DFV_TAG__:
 					return '#<variable definition @ offset '
-								+ printExp(ag.dfvOfs(exp)) + ' (value: '
-								+ printExp(ag.dfvVal(exp)) + ')>';
+								+ printExp(ag.fdfvOfs(exp)) + ' (value: '
+								+ printExp(ag.fdfvVal(exp)) + ')>';
 				case __DFF_TAG__:
 					return '#<function definition @ offset '
-								+ printExp(ag.dffOfs(exp)) + ' (argument count: '
-								+ printExp(ag.dffArgc(exp)) + '; frame size:  '
-								+ printExp(ag.dffFrmSiz(exp)) + '; body:  '
-								+ printExp(ag.dffBdy(exp)) + ')>';
+								+ printExp(ag.fdffOfs(exp)) + ' (argument count: '
+								+ printExp(ag.fdffArgc(exp)) + '; frame size:  '
+								+ printExp(ag.fdffFrmSiz(exp)) + '; body:  '
+								+ printExp(ag.fdffBdy(exp)) + ')>';
 				case __DFZ_TAG__:
 					return '#<function definition @ offset '
-							 + printExp(ag.dfzOfs(exp)) + ' (argument* count: '
-							 + printExp(ag.dfzArgc(exp)) + '; frame size:  '
-							 + printExp(ag.dfzFrmSiz(exp)) + '; body:  '
-							 + printExp(ag.dfzBdy(exp)) + ')>';
+							 + printExp(ag.fdfzOfs(exp)) + ' (argument* count: '
+							 + printExp(ag.fdfzArgc(exp)) + '; frame size:  '
+							 + printExp(ag.fdfzFrmSiz(exp)) + '; body:  '
+							 + printExp(ag.fdfzBdy(exp)) + ')>';
 				case __SGL_TAG__:
 					return '#<assignment @ scope-level/offset: '
-								+ printExp(ag.sglScp(exp)) + '/'
-								+ printExp(ag.sglOfs(exp)) + ' (value: '
-								+ printExp(ag.sglVal(exp)) + ')>';
+								+ printExp(ag.fsglScp(exp)) + '/'
+								+ printExp(ag.fsglOfs(exp)) + ' (value: '
+								+ printExp(ag.fsglVal(exp)) + ')>';
 				case __SLC_TAG__:
 					return '#<local assignment @ offset: '
-								+ printExp(ag.slcOfs(exp)) + ' (value: '
-								+ printExp(ag.slcVal(exp)) + ')>';
+								+ printExp(ag.fslcOfs(exp)) + ' (value: '
+								+ printExp(ag.fslcVal(exp)) + ')>';
 				case __APZ_TAG__:
 					return '#<application (zero argument): '
-								+ printExp(ag.apzOpr(exp)) + '>';
+								+ printExp(ag.fapzOpr(exp)) + '>';
 				case __ALZ_TAG__:
 					return '#<local application (zero argument) @ offset '
-								+ ag.alzOfs(exp) + '>';
+								+ ag.falzOfs(exp) + '>';
 				case __ANZ_TAG__:
 					return '#<non-local application (zero argument) @ scope/offset: '
-								+ ag.anzScp(exp) + '/'
-								+ ag.anzOfs(exp) + '>'
+								+ ag.fanzScp(exp) + '/'
+								+ ag.fanzOfs(exp) + '>'
 				case __AGZ_TAG__:
 					return '#<global application (zero argument) @ offset '
-								+ ag.agzOfs(exp) + '>';
+								+ ag.fagzOfs(exp) + '>';
 				case __TPZ_TAG__:
 					return '#<tail call (zero argument): '
-								+ printExp(ag.tpzOpr(exp)) + '>';
+								+ printExp(ag.ftpzOpr(exp)) + '>';
 				case __TLZ_TAG__:
 					return '#<local tail call (zero argument) @ offset '
-								+ ag.tlzOfs(exp) + '>';
+								+ ag.ftlzOfs(exp) + '>';
 				case __TNZ_TAG__:
 					return '#<non-local tail call (zero argument) @ scope/offset: '
-								+ ag.tnzScp(exp) + '/'
-								+ ag.tnzOfs(exp) + '>'
+								+ ag.ftnzScp(exp) + '/'
+								+ ag.ftnzOfs(exp) + '>'
 				case __TGZ_TAG__:
 					return '#<global tail call (zero argument) @ offset '
-								+ ag.tgzOfs(exp) + '>';
+								+ ag.ftgzOfs(exp) + '>';
 				case __APL_TAG__:
 					return '#<application '
-								+ printExp(ag.aplOpr(exp)) + ' @ '
-								+ printExp(ag.aplOpd(exp)) + '>';				
+								+ printExp(ag.faplOpr(exp)) + ' @ '
+								+ printExp(ag.faplOpd(exp)) + '>';				
 				case __ALL_TAG__:
 					return '#<local application (offset: '
-								+ printExp(ag.allOfs(exp)) + ') @ '
-								+ printExp(ag.allOpd(exp)) + '>';
+								+ printExp(ag.fallOfs(exp)) + ') @ '
+								+ printExp(ag.fallOpd(exp)) + '>';
 				case __ANL_TAG__:
 					return '#<non-local application (scope/offset: '
-								+ printExp(ag.anlScp(exp)) + '/'
-								+ printExp(ag.anlOfs(exp)) + ') @ '
-								+ printExp(ag.anlOpd(exp)) + '>';
+								+ printExp(ag.fanlScp(exp)) + '/'
+								+ printExp(ag.fanlOfs(exp)) + ') @ '
+								+ printExp(ag.fanlOpd(exp)) + '>';
 				case __AGL_TAG__:
 					return '#<global application (offset: '
-								+ printExp(ag.aglOfs(exp)) + ') @'
-								+ printExp(ag.aglOpd(exp)) + '>';
+								+ printExp(ag.faglOfs(exp)) + ') @'
+								+ printExp(ag.faglOpd(exp)) + '>';
 				case __TPL_TAG__:
 					return '#<tail call '
-								+ printExp(ag.tplOpr(exp)) + ' @ '
-								+ printExp(ag.tplOpd(exp)) + '>';
+								+ printExp(ag.ftplOpr(exp)) + ' @ '
+								+ printExp(ag.ftplOpd(exp)) + '>';
 				case __TLL_TAG__:
 					return '#<local tail call (offset '
-								+ printExp(ag.tllOfs(exp)) + ') @ '
-								+ printExp(ag.tllOpd(exp)) + '>';				
+								+ printExp(ag.ftllOfs(exp)) + ') @ '
+								+ printExp(ag.ftllOpd(exp)) + '>';				
 				case __TNL_TAG__:
 					return '#<non-local tail call (scope/offset: '
-								+ printExp(ag.tnlScp(exp)) + '/'
-								+ printExp(ag.tnlOfs(exp)) + ') @ '
-								+ printExp(ag.tnlOpd(exp)) + '>';
+								+ printExp(ag.ftnlScp(exp)) + '/'
+								+ printExp(ag.ftnlOfs(exp)) + ') @ '
+								+ printExp(ag.ftnlOpd(exp)) + '>';
 				case __TGL_TAG__:
 					return '#<global tail call (offset: '
-								+ printExp(ag.tglOfs(exp)) + ') @'
-								+ printExp(ag.tglOpd(exp)) + '>';
+								+ printExp(ag.ftglOfs(exp)) + ') @'
+								+ printExp(ag.ftglOpd(exp)) + '>';
 				case __STL_TAG__:
 					return '#<sequence tail (body: '
-								+ printExp(ag.stlExp(exp)) + ')>';
+								+ printExp(ag.fstlExp(exp)) + ')>';
 				default:
 					return '<unknown expression (tag: ' + tag + ')>';
 			}
@@ -6044,9 +6195,9 @@ function SLIP(callbacks, size) {
 				return "#()";
 			var str = "#(";
 			for(var idx = 1; idx < len; ++idx) {
-				str += printExp(vectorRef(exp, idx)) + ' ';
+				str += printExp(vectorAt(exp, idx)) + ' ';
 			}
-			str += printExp(vectorRef(exp, len)) + ')';
+			str += printExp(vectorAt(exp, len)) + ')';
 			return str;
 		}
 
@@ -6369,8 +6520,6 @@ function SLIP(callbacks, size) {
 
 	//asm module
 	var asm = SLIP_ASM(callbacks.stdlib, foreign, buffer);
-	asm.makeNumber = asm.makeNumber;
-	asm.numberVal = asm.numberVal;
 	asm.stringText = function(chk) {
 		var len = asm.stringLength(chk);
 		var arr = new Array(len);

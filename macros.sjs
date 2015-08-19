@@ -82,6 +82,13 @@ macro halt {
     rule {} => {return 0}
 }
 
+macro makeFun {
+    case {_($lab)} => {
+        var label = unwrapSyntax(#{$lab});
+        return [makeIdent('f'+label, #{here})];
+    }
+}
+
 macro struct {
     case {
             _ $nam {
@@ -115,22 +122,38 @@ macro generate {
     case { _ $get => $idx }
         => { 
           letstx $g = [makeIdent('chunkGet', #{$get})];
-          return #{ 
-            function $get(chk) {
+          return #{
+            macro $get {
+              rule {($chk:expr)} => {
+                $g($chk,$idx)
+              }
+            }
+            function makeFun($get)(chk) {
                 chk = chk|0;
-                return $g(chk, $idx)|0
-            }}
+                return $g(chk, $idx)|0;
+            }
           }
+        }
     case { _ $get, $set => $idx }
         => { 
             letstx $g = [makeIdent('chunkGet', #{$get})];
             letstx $s = [makeIdent('chunkSet', #{$set})];
             return #{
-              function $get(chk) {
-                chk = chk|0;
-                return $g(chk, $idx)|0
+              macro $get {
+                rule {($chk:expr)} => {
+                  $g($chk,$idx)
+                }
               }
-              function $set(chk, val) {
+              function makeFun($get)(chk) {
+                  chk = chk|0;
+                  return $g(chk, $idx)|0;
+              }
+              macro $set {
+                rule {($chk:expr, $val:expr)} => {
+                  $s($chk,$idx,$val)
+                }
+              }
+              function makeFun($set)(chk, val) {
                 chk = chk|0;
                 val = val|0;
                 $s(chk, $idx, val)
