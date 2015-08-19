@@ -1406,7 +1406,7 @@ function SLIP(callbacks, size) {
 		function preserveEnv() {
 			if((KON|0) != E_c_return) {
 				STKALLOC(3);
-				STK[2] = makeNumber(KON)|0;
+				STK[2] = KON;
 				STK[1] = ENV;
 				STK[0] = FRM;
 				KON = E_c_return;
@@ -2126,12 +2126,12 @@ function SLIP(callbacks, size) {
 
 				if(isNull(LST)|0) {
 					STKALLOC(2);
-					STK[1] = makeNumber(KON)|0;
+					STK[1] = KON;
 					STK[0] = __NULL__;
 					KON = N_c1_map;
 				} else {
 					STKALLOC(4);
-					STK[3] = makeNumber(KON)|0;
+					STK[3] = KON;
 					STK[2] = __NULL__;
 					STK[1] = VAL;
 					STK[0] = LST;
@@ -2151,7 +2151,7 @@ function SLIP(callbacks, size) {
 				claim();
 				EXP = STK[0]|0;
 				STKALLOC(2);
-				STK[2] = makeNumber(KON)|0;
+				STK[2] = KON;
 				STK[1] = ENV;
 				STK[0] = FRM;
 				KON = N_c_eval;
@@ -2479,7 +2479,7 @@ function SLIP(callbacks, size) {
 					case __NAT_TAG__:
 					case __CNT_TAG__:
 						ARG = currentStack()|0;
-						ARG = makeContinuation(makeNumber(KON)|0, FRM, ENV, ARG)|0;
+						ARG = makeContinuation(KON, FRM, ENV, ARG)|0;
 						ARG = makePair(ARG, __NULL__)|0;
 						goto N_apply();
 				}
@@ -2603,7 +2603,7 @@ function SLIP(callbacks, size) {
 
 				claim();
 				STKALLOC(2);
-				STK[2] = makeNumber(KON)|0;
+				STK[2] = KON;
 				STK[1] = ENV;
 				STK[0] = FRM;
 				KON = N_c1_load;
@@ -2815,7 +2815,7 @@ function SLIP(callbacks, size) {
 					goto KON|0;
 				}
 				claim();
-				push(makeNumber(KON)|0);
+				push(KON);
 				push(__ZERO__);
 				KON = R_c1_LBR;
 				goto R_read;
@@ -2857,7 +2857,7 @@ function SLIP(callbacks, size) {
 					claim();
 					VAL = makePair(pop()|0, VAL)|0;
 				}
-				KON = numberVal(pop()|0)|0;
+				KON = pop()|0;
 				goto KON|0;
 			}
 
@@ -2865,7 +2865,7 @@ function SLIP(callbacks, size) {
 
 				claim();
 				skip();
-				push(makeNumber(KON)|0);
+				push(KON);
 				KON = R_c_QUO;
 				goto R_read;
 			}
@@ -2875,7 +2875,7 @@ function SLIP(callbacks, size) {
 				claim();
 				VAL = makePair(VAL, __NULL__)|0;
 				VAL = makePair(__QUO_SYM__, VAL)|0;
-				KON = numberVal(pop()|0)|0;
+				KON = pop()|0;
 				goto KON|0;
 			}
 
@@ -2899,7 +2899,7 @@ function SLIP(callbacks, size) {
 							VAL = makePair(__VEC_SYM__, __NULL__)|0;
 							goto KON|0;
 						}
-						push(makeNumber(KON)|0);
+						push(KON);
 						push(__ONE__);
 						KON = R_c_vector;
 						goto R_read;
@@ -2919,7 +2919,7 @@ function SLIP(callbacks, size) {
 					for(LEN=(LEN-1)|0;LEN;LEN=(LEN-1)|0)
 						VAL = makePair(pop()|0, VAL)|0;
 					VAL = makePair(__VEC_SYM__, VAL)|0;
-					KON = numberVal(pop()|0)|0;
+					KON = pop()|0;
 					goto KON|0;
 				}
 
@@ -2977,7 +2977,7 @@ function SLIP(callbacks, size) {
 
 				if(OFS) {
 					if(SCP) {						
-						VAL = ((currentScpLvl|0) == 1?
+						VAL = ((SCP|0) == 1?
 								(makeGlobal(OFS)|0):
 								(makeNlc(SCP,OFS)|0));
 					} else {
@@ -3008,7 +3008,7 @@ function SLIP(callbacks, size) {
 				if(!(isNull(LST)|0)) {
 					claim();
 					STKALLOC(4);
-					STK[3] = makeNumber(KON)|0;
+					STK[3] = KON;
 					STK[2] = __ONE__;
 					STK[1] = LST;
 					STK[0] = TLC;
@@ -3057,7 +3057,7 @@ function SLIP(callbacks, size) {
 				sequenceSet(VAL,LEN,EXP);
 				for(LEN=(LEN-1)|0;LEN;LEN=(LEN-1)|0)
 					sequenceSet(VAL,LEN,pop()|0);
-				KON = numberVal(pop()|0)|0;
+				KON = pop()|0;
 				goto KON|0;
 			}
 
@@ -3087,7 +3087,7 @@ function SLIP(callbacks, size) {
 				enterScope();
 				push(EXP);
 				push(TLC);
-				push(makeNumber(KON)|0);
+				push(KON);
 				TLC = __TRUE__;
 				KON = C_c_compileInline;
 				goto C_compile;
@@ -3096,7 +3096,7 @@ function SLIP(callbacks, size) {
 			C_c_compileInline {
 
 				SIZ = exitScope()|0;
-				KON = numberVal(pop()|0)|0;
+				KON = pop()|0;
 				TLC = pop()|0;
 				EXP = pop()|0;
 
@@ -3128,7 +3128,7 @@ function SLIP(callbacks, size) {
 				}
 
 				claim();
-				push(makeNumber(KON)|0);
+				push(KON);
 				push(LST);
 				push(TLC);
 				TLC = __FALSE__;
@@ -3165,7 +3165,7 @@ function SLIP(callbacks, size) {
 
 				claim();
 				VAL = makeIfs(pop()|0, VAL)|0;
-				KON = numberVal(pop()|0)|0;
+				KON = pop()|0;
 				goto KON|0;
 			}
 
@@ -3191,7 +3191,7 @@ function SLIP(callbacks, size) {
 				claim();
 				EXP = pop()|0;
 				VAL = makeIff(pop()|0, EXP, VAL)|0;
-				KON = numberVal(pop()|0)|0;
+				KON = pop()|0;
 				goto KON|0;
 			}			
 
@@ -3221,7 +3221,7 @@ function SLIP(callbacks, size) {
 				PAT = pairCar(LST)|0;
 				LST = pairCdr(LST)|0;
 
-				push(makeNumber(KON)|0);
+				push(KON);
 
 				switch(tag(PAT)|0) {
 
@@ -3265,7 +3265,7 @@ function SLIP(callbacks, size) {
 
 				claim();
 				OFS = pop()|0;
-				KON = numberVal(pop()|0)|0;
+				KON = pop()|0;
 				VAL = makeDfv(OFS, VAL)|0;
 				goto KON|0;
 			}
@@ -3304,7 +3304,7 @@ function SLIP(callbacks, size) {
 				TMP = pop()|0; 							//argument count
 				OFS = pop()|0;							//offset
 				VAL = makeDff(OFS, TMP, SIZ, VAL)|0;
-				KON = numberVal(pop()|0)|0;
+				KON = pop()|0;
 				goto KON|0;
 			}
 
@@ -3315,7 +3315,7 @@ function SLIP(callbacks, size) {
 				TMP = pop()|0; 							//argument count
 				OFS = pop()|0;							//offset
 				VAL = makeDfz(OFS, TMP, SIZ, VAL)|0;
-				KON = numberVal(pop()|0)|0;
+				KON = pop()|0;
 				goto KON|0;
 			}
 
@@ -3353,7 +3353,7 @@ function SLIP(callbacks, size) {
 				//NOTE: original C implementation first compiles expression...
 				//... then looks up the pattern, so that statements such as:
 				//(set! x (begin (define x 2) 'foo)) are valid.
-				push(makeNumber(KON)|0);
+				push(KON);
 				push(PAT);
 				TLC = __FALSE__;
 				KON = C_c_set;
@@ -3374,7 +3374,7 @@ function SLIP(callbacks, size) {
 					} else {
 						VAL = makeSlc(OFS, VAL)|0;
 					}
-					KON = numberVal(pop()|0)|0;
+					KON = pop()|0;
 					goto KON|0;
 				}
 
@@ -3392,7 +3392,7 @@ function SLIP(callbacks, size) {
 				claim();
 				enterScope();
 				PAR = pairCar(LST)|0;
-				push(makeNumber(KON)|0);
+				push(KON);
 				push(pairCdr(LST)|0);
 				KON = C_c1_lambda;
 				goto C_compileParameters;
@@ -3431,7 +3431,7 @@ function SLIP(callbacks, size) {
 				SIZ = makeNumber(exitScope()|0)|0;
 				TMP = pop()|0;
 				VAL = makeLmb(TMP, SIZ, VAL)|0;
-				KON = numberVal(pop()|0)|0;
+				KON = pop()|0;
 				goto KON|0;
 			}
 
@@ -3441,14 +3441,14 @@ function SLIP(callbacks, size) {
 				SIZ = makeNumber(exitScope()|0)|0;
 				TMP = pop()|0;
 				VAL = makeLmz(TMP, SIZ, VAL)|0;
-				KON = numberVal(pop()|0)|0;
+				KON = pop()|0;
 				goto KON|0;
 			}
 
 			C_compileApplication {
 
 				claim();
-				push(makeNumber(KON)|0);
+				push(KON);
 
 				if(isNull(LST)|0) {
 					KON = C_c1_application;
@@ -3468,7 +3468,7 @@ function SLIP(callbacks, size) {
 
 				claim();
 				TLC = pop()|0;
-				KON = numberVal(pop()|0)|0;
+				KON = pop()|0;
 
 				switch(tag(VAL)|0) {
 
@@ -3540,7 +3540,7 @@ function SLIP(callbacks, size) {
 		 		for(LEN=(LEN-1)|0;LEN;LEN=(LEN-1)|0)
 		 			vectorSet(EXP, LEN, pop()|0)
 		 		VAL = pop()|0;
-		 		KON = numberVal(pop()|0)|0;
+		 		KON = pop()|0;
 
 		 		switch(tag(VAL)|0) {
 
@@ -3678,7 +3678,7 @@ function SLIP(callbacks, size) {
 				
 				claim();
 				STKALLOC(2);
-				STK[1] = makeNumber(KON)|0;
+				STK[1] = KON;
 				STK[0] = slcOfs(EXP)|0;
 				EXP = slcVal(EXP)|0;
 				KON = E_c_setLocal;
@@ -3688,7 +3688,7 @@ function SLIP(callbacks, size) {
 			E_c_setLocal {
 
 				OFS = numberVal(STK[0]|0)|0;
-				KON = numberVal(STK[1]|0)|0;
+				KON = STK[1]|0;
 				vectorSet(FRM, OFS, VAL);
 				STKUNWIND(2);
 				goto KON|0;
@@ -3698,7 +3698,7 @@ function SLIP(callbacks, size) {
 
 				claim();
 				STKALLOC(3);
-				STK[2] = makeNumber(KON)|0;
+				STK[2] = KON;
 				STK[1] = sglScp(EXP)|0;
 				STK[0] = sglOfs(EXP)|0;
 				EXP = sglVal(EXP)|0;
@@ -3710,7 +3710,7 @@ function SLIP(callbacks, size) {
 
 				OFS = numberVal(STK[0]|0)|0;
 				SCP = numberVal(STK[1]|0)|0;
-				KON = numberVal(STK[2]|0)|0;
+				KON = STK[2]|0;
 				vectorSet(vectorRef(ENV,SCP)|0,OFS,VAL);
 				STKUNWIND(3);
 				goto KON|0;
@@ -3720,7 +3720,7 @@ function SLIP(callbacks, size) {
 
 				claim();
 				STKALLOC(2);
-				STK[1] = makeNumber(KON)|0;
+				STK[1] = KON;
 				STK[0] = dfvOfs(EXP)|0;
 				EXP = dfvVal(EXP)|0;
 				KON = E_c_evalDfv;
@@ -3730,7 +3730,7 @@ function SLIP(callbacks, size) {
 			E_c_evalDfv {
 
 				OFS = numberVal(STK[0]|0)|0;
-				KON = numberVal(STK[1]|0)|0;
+				KON = STK[1]|0;
 				vectorSet(FRM, OFS, VAL);
 				STKUNWIND(2);
 				goto KON|0;
@@ -3764,7 +3764,7 @@ function SLIP(callbacks, size) {
 
 				claim();
 				STKALLOC(3);
-				STK[2] = makeNumber(KON)|0;
+				STK[2] = KON;
 				STK[1] = EXP;
 				STK[0] = __TWO__;
 				EXP = sequenceAt(EXP, 1)|0;
@@ -3783,7 +3783,7 @@ function SLIP(callbacks, size) {
 			E_evalStl {
 
 				EXP = stlExp(EXP)|0;
-				KON = numberVal(STK[2]|0)|0;
+				KON = STK[2]|0;
 				STKUNWIND(3);
 				goto E_eval();
 			}
@@ -3792,7 +3792,7 @@ function SLIP(callbacks, size) {
 
 				claim();
 				STKALLOC(2);
-				STK[1] = makeNumber(KON)|0;
+				STK[1] = KON;
 				STK[0] = ifsConsequence(EXP)|0;
 				EXP = ifsPredicate(EXP)|0;
 				KON = E_c_ifs;
@@ -3801,7 +3801,7 @@ function SLIP(callbacks, size) {
 
 			E_c_ifs {
 
-				KON = numberVal(STK[1]|0)|0;		
+				KON = STK[1]|0;		
 
 				if((VAL|0) != __FALSE__) {
 					EXP = STK[0]|0;
@@ -3818,7 +3818,7 @@ function SLIP(callbacks, size) {
 
 				claim();
 				STKALLOC(2);
-				STK[1] = makeNumber(KON)|0;
+				STK[1] = KON;
 				STK[0] = EXP;
 				EXP = iffPredicate(EXP)|0;
 				KON = E_c_iff;
@@ -3830,7 +3830,7 @@ function SLIP(callbacks, size) {
 				EXP = ((VAL|0) == __FALSE__? 
 						iffAlternative(STK[0]|0)|0: 
 						iffConsequence(STK[0]|0)|0);
-				KON = numberVal(STK[1]|0)|0;
+				KON = STK[1]|0;
 				STKUNWIND(2);
 				goto E_eval();
 			}
@@ -3850,7 +3850,7 @@ function SLIP(callbacks, size) {
 				SIZ = numberVal(thunkSiz(EXP)|0)|0;
 				claimSiz(SIZ);
 				STKALLOC(3);
-				STK[2] = makeNumber(KON)|0;
+				STK[2] = KON;
 				STK[1] = ENV;
 				STK[0] = FRM;
 				ENV = extendEnv()|0;
@@ -3885,7 +3885,7 @@ function SLIP(callbacks, size) {
 
 				claim();
 				STKALLOC(1);
-				STK[0] = makeNumber(KON)|0;
+				STK[0] = KON;
 				EXP = apzOpr(EXP)|0;
 				KON = E_c_evalApz;
 				goto E_eval();
@@ -3893,7 +3893,7 @@ function SLIP(callbacks, size) {
 
 			E_c_evalApz {
 
-				KON = numberVal(STK[0]|0)|0;
+				KON = STK[0]|0;
 				STKUNWIND(1);
 				goto E_evalAZ();
 			}
@@ -3910,7 +3910,7 @@ function SLIP(callbacks, size) {
 						SIZ = numberVal(prcFrmSiz(VAL)|0)|0;
 						claimSiz(SIZ);
 						STKALLOC(3);
-						STK[2] = makeNumber(KON)|0;
+						STK[2] = KON;
 						STK[1] = ENV;
 						STK[0] = FRM;
 						FRM = (SIZ? (fillVector(SIZ, __VOID__)|0):__EMPTY_VEC__)
@@ -3927,7 +3927,7 @@ function SLIP(callbacks, size) {
 						SIZ = numberVal(przFrmSiz(VAL)|0)|0;
 						claimSiz(SIZ);
 						STKALLOC(3);
-						STK[2] = makeNumber(KON)|0;
+						STK[2] = KON;
 						STK[1] = ENV;
 						STK[0] = FRM;
 						FRM = fillVector(SIZ, __NULL__)|0;
@@ -3974,7 +3974,7 @@ function SLIP(callbacks, size) {
 
 				claim();
 				STKALLOC(1);
-				STK[0] = makeNumber(KON)|0;
+				STK[0] = KON;
 				EXP = tpzOpr(EXP)|0;
 				KON = E_c_evalTpz;
 				goto E_eval();
@@ -3982,7 +3982,7 @@ function SLIP(callbacks, size) {
 
 			E_c_evalTpz {
 
-				KON = numberVal(STK[0]|0)|0;
+				KON = STK[0]|0;
 				STKUNWIND(1);
 				goto E_evalTZ();
 			}
@@ -4060,7 +4060,7 @@ function SLIP(callbacks, size) {
 
 				claim();
 				STKALLOC(2);
-				STK[1] = makeNumber(KON)|0;
+				STK[1] = KON;
 				STK[0] = aplOpd(EXP)|0;
 				EXP = aplOpr(EXP)|0;
 				KON = E_c_evalApl;
@@ -4070,7 +4070,7 @@ function SLIP(callbacks, size) {
 			E_c_evalApl {
 
 				ARG = STK[0]|0;
-				KON = numberVal(STK[1]|0)|0;
+				KON = STK[1]|0;
 				STKUNWIND(2);
 				goto E_evalAL();
 			}
@@ -4089,7 +4089,7 @@ function SLIP(callbacks, size) {
 						claimSiz(SIZ);
 						PAR = fillVector(SIZ, __VOID__)|0;
 						STKALLOC(3);
-						STK[2] = makeNumber(KON)|0;
+						STK[2] = KON;
 						STK[1] = ENV;
 						STK[0] = FRM;
 						KON = E_c_return;
@@ -4105,7 +4105,7 @@ function SLIP(callbacks, size) {
 						claimSiz(SIZ);
 						PAR = fillVector(SIZ, __NULL__)|0;
 						STKALLOC(3);
-						STK[2] = makeNumber(KON)|0;
+						STK[2] = KON;
 						STK[1] = ENV;
 						STK[0] = FRM;
 						KON = E_c_return;
@@ -4162,7 +4162,7 @@ function SLIP(callbacks, size) {
 
 				claim();
 				STKALLOC(2);
-				STK[1] = makeNumber(KON)|0;
+				STK[1] = KON;
 				STK[0] = tplOpd(EXP)|0;
 				EXP = tplOpr(EXP)|0;
 				KON = E_c_evalTpl;
@@ -4172,7 +4172,7 @@ function SLIP(callbacks, size) {
 			E_c_evalTpl {
 
 				ARG = STK[0]|0;
-				KON = numberVal(STK[1]|0)|0;
+				KON = STK[1]|0;
 				STKUNWIND(2);
 				goto E_evalTL();
 			}
@@ -4267,7 +4267,7 @@ function SLIP(callbacks, size) {
 						goto E_eval();	 
 				}
 
-				KON = numberVal(continuationKon(VAL)|0)|0;
+				KON = continuationKon(VAL)|0;
 				PAR = continuationStk(VAL)|0;
 				FRM = continuationFrm(VAL)|0;
 				ENV = continuationEnv(VAL)|0;
@@ -4279,7 +4279,7 @@ function SLIP(callbacks, size) {
 			E_c_continuationArg {
 
 				EXP = STK[0]|0; //no need to unwind
-				KON = numberVal(continuationKon(EXP)|0)|0;
+				KON = continuationKon(EXP)|0;
 				PAR = continuationStk(EXP)|0;
 				FRM = continuationFrm(EXP)|0;
 				ENV = continuationEnv(EXP)|0;
@@ -4321,7 +4321,7 @@ function SLIP(callbacks, size) {
 							if((TMP|0) == (LEN|0)) { //last argument
 								STK[IDX] = __VOID__; //for GC
 								STKALLOC(3);
-								STK[2] = makeNumber(KON)|0;
+								STK[2] = KON;
 								STK[1] = VAL;
 								STK[0] = makeNumber(TMP)|0;
 								KON = E_applyNative;
@@ -4329,7 +4329,7 @@ function SLIP(callbacks, size) {
 								for(;(IDX|0)<(LEN|0);IDX=(IDX+1)|0)
 									STK[IDX] = __VOID__;
 								STKALLOC(4);								
-								STK[3] = makeNumber(KON)|0;
+								STK[3] = KON;
 								STK[2] = VAL;
 								STK[1] = makeNumber(TMP)|0;
 								STK[0] = ARG;
@@ -4396,7 +4396,7 @@ function SLIP(callbacks, size) {
 				}
 				
 				VAL = STK[2]|0;
-				KON = numberVal(STK[3]|0)|0;
+				KON = STK[3]|0;
 				STKUNWIND(4);
 				goto nativePtr(VAL)|0;
 			}
@@ -4406,7 +4406,7 @@ function SLIP(callbacks, size) {
 				LEN = numberVal(STK[0]|0)|0;
 				STK[LEN+2] = VAL;
 				VAL = STK[1]|0;
-				KON = numberVal(STK[2]|0)|0;
+				KON = STK[2]|0;
 				STKUNWIND(3);
 				goto nativePtr(VAL)|0;
 			}
@@ -4451,14 +4451,14 @@ function SLIP(callbacks, size) {
 							claim();
 							if((IDX|0) == (LEN|0)) { //last argument
 								STKALLOC(4);
-								STK[3] = makeNumber(KON)|0;
+								STK[3] = KON;
 								STK[2] = VAL;
 								STK[1] = PAR;
 								STK[0] = makeNumber(IDX)|0;
 								KON = E_prcApply;
 							} else {
 								STKALLOC(5);
-								STK[4] = makeNumber(KON)|0;
+								STK[4] = KON;
 								STK[3] = VAL;
 								STK[2] = PAR;
 								STK[1] = makeNumber(IDX)|0;
@@ -4531,7 +4531,7 @@ function SLIP(callbacks, size) {
 				VAL = STK[3]|0;
 				ENV = prcEnv(VAL)|0;
 				EXP = prcBdy(VAL)|0;
-				KON = numberVal(STK[4]|0)|0;
+				KON = STK[4]|0;
 				STKUNWIND(5);
 				goto E_eval();
 			}
@@ -4545,7 +4545,7 @@ function SLIP(callbacks, size) {
 				FRM = PAR;
 				ENV = prcEnv(EXP)|0;
 				EXP = prcBdy(EXP)|0;
-				KON = numberVal(STK[3]|0)|0;
+				KON = STK[3]|0;
 				STKUNWIND(4);
 				goto E_eval();
 			}
@@ -4591,14 +4591,14 @@ function SLIP(callbacks, size) {
 							if((IDX|0) == (LEN|0)) { 					//last mandatory argument
 								if((IDX|0) == (vectorLength(ARG)|0)) {	//last argument
 									STKALLOC(4);
-									STK[3] = makeNumber(KON)|0;
+									STK[3] = KON;
 									STK[2] = VAL;
 									STK[1] = PAR;
 									STK[0] = makeNumber(IDX)|0;
 									KON = E_przApply;
 								} else {									
 									STKALLOC(5);
-									STK[4] = makeNumber(KON)|0;
+									STK[4] = KON;
 									STK[3] = VAL;
 									STK[2] = PAR;
 									STK[1] = makeNumber(IDX)|0;
@@ -4607,7 +4607,7 @@ function SLIP(callbacks, size) {
 								}
 							} else {									
 								STKALLOC(6);
-								STK[5] = makeNumber(KON)|0;
+								STK[5] = KON;
 								STK[4] = VAL;
 								STK[3] = PAR;
 								STK[2] = makeNumber(IDX)|0;
@@ -4692,7 +4692,7 @@ function SLIP(callbacks, size) {
 					FRM = PAR;
 					ENV = przEnv(VAL)|0;
 					EXP = przBdy(VAL)|0;
-					KON = numberVal(STK[5]|0)|0;
+					KON = STK[5]|0;
 					STKUNWIND(6);
 					goto E_eval();
 				}
@@ -4753,14 +4753,14 @@ function SLIP(callbacks, size) {
 						default:
 							if((IDX|0) == (SIZ|0)) {
 								STKALLOC(4);
-								STK[3] = makeNumber(KON)|0;
+								STK[3] = KON;
 								STK[2] = VAL;
 								STK[1] = PAR;
 								STK[0] = makeNumber(LEN)|0; 			
 								KON = E_przApplyVarArgs;	
 							} else {
 								STKALLOC(6);
-								STK[5] = makeNumber(KON)|0;
+								STK[5] = KON;
 								STK[4] = VAL;
 								STK[3] = PAR;
 								STK[2] = makeNumber(LEN)|0; 	
@@ -4846,7 +4846,7 @@ function SLIP(callbacks, size) {
 				FRM = PAR;
 				ENV = przEnv(VAL)|0;
 				EXP = przBdy(VAL)|0;
-				KON = numberVal(STK[1]|0)|0;
+				KON = STK[1]|0;
 				STKUNWIND(2);
 				goto E_eval();
 			}
@@ -4875,7 +4875,7 @@ function SLIP(callbacks, size) {
 				FRM = PAR;
 				ENV = przEnv(EXP)|0;
 				EXP = przBdy(EXP)|0;
-				KON = numberVal(STK[3]|0)|0;
+				KON = STK[3]|0;
 				STKUNWIND(4);
 				goto E_eval();
 			}
@@ -4889,7 +4889,7 @@ function SLIP(callbacks, size) {
 				FRM = PAR;
 				ENV = przEnv(EXP)|0;
 				EXP = przBdy(EXP)|0;
-				KON = numberVal(STK[3]|0)|0;
+				KON = STK[3]|0;
 				STKUNWIND(4);
 				goto E_eval();
 			}
@@ -4900,7 +4900,7 @@ function SLIP(callbacks, size) {
 
 				FRM = STK[0]|0;
 				ENV = STK[1]|0;
-				KON = numberVal(STK[2]|0)|0;
+				KON = STK[2]|0;
 				STKUNWIND(3);
 				goto KON|0;
 			}
@@ -4979,7 +4979,7 @@ function SLIP(callbacks, size) {
 
 				claim();
 				VAL = reverse(makePair(VAL,STK[0]|0)|0)|0;
-				KON = numberVal(STK[1]|0)|0;
+				KON = STK[1]|0;
 				STKUNWIND(2);
 				goto KON|0;
 			}
@@ -5081,7 +5081,7 @@ function SLIP(callbacks, size) {
 							err_invalidParamCount();
 							goto error;
 						}
-						KON = numberVal(continuationKon(VAL)|0)|0;
+						KON = continuationKon(VAL)|0;
 						FRM = continuationFrm(VAL)|0;
 						PAR = continuationStk(VAL)|0;
 						ENV = continuationEnv(VAL)|0; 
@@ -5174,14 +5174,14 @@ function SLIP(callbacks, size) {
 				STK[1] = pairCdr(ARG)|0;
 				EXP = pairCar(EXP)|0;
 				ARG = pairCar(ARG)|0;
-				STK[0] = makeNumber(KON)|0;
+				STK[0] = KON;
 				KON = N_c_comparePair;
 				goto N_compare;
 			}
 
 			N_c_comparePair {
 
-				KON = numberVal(STK[0]|0)|0;
+				KON = STK[0]|0;
 
 				if((VAL|0) == __FALSE__) {
 					STKUNWIND(3);
@@ -5209,7 +5209,7 @@ function SLIP(callbacks, size) {
 				if((LEN|0) > 1) {
 					claim();
 					STKALLOC(4);
-					STK[3] = makeNumber(KON)|0;
+					STK[3] = KON;
 					STK[2] = EXP;
 					STK[1] = ARG;
 					STK[0] = __ONE__;
@@ -5224,7 +5224,7 @@ function SLIP(callbacks, size) {
 			N_c_compareVector {
 
 				if((VAL|0) == __FALSE__) {
-					KON = numberVal(STK[3]|0)|0;
+					KON = STK[3]|0;
 					STKUNWIND(4);
 					goto KON|0;
 				}
@@ -5234,7 +5234,7 @@ function SLIP(callbacks, size) {
 				EXP = STK[2]|0;
 
 				if((IDX|0) == (vectorLength(ARG)|0)) {
-					KON = numberVal(STK[3]|0)|0;
+					KON = STK[3]|0;
 					STKUNWIND(4);
 				} else {
 					STK[0] = makeNumber(IDX)|0;

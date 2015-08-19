@@ -49,11 +49,11 @@ macro instructions {
         }
         var len = #{$lab ...}.length;
         var numbers = new Array(len);
-        for(var i = 0; i < len;)
-            numbers[i] = (makeValue(++i, #{here}));
+        for(var i = 0; i < len; ++i)
+            numbers[i] = (makeValue((2*i)+1, #{here}));
         letstx $nbr ... = numbers;
-        len = nextPowTwo(len+1);
-        var diff = len - (i+1);
+        len = nextPowTwo(2*len);
+        var diff = len - ((2*i));
         var nops = new Array(diff);
         while(diff--)
           nops[diff] = (makeIdent('nop', #{here}));
@@ -69,7 +69,7 @@ macro instructions {
                 instr = instr|0;
                 for(;instr;instr=FUNTAB[instr&$mask]()|0);
             }
-            var FUNTAB = [nop, $(makeLabel($lab)) (,) ..., $nop (,) ...];
+            var FUNTAB = [$(nop, makeLabel($lab)) (,) ..., $nop (,) ...];
         }
      }
  }
