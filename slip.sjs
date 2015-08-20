@@ -5141,7 +5141,7 @@ function SLIP(callbacks, size) {
 				}
 				claim()
 				VAL = makeFloat(FLT)|0;
-				STKUNWIND(1);
+				STKUNWIND(LEN);
 				goto KON|0;
 			}
 
