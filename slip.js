@@ -4731,7 +4731,7 @@ function SLIP(callbacks, size) {
                 claimCollect();
             }
             VAL = makeFloat(FLT) | 0;
-            STKTOP = STKTOP + 4 | 0;
+            STKTOP = STKTOP + (LEN << 2) | 0;
             return KON | 0;
         }
         function _N_c1_map() {
