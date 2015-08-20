@@ -1235,9 +1235,18 @@ function SLIP(callbacks, size) {
 			return flt|0;
 		}
 
-		function floatNumber(flt) {
+		function ffloatNumber(flt) {
 			flt = flt|0;
 			return fround(chunkGetFloat(flt, __FLOAT_NBR__));
+		}
+
+		macro floatNumber {
+			case {_($v:expr)} => {
+				letstx $get = [makeIdent('chunkGetFloat', #{here})];
+				return #{
+					$get($v, __FLOAT_NBR__)
+				}
+			}
 		}
 
 		typecheck __FLT_TAG__ => isFloat
@@ -5523,7 +5532,7 @@ function SLIP(callbacks, size) {
 			isVector: isVector,
 			//floats
 			makeFloat: makeFloat,
-			floatNumber: floatNumber,
+			ffloatNumber: ffloatNumber,
 			isFloat: isFloat,
 			//string
 			makeString: makeString,
@@ -6001,7 +6010,7 @@ function SLIP(callbacks, size) {
 		function link(asm) {
 			getTag = asm.ftag;
 			numberVal = asm.fnumberVal;
-			floatNumber = asm.floatNumber;
+			floatNumber = asm.ffloatNumber;
 			charCode = asm.charCode;
 			stringText = asm.stringText;
 			symbolLength = asm.symbolLength;

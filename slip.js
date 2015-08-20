@@ -1373,7 +1373,7 @@ function SLIP(callbacks, size) {
             FLT32[flt + 4 >> 2] = nbr;
             return flt | 0;
         }
-        function floatNumber(flt) {
+        function ffloatNumber(flt) {
             flt = flt | 0;
             return fround(FLT32[flt + 4 >> 2]);
         }
@@ -1727,7 +1727,7 @@ function SLIP(callbacks, size) {
                     TMP = TMP + (EXP >> 2 | 0) | 0;
                     break;
                 case 1:
-                    FLT = fround(fround(TMP | 0) + fround(floatNumber(EXP)));
+                    FLT = fround(fround(TMP | 0) + fround(FLT32[EXP + 4 >> 2]));
                     return _N_addFloats() | 0;
                 default:
                     err_invalidArgument(EXP | 0);
@@ -1754,7 +1754,7 @@ function SLIP(callbacks, size) {
                     if ((STKTOP - MEMTOP | 0) < 128) {
                         claimCollect();
                     }
-                    VAL = makeFloat(fround(-fround(floatNumber(VAL)))) | 0;
+                    VAL = makeFloat(fround(-fround(FLT32[VAL + 4 >> 2]))) | 0;
                     return KON | 0;
                 default:
                     err_invalidArgument(VAL | 0);
@@ -1771,7 +1771,7 @@ function SLIP(callbacks, size) {
                         TMP = TMP - (EXP >> 2 | 0) | 0;
                         break;
                     case 1:
-                        FLT = fround(fround(TMP | 0) - fround(floatNumber(EXP)));
+                        FLT = fround(fround(TMP | 0) - fround(FLT32[EXP + 4 >> 2]));
                         return _N_substractFloats() | 0;
                     default:
                         err_invalidArgument(EXP | 0);
@@ -1782,7 +1782,7 @@ function SLIP(callbacks, size) {
                 STKTOP = STKTOP + (LEN << 2) | 0;
                 return KON | 0;
             case 1:
-                FLT = fround(floatNumber(VAL));
+                FLT = fround(FLT32[VAL + 4 >> 2]);
                 return _N_substractFloats() | 0;
             }
             err_invalidArgument(VAL | 0);
@@ -1796,7 +1796,7 @@ function SLIP(callbacks, size) {
                     TMP = imul(TMP, EXP >> 2 | 0) | 0;
                     break;
                 case 1:
-                    FLT = fround(fround(TMP | 0) * fround(floatNumber(EXP)));
+                    FLT = fround(fround(TMP | 0) * fround(FLT32[EXP + 4 >> 2]));
                     return _N_multiplyFloats() | 0;
                 default:
                     err_invalidArgument(EXP | 0);
@@ -1823,7 +1823,7 @@ function SLIP(callbacks, size) {
                     VAL = makeFloat(fround(fround(1) / fround(VAL >> 2 | 0))) | 0;
                     return KON | 0;
                 case 1:
-                    VAL = makeFloat(fround(fround(1) / fround(floatNumber(VAL)))) | 0;
+                    VAL = makeFloat(fround(fround(1) / fround(FLT32[VAL + 4 >> 2]))) | 0;
                     return KON | 0;
                 default:
                     err_invalidArgument(VAL | 0);
@@ -1835,7 +1835,7 @@ function SLIP(callbacks, size) {
                 FLT = fround(VAL >> 2 | 0);
                 break;
             case 1:
-                FLT = fround(floatNumber(VAL));
+                FLT = fround(FLT32[VAL + 4 >> 2]);
                 break;
             default:
                 err_invalidArgument(VAL | 0);
@@ -1848,7 +1848,7 @@ function SLIP(callbacks, size) {
                     FLT = fround(FLT / fround(EXP >> 2 | 0));
                     break;
                 case 1:
-                    FLT = fround(FLT / fround(floatNumber(EXP)));
+                    FLT = fround(FLT / fround(FLT32[EXP + 4 >> 2]));
                     break;
                 default:
                     err_invalidArgument(EXP | 0);
@@ -1955,7 +1955,7 @@ function SLIP(callbacks, size) {
                     VAL = (ARG >> 2 | 0) == (EXP >> 2 | 0) ? 2147483617 : 2147483621;
                     return KON | 0;
                 case 1:
-                    VAL = fround(ARG >> 2 | 0) == fround(floatNumber(EXP)) ? 2147483617 : 2147483621;
+                    VAL = fround(ARG >> 2 | 0) == fround(FLT32[EXP + 4 >> 2]) ? 2147483617 : 2147483621;
                     return KON | 0;
                 }
                 err_invalidArgument(EXP | 0);
@@ -1963,10 +1963,10 @@ function SLIP(callbacks, size) {
             case 1:
                 switch ((EXP & 1 ? MEM8[EXP & 31] | 0 : (MEM32[EXP >> 2] | 0) >>> 2 & 63 | 0) | 0) {
                 case 69:
-                    VAL = fround(floatNumber(ARG)) == fround(EXP >> 2 | 0) ? 2147483617 : 2147483621;
+                    VAL = fround(FLT32[ARG + 4 >> 2]) == fround(EXP >> 2 | 0) ? 2147483617 : 2147483621;
                     return KON | 0;
                 case 1:
-                    VAL = fround(floatNumber(ARG)) == fround(floatNumber(EXP)) ? 2147483617 : 2147483621;
+                    VAL = fround(FLT32[ARG + 4 >> 2]) == fround(FLT32[EXP + 4 >> 2]) ? 2147483617 : 2147483621;
                     return KON | 0;
                 }
                 err_invalidArgument(EXP | 0);
@@ -1990,7 +1990,7 @@ function SLIP(callbacks, size) {
                     VAL = (ARG >> 2 | 0) <= (EXP >> 2 | 0) ? 2147483617 : 2147483621;
                     return KON | 0;
                 case 1:
-                    VAL = fround(ARG >> 2 | 0) <= fround(floatNumber(EXP)) ? 2147483617 : 2147483621;
+                    VAL = fround(ARG >> 2 | 0) <= fround(FLT32[EXP + 4 >> 2]) ? 2147483617 : 2147483621;
                     return KON | 0;
                 }
                 err_invalidArgument(EXP | 0);
@@ -1998,10 +1998,10 @@ function SLIP(callbacks, size) {
             case 1:
                 switch ((EXP & 1 ? MEM8[EXP & 31] | 0 : (MEM32[EXP >> 2] | 0) >>> 2 & 63 | 0) | 0) {
                 case 69:
-                    VAL = fround(floatNumber(ARG)) <= fround(EXP >> 2 | 0) ? 2147483617 : 2147483621;
+                    VAL = fround(FLT32[ARG + 4 >> 2]) <= fround(EXP >> 2 | 0) ? 2147483617 : 2147483621;
                     return KON | 0;
                 case 1:
-                    VAL = fround(floatNumber(ARG)) <= fround(floatNumber(EXP)) ? 2147483617 : 2147483621;
+                    VAL = fround(FLT32[ARG + 4 >> 2]) <= fround(FLT32[EXP + 4 >> 2]) ? 2147483617 : 2147483621;
                     return KON | 0;
                 }
                 err_invalidArgument(EXP | 0);
@@ -2025,7 +2025,7 @@ function SLIP(callbacks, size) {
                     VAL = (ARG >> 2 | 0) >= (EXP >> 2 | 0) ? 2147483617 : 2147483621;
                     return KON | 0;
                 case 1:
-                    VAL = fround(ARG >> 2 | 0) >= fround(floatNumber(EXP)) ? 2147483617 : 2147483621;
+                    VAL = fround(ARG >> 2 | 0) >= fround(FLT32[EXP + 4 >> 2]) ? 2147483617 : 2147483621;
                     return KON | 0;
                 }
                 err_invalidArgument(EXP | 0);
@@ -2033,10 +2033,10 @@ function SLIP(callbacks, size) {
             case 1:
                 switch ((EXP & 1 ? MEM8[EXP & 31] | 0 : (MEM32[EXP >> 2] | 0) >>> 2 & 63 | 0) | 0) {
                 case 69:
-                    VAL = fround(floatNumber(ARG)) >= fround(EXP >> 2 | 0) ? 2147483617 : 2147483621;
+                    VAL = fround(FLT32[ARG + 4 >> 2]) >= fround(EXP >> 2 | 0) ? 2147483617 : 2147483621;
                     return KON | 0;
                 case 1:
-                    VAL = fround(floatNumber(ARG)) >= fround(floatNumber(EXP)) ? 2147483617 : 2147483621;
+                    VAL = fround(FLT32[ARG + 4 >> 2]) >= fround(FLT32[EXP + 4 >> 2]) ? 2147483617 : 2147483621;
                     return KON | 0;
                 }
                 err_invalidArgument(EXP | 0);
@@ -2060,7 +2060,7 @@ function SLIP(callbacks, size) {
                     VAL = (ARG >> 2 | 0) < (EXP >> 2 | 0) ? 2147483617 : 2147483621;
                     return KON | 0;
                 case 1:
-                    VAL = fround(ARG >> 2 | 0) < fround(floatNumber(EXP)) ? 2147483617 : 2147483621;
+                    VAL = fround(ARG >> 2 | 0) < fround(FLT32[EXP + 4 >> 2]) ? 2147483617 : 2147483621;
                     return KON | 0;
                 }
                 err_invalidArgument(EXP | 0);
@@ -2068,10 +2068,10 @@ function SLIP(callbacks, size) {
             case 1:
                 switch ((EXP & 1 ? MEM8[EXP & 31] | 0 : (MEM32[EXP >> 2] | 0) >>> 2 & 63 | 0) | 0) {
                 case 69:
-                    VAL = fround(floatNumber(ARG)) < fround(EXP >> 2 | 0) ? 2147483617 : 2147483621;
+                    VAL = fround(FLT32[ARG + 4 >> 2]) < fround(EXP >> 2 | 0) ? 2147483617 : 2147483621;
                     return KON | 0;
                 case 1:
-                    VAL = fround(floatNumber(ARG)) < fround(floatNumber(EXP)) ? 2147483617 : 2147483621;
+                    VAL = fround(FLT32[ARG + 4 >> 2]) < fround(FLT32[EXP + 4 >> 2]) ? 2147483617 : 2147483621;
                     return KON | 0;
                 }
                 err_invalidArgument(EXP | 0);
@@ -2095,7 +2095,7 @@ function SLIP(callbacks, size) {
                     VAL = (ARG >> 2 | 0) > (EXP >> 2 | 0) ? 2147483617 : 2147483621;
                     return KON | 0;
                 case 1:
-                    VAL = fround(ARG >> 2 | 0) > fround(floatNumber(EXP)) ? 2147483617 : 2147483621;
+                    VAL = fround(ARG >> 2 | 0) > fround(FLT32[EXP + 4 >> 2]) ? 2147483617 : 2147483621;
                     return KON | 0;
                 }
                 err_invalidArgument(EXP | 0);
@@ -2103,10 +2103,10 @@ function SLIP(callbacks, size) {
             case 1:
                 switch ((EXP & 1 ? MEM8[EXP & 31] | 0 : (MEM32[EXP >> 2] | 0) >>> 2 & 63 | 0) | 0) {
                 case 69:
-                    VAL = fround(floatNumber(ARG)) > fround(EXP >> 2 | 0) ? 2147483617 : 2147483621;
+                    VAL = fround(FLT32[ARG + 4 >> 2]) > fround(EXP >> 2 | 0) ? 2147483617 : 2147483621;
                     return KON | 0;
                 case 1:
-                    VAL = fround(floatNumber(ARG)) > fround(floatNumber(EXP)) ? 2147483617 : 2147483621;
+                    VAL = fround(FLT32[ARG + 4 >> 2]) > fround(FLT32[EXP + 4 >> 2]) ? 2147483617 : 2147483621;
                     return KON | 0;
                 }
                 err_invalidArgument(EXP | 0);
@@ -2568,21 +2568,21 @@ function SLIP(callbacks, size) {
                     return KON | 0;
                 case 1:
                     FLT = fround(ARG >> 2 | 0);
-                    FLT = fround(FLT / fround(floatNumber(EXP)));
+                    FLT = fround(FLT / fround(FLT32[EXP + 4 >> 2]));
                     VAL = ~~FLT << 2 | 3 | 0;
                     return KON | 0;
                 }
                 err_invalidArgument(EXP | 0);
                 return 335;
             case 1:
-                FLT = fround(floatNumber(ARG));
+                FLT = fround(FLT32[ARG + 4 >> 2]);
                 switch ((EXP & 1 ? MEM8[EXP & 31] | 0 : (MEM32[EXP >> 2] | 0) >>> 2 & 63 | 0) | 0) {
                 case 69:
                     FLT = fround(FLT / fround(EXP >> 2 | 0));
                     VAL = ~~FLT << 2 | 3 | 0;
                     return KON | 0;
                 case 1:
-                    FLT = fround(FLT / fround(floatNumber(EXP)));
+                    FLT = fround(FLT / fround(FLT32[EXP + 4 >> 2]));
                     VAL = ~~FLT << 2 | 3 | 0;
                     return KON | 0;
                 }
@@ -2611,7 +2611,7 @@ function SLIP(callbacks, size) {
                     if ((STKTOP - MEMTOP | 0) < 128) {
                         claimCollect();
                     }
-                    REA = +(+(ARG >> 2 | 0) % +fround(floatNumber(EXP)));
+                    REA = +(+(ARG >> 2 | 0) % +fround(FLT32[EXP + 4 >> 2]));
                     VAL = makeFloat(fround(REA)) | 0;
                     return KON | 0;
                 }
@@ -2621,14 +2621,14 @@ function SLIP(callbacks, size) {
                 if ((STKTOP - MEMTOP | 0) < 128) {
                     claimCollect();
                 }
-                REA = +fround(floatNumber(ARG));
+                REA = +fround(FLT32[ARG + 4 >> 2]);
                 switch ((EXP & 1 ? MEM8[EXP & 31] | 0 : (MEM32[EXP >> 2] | 0) >>> 2 & 63 | 0) | 0) {
                 case 69:
                     REA = +(REA % +(EXP >> 2 | 0));
                     VAL = makeFloat(fround(REA)) | 0;
                     return KON | 0;
                 case 1:
-                    REA = +(REA % +fround(floatNumber(EXP)));
+                    REA = +(REA % +fround(FLT32[EXP + 4 >> 2]));
                     VAL = makeFloat(fround(REA)) | 0;
                     return KON | 0;
                 }
@@ -2683,7 +2683,7 @@ function SLIP(callbacks, size) {
                 VAL = makeFloat(fround(REA)) | 0;
                 return KON | 0;
             case 1:
-                REA = +sin(+fround(floatNumber(ARG)));
+                REA = +sin(+fround(FLT32[ARG + 4 >> 2]));
                 VAL = makeFloat(fround(REA)) | 0;
                 return KON | 0;
             }
@@ -4676,7 +4676,7 @@ function SLIP(callbacks, size) {
                     FLT = fround(FLT + fround(EXP >> 2 | 0));
                     break;
                 case 1:
-                    FLT = fround(FLT + fround(floatNumber(EXP)));
+                    FLT = fround(FLT + fround(FLT32[EXP + 4 >> 2]));
                     break;
                 default:
                     err_invalidArgument(EXP | 0);
@@ -4698,7 +4698,7 @@ function SLIP(callbacks, size) {
                     FLT = fround(FLT - fround(EXP >> 2 | 0));
                     break;
                 case 1:
-                    FLT = fround(FLT - fround(floatNumber(EXP)));
+                    FLT = fround(FLT - fround(FLT32[EXP + 4 >> 2]));
                     break;
                 default:
                     err_invalidArgument(EXP | 0);
@@ -4720,7 +4720,7 @@ function SLIP(callbacks, size) {
                     FLT = fround(FLT * fround(EXP >> 2 | 0));
                     break;
                 case 1:
-                    FLT = fround(FLT * fround(floatNumber(EXP)));
+                    FLT = fround(FLT * fround(FLT32[EXP + 4 >> 2]));
                     break;
                 default:
                     err_invalidArgument(EXP | 0);
@@ -4891,7 +4891,7 @@ function SLIP(callbacks, size) {
             return KON | 0;
         }
         function _N_compareFloat() {
-            VAL = fround(floatNumber(EXP)) == fround(floatNumber(ARG)) ? 2147483617 : 2147483621;
+            VAL = fround(FLT32[EXP + 4 >> 2]) == fround(FLT32[ARG + 4 >> 2]) ? 2147483617 : 2147483621;
             return KON | 0;
         }
         function _N_compareString() {
@@ -5584,7 +5584,7 @@ function SLIP(callbacks, size) {
             isVector: isVector,
             //floats
             makeFloat: makeFloat,
-            floatNumber: floatNumber,
+            ffloatNumber: ffloatNumber,
             isFloat: isFloat,
             //string
             makeString: makeString,
@@ -5970,7 +5970,7 @@ function SLIP(callbacks, size) {
         function link(asm$2) {
             getTag = asm$2.ftag;
             numberVal = asm$2.fnumberVal;
-            floatNumber = asm$2.floatNumber;
+            floatNumber = asm$2.ffloatNumber;
             charCode = asm$2.charCode;
             stringText = asm$2.stringText;
             symbolLength = asm$2.symbolLength;
