@@ -3971,9 +3971,6 @@ function SLIP(callbacks, size) {
                 PAR = MEMTOP;
                 MEMTOP = MEMTOP + (SIZ + 1 << 2) | 0;
                 MEM32[PAR >> 2] = (SIZ << 6 | 2) << 2;
-                for (IDX = 1; (IDX | 0) <= (SIZ | 0); IDX = IDX + 1 | 0) {
-                    MEM32[PAR + (IDX << 2) >> 2] = 2147483629;
-                }
                 STKTOP = STKTOP - 12 | 0;
                 MEM32[STKTOP + 8 >> 2] = KON;
                 MEM32[STKTOP + 4 >> 2] = ENV;
@@ -4072,9 +4069,6 @@ function SLIP(callbacks, size) {
                 PAR = MEMTOP;
                 MEMTOP = MEMTOP + (SIZ + 1 << 2) | 0;
                 MEM32[PAR >> 2] = (SIZ << 6 | 2) << 2;
-                for (IDX = 1; (IDX | 0) <= (SIZ | 0); IDX = IDX + 1 | 0) {
-                    MEM32[PAR + (IDX << 2) >> 2] = 2147483629;
-                }
                 return _E_prcEvalArgs() | 0;
             case 36:
                 LEN = (MEM32[VAL + 4 >> 2] | 0) >> 2 | 0;
@@ -4340,15 +4334,10 @@ function SLIP(callbacks, size) {
                 case 15:
                     EXP = MEM32[(MEM32[ENV + ((MEM32[EXP + 4 >> 2] | 0) << 2) >> 2] | 0) + ((MEM32[EXP + 8 >> 2] | 0) << 2) >> 2] | 0;
                     break;
-                case 18:
-                    EXP = (DCT = extendEnv() | 0, makePrc(MEM32[EXP + 4 >> 2] | 0, MEM32[EXP + 8 >> 2] | 0, MEM32[EXP + 12 >> 2] | 0, DCT) | 0);
-                    break;
-                case 34:
-                    EXP = (DCT = extendEnv() | 0, makePrz(MEM32[EXP + 4 >> 2] | 0, MEM32[EXP + 8 >> 2] | 0, MEM32[EXP + 12 >> 2] | 0, DCT) | 0);
-                    break;
                 default:
-                    if ((STKTOP - MEMTOP | 0) < 128) {
-                        claimCollect();
+                    TMP = IDX << 2 | 3 | 0;
+                    for (; (IDX | 0) <= (SIZ | 0); IDX = IDX + 1 | 0) {
+                        MEM32[PAR + (IDX << 2) >> 2] = 2147483629;
                     }
                     if ((IDX | 0) == (LEN | 0)) {
                         STKTOP = STKTOP - 16 | 0    //last argument
@@ -4357,20 +4346,24 @@ function SLIP(callbacks, size) {
                         KON;
                         MEM32[STKTOP + 8 >> 2] = VAL;
                         MEM32[STKTOP + 4 >> 2] = PAR;
-                        MEM32[STKTOP >> 2] = IDX << 2 | 3 | 0;
+                        MEM32[STKTOP >> 2] = TMP;
                         KON = 275;
                     } else {
                         STKTOP = STKTOP - 20 | 0;
                         MEM32[STKTOP + 16 >> 2] = KON;
                         MEM32[STKTOP + 12 >> 2] = VAL;
                         MEM32[STKTOP + 8 >> 2] = PAR;
-                        MEM32[STKTOP + 4 >> 2] = IDX << 2 | 3 | 0;
+                        MEM32[STKTOP + 4 >> 2] = TMP;
                         MEM32[STKTOP >> 2] = ARG;
                         KON = 273;
                     }
                     return _E_eval() | 0;
                 }
                 MEM32[PAR + (IDX << 2) >> 2] = EXP;
+            }
+            while ((IDX | 0) < (SIZ | 0)) {
+                IDX = IDX + 1 | 0;
+                MEM32[PAR + (IDX << 2) >> 2] = 2147483629;
             }
             FRM = PAR;
             ENV = MEM32[VAL + 16 >> 2] | 0;

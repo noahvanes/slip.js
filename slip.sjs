@@ -4308,7 +4308,7 @@ function SLIP(callbacks, size) {
 							goto error;
 						}
 						claimSiz(SIZ)
-						fillVector(SIZ, __VOID__) => PAR;
+						makeVector(SIZ) => PAR;
 						STKALLOC(3);
 						STK[2] = KON;
 						STK[1] = ENV;
@@ -4410,7 +4410,7 @@ function SLIP(callbacks, size) {
 							goto error;
 						}
 						claimSiz(SIZ)
-						fillVector(SIZ, __VOID__) => PAR;
+						makeVector(SIZ) => PAR;
 						goto E_prcEvalArgs();
 
 					case __PRZ_TAG__:
@@ -4661,28 +4661,24 @@ function SLIP(callbacks, size) {
 							break;
 						case __NLC_TAG__:
 							lookupNlc EXP => EXP
-							break;
-						case __LMB_TAG__:
-							EXP = capturePrc(EXP);
-							break;
-						case __LMZ_TAG__:
-							EXP = capturePrz(EXP);
-							break;				
+							break;	
 						default:
-							claim()
+							TMP = makeNumber(IDX)|0;
+							for(;(IDX|0)<=(SIZ|0);IDX=(IDX+1)|0)
+								{ vectorSet(PAR,IDX,__VOID__); }
 							if((IDX|0) == (LEN|0)) { //last argument
 								STKALLOC(4);
 								STK[3] = KON;
 								STK[2] = VAL;
 								STK[1] = PAR;
-								STK[0] = makeNumber(IDX)|0;
+								STK[0] = TMP;
 								KON = E_prcApply;
 							} else {
 								STKALLOC(5);
 								STK[4] = KON;
 								STK[3] = VAL;
 								STK[2] = PAR;
-								STK[1] = makeNumber(IDX)|0;
+								STK[1] = TMP;
 								STK[0] = ARG;
 								KON = E_c_prcArgs;
 							}
@@ -4691,6 +4687,10 @@ function SLIP(callbacks, size) {
 					vectorSet(PAR, IDX, EXP);
 				}
 				
+				while((IDX|0)<(SIZ|0)) { 
+					IDX=(IDX+1)|0;
+					vectorSet(PAR,IDX,__VOID__); 
+				}
 				FRM = PAR;
 				ENV = prcEnv(VAL)|0;
 				EXP = prcBdy(VAL)|0;
