@@ -39,8 +39,10 @@
     (define (loop i)
       (if (= i size)
           vec
-          (begin (vector-set! vec i (random))
-                 (loop (+ i 1)))))
+          (begin 
+            (define rnd (quotient (* 1000000 (random)) 1))
+            (vector-set! vec i rnd)
+            (loop (+ i 1)))))
     (loop 0))
    
    (define p

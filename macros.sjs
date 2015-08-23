@@ -109,7 +109,7 @@ macro struct {
                 function $nam($prop (,) ...) {
                    $($prop = $prop|0) (;) ...
                    var chk = 0;
-                   chk = $ctor($tag, $siz)|0;
+                   $ctor($tag, $siz) => chk;
                    $($s(chk, $idx, $prop)) (;) ...
                    return chk|0;
                 }

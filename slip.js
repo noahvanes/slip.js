@@ -274,7 +274,7 @@ function SLIP(callbacks, size) {
                         if ((siz + len | 0) > 67108860)
                             break;
                     }
-                    MEM32[src >> 2] = makeHeader(0, (siz >> 2) - 1 | 0) | 0;
+                    MEM32[src >> 2] = (((siz >> 2) - 1 | 0) << 6 | 0) << 2 | 0;
                     src = src + siz | 0;
                 }
             }
@@ -305,22 +305,6 @@ function SLIP(callbacks, size) {
                 }
             }
             MEMTOP = dst;
-        }
-        function makeHeader(tag, siz) {
-            tag = tag | 0;
-            siz = siz | 0;
-            var hdr = 0;
-            hdr = siz << 6 | tag;
-            return hdr << 2 | 0;
-        }
-        function makeChunk(tag, siz) {
-            tag = tag | 0;
-            siz = siz | 0;
-            var adr = 0;
-            adr = MEMTOP;
-            MEMTOP = MEMTOP + (siz + 1 << 2) | 0;
-            MEM32[adr >> 2] = makeHeader(tag, siz) | 0;
-            return adr | 0;
         }
         function push(el) {
             el = el | 0;
@@ -451,7 +435,9 @@ function SLIP(callbacks, size) {
             car = car | 0;
             cdr = cdr | 0;
             var chk = 0;
-            chk = makeChunk(0, 2) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (2 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (2 << 6 | 0) << 2;
             MEM32[chk + 4 >> 2] = car;
             MEM32[chk + 8 >> 2] = cdr;
             return chk | 0;
@@ -492,20 +478,6 @@ function SLIP(callbacks, size) {
             }
             return prv | 0;
         }
-        function makeVector(siz) {
-            siz = siz | 0;
-            return makeChunk(2, siz) | 0;
-        }
-        function fillVector(siz, exp) {
-            siz = siz | 0;
-            exp = exp | 0;
-            var vct = 0;
-            var idx = 0;
-            vct = makeChunk(2, siz) | 0;
-            for (idx = 1; (idx | 0) <= (siz | 0); idx = idx + 1 | 0)
-                MEM32[vct + (idx << 2) >> 2] = exp;
-            return vct | 0;
-        }
         function vectorAt(vct, idx) {
             vct = vct | 0;
             idx = idx | 0;
@@ -524,8 +496,9 @@ function SLIP(callbacks, size) {
             if ((STKTOP - MEMTOP | 0) < ((imul(len, 4) | 0) + 128 | 0)) {
                 claimSizCollect((imul(len, 4) | 0) + 128 | 0);
             }
-            ;
-            vct = makeVector(len) | 0;
+            vct = MEMTOP;
+            MEMTOP = MEMTOP + (len + 1 << 2) | 0;
+            MEM32[vct >> 2] = (len << 6 | 2) << 2;
             while ((idx | 0) < (len | 0)) {
                 cur = MEM32[STKTOP + (idx << 2) >> 2] | 0;
                 idx = idx + 1 | 0;
@@ -541,7 +514,6 @@ function SLIP(callbacks, size) {
             if ((STKTOP - MEMTOP | 0) < ((imul(len, 4) | 0) + 128 | 0)) {
                 claimSizCollect((imul(len, 4) | 0) + 128 | 0);
             }
-            ;
             STKTOP = STKTOP - (len << 2) | 0;
             while (len) {
                 exp = MEM32[PAR + (len << 2) >> 2] | 0;
@@ -555,7 +527,11 @@ function SLIP(callbacks, size) {
         }
         function makeSequence(siz) {
             siz = siz | 0;
-            return makeChunk(6, siz) | 0;
+            var seq = 0;
+            seq = MEMTOP;
+            MEMTOP = MEMTOP + (siz + 1 << 2) | 0;
+            MEM32[seq >> 2] = (siz << 6 | 6) << 2;
+            return seq | 0;
         }
         function sequenceAt(seq, idx) {
             seq = seq | 0;
@@ -580,7 +556,9 @@ function SLIP(callbacks, size) {
             pre = pre | 0;
             csq = csq | 0;
             var chk = 0;
-            chk = makeChunk(8, 2) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (2 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (2 << 6 | 8) << 2;
             MEM32[chk + 4 >> 2] = pre;
             MEM32[chk + 8 >> 2] = csq;
             return chk | 0;
@@ -602,7 +580,9 @@ function SLIP(callbacks, size) {
             csq = csq | 0;
             alt = alt | 0;
             var chk = 0;
-            chk = makeChunk(10, 3) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (3 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (3 << 6 | 10) << 2;
             MEM32[chk + 4 >> 2] = pre;
             MEM32[chk + 8 >> 2] = csq;
             MEM32[chk + 12 >> 2] = alt;
@@ -627,7 +607,9 @@ function SLIP(callbacks, size) {
         function makeQuo(quo) {
             quo = quo | 0;
             var chk = 0;
-            chk = makeChunk(22, 1) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (1 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (1 << 6 | 22) << 2;
             MEM32[chk + 4 >> 2] = quo;
             return chk | 0;
         }
@@ -644,7 +626,9 @@ function SLIP(callbacks, size) {
             ofs = ofs | 0;
             val = val | 0;
             var chk = 0;
-            chk = makeChunk(12, 2) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (2 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (2 << 6 | 12) << 2;
             MEM32[chk + 4 >> 2] = ofs;
             MEM32[chk + 8 >> 2] = val;
             return chk | 0;
@@ -667,7 +651,9 @@ function SLIP(callbacks, size) {
             frc = frc | 0;
             bdy = bdy | 0;
             var chk = 0;
-            chk = makeChunk(14, 4) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (4 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (4 << 6 | 14) << 2;
             MEM32[chk + 4 >> 2] = ofs;
             MEM32[chk + 8 >> 2] = arc;
             MEM32[chk + 12 >> 2] = frc;
@@ -700,7 +686,9 @@ function SLIP(callbacks, size) {
             frc = frc | 0;
             bdy = bdy | 0;
             var chk = 0;
-            chk = makeChunk(30, 4) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (4 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (4 << 6 | 30) << 2;
             MEM32[chk + 4 >> 2] = ofs;
             MEM32[chk + 8 >> 2] = arc;
             MEM32[chk + 12 >> 2] = frc;
@@ -731,7 +719,9 @@ function SLIP(callbacks, size) {
             ofs = ofs | 0;
             val = val | 0;
             var chk = 0;
-            chk = makeChunk(16, 2) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (2 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (2 << 6 | 16) << 2;
             MEM32[chk + 4 >> 2] = ofs;
             MEM32[chk + 8 >> 2] = val;
             return chk | 0;
@@ -753,7 +743,9 @@ function SLIP(callbacks, size) {
             ofs = ofs | 0;
             val = val | 0;
             var chk = 0;
-            chk = makeChunk(20, 3) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (3 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (3 << 6 | 20) << 2;
             MEM32[chk + 4 >> 2] = scp;
             MEM32[chk + 8 >> 2] = ofs;
             MEM32[chk + 12 >> 2] = val;
@@ -781,7 +773,9 @@ function SLIP(callbacks, size) {
             env = env | 0;
             stk = stk | 0;
             var chk = 0;
-            chk = makeChunk(24, 4) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (4 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (4 << 6 | 24) << 2;
             MEM32[chk + 4 >> 2] = kon;
             MEM32[chk + 8 >> 2] = frm;
             MEM32[chk + 12 >> 2] = env;
@@ -812,7 +806,9 @@ function SLIP(callbacks, size) {
             vrb = vrb | 0;
             nxt = nxt | 0;
             var chk = 0;
-            chk = makeChunk(26, 2) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (2 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (2 << 6 | 26) << 2;
             MEM32[chk + 4 >> 2] = vrb;
             MEM32[chk + 8 >> 2] = nxt;
             return chk | 0;
@@ -834,7 +830,9 @@ function SLIP(callbacks, size) {
             siz = siz | 0;
             nxt = nxt | 0;
             var chk = 0;
-            chk = makeChunk(28, 3) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (3 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (3 << 6 | 28) << 2;
             MEM32[chk + 4 >> 2] = frm;
             MEM32[chk + 8 >> 2] = siz;
             MEM32[chk + 12 >> 2] = nxt;
@@ -860,7 +858,9 @@ function SLIP(callbacks, size) {
             exp = exp | 0;
             siz = siz | 0;
             var chk = 0;
-            chk = makeChunk(32, 2) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (2 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (2 << 6 | 32) << 2;
             MEM32[chk + 4 >> 2] = exp;
             MEM32[chk + 8 >> 2] = siz;
             return chk | 0;
@@ -881,7 +881,9 @@ function SLIP(callbacks, size) {
             exp = exp | 0;
             siz = siz | 0;
             var chk = 0;
-            chk = makeChunk(38, 2) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (2 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (2 << 6 | 38) << 2;
             MEM32[chk + 4 >> 2] = exp;
             MEM32[chk + 8 >> 2] = siz;
             return chk | 0;
@@ -903,7 +905,9 @@ function SLIP(callbacks, size) {
             frc = frc | 0;
             bdy = bdy | 0;
             var chk = 0;
-            chk = makeChunk(18, 3) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (3 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (3 << 6 | 18) << 2;
             MEM32[chk + 4 >> 2] = arc;
             MEM32[chk + 8 >> 2] = frc;
             MEM32[chk + 12 >> 2] = bdy;
@@ -930,7 +934,9 @@ function SLIP(callbacks, size) {
             frc = frc | 0;
             bdy = bdy | 0;
             var chk = 0;
-            chk = makeChunk(34, 3) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (3 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (3 << 6 | 34) << 2;
             MEM32[chk + 4 >> 2] = arc;
             MEM32[chk + 8 >> 2] = frc;
             MEM32[chk + 12 >> 2] = bdy;
@@ -958,7 +964,9 @@ function SLIP(callbacks, size) {
             bdy = bdy | 0;
             env = env | 0;
             var chk = 0;
-            chk = makeChunk(4, 4) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (4 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (4 << 6 | 4) << 2;
             MEM32[chk + 4 >> 2] = arc;
             MEM32[chk + 8 >> 2] = frc;
             MEM32[chk + 12 >> 2] = bdy;
@@ -991,7 +999,9 @@ function SLIP(callbacks, size) {
             bdy = bdy | 0;
             env = env | 0;
             var chk = 0;
-            chk = makeChunk(36, 4) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (4 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (4 << 6 | 36) << 2;
             MEM32[chk + 4 >> 2] = arc;
             MEM32[chk + 8 >> 2] = frc;
             MEM32[chk + 12 >> 2] = bdy;
@@ -1021,7 +1031,9 @@ function SLIP(callbacks, size) {
         function makeApz(opr) {
             opr = opr | 0;
             var chk = 0;
-            chk = makeChunk(46, 1) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (1 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (1 << 6 | 46) << 2;
             MEM32[chk + 4 >> 2] = opr;
             return chk | 0;
         }
@@ -1036,7 +1048,9 @@ function SLIP(callbacks, size) {
         function makeAlz(ofs) {
             ofs = ofs | 0;
             var chk = 0;
-            chk = makeChunk(11, 1) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (1 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (1 << 6 | 11) << 2;
             MEM32[chk + 4 >> 2] = ofs;
             return chk | 0;
         }
@@ -1052,7 +1066,9 @@ function SLIP(callbacks, size) {
             scp = scp | 0;
             ofs = ofs | 0;
             var chk = 0;
-            chk = makeChunk(17, 2) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (2 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (2 << 6 | 17) << 2;
             MEM32[chk + 4 >> 2] = scp;
             MEM32[chk + 8 >> 2] = ofs;
             return chk | 0;
@@ -1072,7 +1088,9 @@ function SLIP(callbacks, size) {
         function makeAgz(ofs) {
             ofs = ofs | 0;
             var chk = 0;
-            chk = makeChunk(9, 1) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (1 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (1 << 6 | 9) << 2;
             MEM32[chk + 4 >> 2] = ofs;
             return chk | 0;
         }
@@ -1087,7 +1105,9 @@ function SLIP(callbacks, size) {
         function makeTpz(opr) {
             opr = opr | 0;
             var chk = 0;
-            chk = makeChunk(44, 1) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (1 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (1 << 6 | 44) << 2;
             MEM32[chk + 4 >> 2] = opr;
             return chk | 0;
         }
@@ -1102,7 +1122,9 @@ function SLIP(callbacks, size) {
         function makeTlz(ofs) {
             ofs = ofs | 0;
             var chk = 0;
-            chk = makeChunk(13, 1) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (1 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (1 << 6 | 13) << 2;
             MEM32[chk + 4 >> 2] = ofs;
             return chk | 0;
         }
@@ -1118,7 +1140,9 @@ function SLIP(callbacks, size) {
             scp = scp | 0;
             ofs = ofs | 0;
             var chk = 0;
-            chk = makeChunk(19, 2) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (2 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (2 << 6 | 19) << 2;
             MEM32[chk + 4 >> 2] = scp;
             MEM32[chk + 8 >> 2] = ofs;
             return chk | 0;
@@ -1138,7 +1162,9 @@ function SLIP(callbacks, size) {
         function makeTgz(ofs) {
             ofs = ofs | 0;
             var chk = 0;
-            chk = makeChunk(7, 1) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (1 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (1 << 6 | 7) << 2;
             MEM32[chk + 4 >> 2] = ofs;
             return chk | 0;
         }
@@ -1154,7 +1180,9 @@ function SLIP(callbacks, size) {
             opr = opr | 0;
             opd = opd | 0;
             var chk = 0;
-            chk = makeChunk(40, 2) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (2 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (2 << 6 | 40) << 2;
             MEM32[chk + 4 >> 2] = opr;
             MEM32[chk + 8 >> 2] = opd;
             return chk | 0;
@@ -1175,7 +1203,9 @@ function SLIP(callbacks, size) {
             ofs = ofs | 0;
             opd = opd | 0;
             var chk = 0;
-            chk = makeChunk(48, 2) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (2 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (2 << 6 | 48) << 2;
             MEM32[chk + 4 >> 2] = ofs;
             MEM32[chk + 8 >> 2] = opd;
             return chk | 0;
@@ -1197,7 +1227,9 @@ function SLIP(callbacks, size) {
             ofs = ofs | 0;
             opd = opd | 0;
             var chk = 0;
-            chk = makeChunk(58, 3) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (3 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (3 << 6 | 58) << 2;
             MEM32[chk + 4 >> 2] = scp;
             MEM32[chk + 8 >> 2] = ofs;
             MEM32[chk + 12 >> 2] = opd;
@@ -1223,7 +1255,9 @@ function SLIP(callbacks, size) {
             ofs = ofs | 0;
             opd = opd | 0;
             var chk = 0;
-            chk = makeChunk(52, 2) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (2 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (2 << 6 | 52) << 2;
             MEM32[chk + 4 >> 2] = ofs;
             MEM32[chk + 8 >> 2] = opd;
             return chk | 0;
@@ -1244,7 +1278,9 @@ function SLIP(callbacks, size) {
             opr = opr | 0;
             opd = opd | 0;
             var chk = 0;
-            chk = makeChunk(42, 2) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (2 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (2 << 6 | 42) << 2;
             MEM32[chk + 4 >> 2] = opr;
             MEM32[chk + 8 >> 2] = opd;
             return chk | 0;
@@ -1265,7 +1301,9 @@ function SLIP(callbacks, size) {
             ofs = ofs | 0;
             opd = opd | 0;
             var chk = 0;
-            chk = makeChunk(50, 2) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (2 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (2 << 6 | 50) << 2;
             MEM32[chk + 4 >> 2] = ofs;
             MEM32[chk + 8 >> 2] = opd;
             return chk | 0;
@@ -1287,7 +1325,9 @@ function SLIP(callbacks, size) {
             ofs = ofs | 0;
             opd = opd | 0;
             var chk = 0;
-            chk = makeChunk(60, 3) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (3 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (3 << 6 | 60) << 2;
             MEM32[chk + 4 >> 2] = scp;
             MEM32[chk + 8 >> 2] = ofs;
             MEM32[chk + 12 >> 2] = opd;
@@ -1313,7 +1353,9 @@ function SLIP(callbacks, size) {
             ofs = ofs | 0;
             opd = opd | 0;
             var chk = 0;
-            chk = makeChunk(54, 2) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (2 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (2 << 6 | 54) << 2;
             MEM32[chk + 4 >> 2] = ofs;
             MEM32[chk + 8 >> 2] = opd;
             return chk | 0;
@@ -1333,7 +1375,9 @@ function SLIP(callbacks, size) {
         function makeStl(exp) {
             exp = exp | 0;
             var chk = 0;
-            chk = makeChunk(56, 1) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (1 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (1 << 6 | 56) << 2;
             MEM32[chk + 4 >> 2] = exp;
             return chk | 0;
         }
@@ -1349,7 +1393,9 @@ function SLIP(callbacks, size) {
             scp = scp | 0;
             ofs = ofs | 0;
             var chk = 0;
-            chk = makeChunk(15, 2) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + (2 + 1 << 2) | 0;
+            MEM32[chk >> 2] = (2 << 6 | 15) << 2;
             MEM32[chk + 4 >> 2] = scp;
             MEM32[chk + 8 >> 2] = ofs;
             return chk | 0;
@@ -1366,10 +1412,12 @@ function SLIP(callbacks, size) {
             x = x | 0;
             return ((x & 1 ? MEM8[x & 31] | 0 : (MEM32[x >> 2] | 0) >>> 2 & 63 | 0) | 0) == 15 | 0;
         }
-        function makeFloat(nbr) {
+        function fmakeFloat(nbr) {
             nbr = fround(nbr);
             var flt = 0;
-            flt = makeChunk(1, 1) | 0;
+            flt = MEMTOP;
+            MEMTOP = MEMTOP + (1 + 1 << 2) | 0;
+            MEM32[flt >> 2] = (1 << 6 | 1) << 2;
             FLT32[flt + 4 >> 2] = nbr;
             return flt | 0;
         }
@@ -1387,7 +1435,9 @@ function SLIP(callbacks, size) {
             var chk = 0;
             var siz = 0;
             for (siz = len; siz & 3; siz = siz + 1 | 0);
-            chk = makeChunk(tag, siz >> 2) | 0;
+            chk = MEMTOP;
+            MEMTOP = MEMTOP + ((siz >> 2) + 1 << 2) | 0;
+            MEM32[chk >> 2] = (siz >> 2 << 6 | tag) << 2;
             for (len = len + 4 | 0, siz = siz + 4 | 0; (len | 0) < (siz | 0); len = len + 1 | 0)
                 MEM8[chk + len | 0] = 0;
             return chk | 0;
@@ -1430,7 +1480,12 @@ function SLIP(callbacks, size) {
         function initPool() {
             __POOL_TOP__ = 0;
             __POOL_SIZ__ = 64;
-            SYM = fillVector(__POOL_SIZ__, 2147483629) | 0;
+            SYM = MEMTOP;
+            MEMTOP = MEMTOP + (__POOL_SIZ__ + 1 << 2) | 0;
+            MEM32[SYM >> 2] = (__POOL_SIZ__ << 6 | 2) << 2;
+            for (IDX = 1; (IDX | 0) <= (__POOL_SIZ__ | 0); IDX = IDX + 1 | 0) {
+                MEM32[SYM + (IDX << 2) >> 2] = 2147483629;
+            }
         }
         function growPool() {
             var idx = 0;
@@ -1439,8 +1494,12 @@ function SLIP(callbacks, size) {
             if ((STKTOP - MEMTOP | 0) < ((imul(__POOL_SIZ__, 4) | 0) + 128 | 0)) {
                 claimSizCollect((imul(__POOL_SIZ__, 4) | 0) + 128 | 0);
             }
-            ;
-            TMP = fillVector(__POOL_SIZ__, 2147483629) | 0;
+            TMP = MEMTOP;
+            MEMTOP = MEMTOP + (__POOL_SIZ__ + 1 << 2) | 0;
+            MEM32[TMP >> 2] = (__POOL_SIZ__ << 6 | 2) << 2;
+            for (IDX = 1; (IDX | 0) <= (__POOL_SIZ__ | 0); IDX = IDX + 1 | 0) {
+                MEM32[TMP + (IDX << 2) >> 2] = 2147483629;
+            }
             while ((idx | 0) < (__POOL_TOP__ | 0)) {
                 idx = idx + 1 | 0;
                 sym = MEM32[SYM + (idx << 2) >> 2] | 0;
@@ -1538,7 +1597,12 @@ function SLIP(callbacks, size) {
             currentScpLvl = 0;
         }
         function initEnvironment() {
-            GLB = fillVector(128, 2147483629) | 0;
+            GLB = MEMTOP;
+            MEMTOP = MEMTOP + (128 + 1 << 2) | 0;
+            MEM32[GLB >> 2] = (128 << 6 | 2) << 2;
+            for (IDX = 1; (IDX | 0) <= (128 | 0); IDX = IDX + 1 | 0) {
+                MEM32[GLB + (IDX << 2) >> 2] = 2147483629;
+            }
             FRM = GLB;
             ENV = __EMPTY_VEC__;
         }
@@ -1550,8 +1614,9 @@ function SLIP(callbacks, size) {
             if ((STKTOP - MEMTOP | 0) < ((imul(len, 4) | 0) + 128 | 0)) {
                 claimSizCollect((imul(len, 4) | 0) + 128 | 0);
             }
-            ;
-            env = makeVector(len) | 0;
+            env = MEMTOP;
+            MEMTOP = MEMTOP + (len + 1 << 2) | 0;
+            MEM32[env >> 2] = (len << 6 | 2) << 2;
             for (idx = 1; (idx | 0) < (len | 0); idx = idx + 1 | 0)
                 MEM32[env + (idx << 2) >> 2] = MEM32[ENV + (idx << 2) >> 2] | 0;
             MEM32[env + (len << 2) >> 2] = FRM;
@@ -1645,7 +1710,9 @@ function SLIP(callbacks, size) {
             initMemory();
             initTags();
             initRegs();
-            __EMPTY_VEC__ = makeVector(0) | 0;
+            __EMPTY_VEC__ = MEMTOP;
+            MEMTOP = MEMTOP + (0 + 1 << 2) | 0;
+            MEM32[__EMPTY_VEC__ >> 2] = (0 << 6 | 2) << 2;
             initPool();
             loadSymbols();
             initDictionary();
@@ -1754,7 +1821,10 @@ function SLIP(callbacks, size) {
                     if ((STKTOP - MEMTOP | 0) < 128) {
                         claimCollect();
                     }
-                    VAL = makeFloat(fround(-fround(FLT32[VAL + 4 >> 2]))) | 0;
+                    VAL = MEMTOP;
+                    MEMTOP = MEMTOP + (1 + 1 << 2) | 0;
+                    MEM32[VAL >> 2] = (1 << 6 | 1) << 2;
+                    FLT32[VAL + 4 >> 2] = fround(-fround(FLT32[VAL + 4 >> 2]));
                     return KON | 0;
                 default:
                     err_invalidArgument(VAL | 0);
@@ -1820,10 +1890,16 @@ function SLIP(callbacks, size) {
                 STKTOP = STKTOP + 4 | 0;
                 switch ((VAL & 1 ? MEM8[VAL & 31] | 0 : (MEM32[VAL >> 2] | 0) >>> 2 & 63 | 0) | 0) {
                 case 69:
-                    VAL = makeFloat(fround(fround(1) / fround(VAL >> 2 | 0))) | 0;
+                    VAL = MEMTOP;
+                    MEMTOP = MEMTOP + (1 + 1 << 2) | 0;
+                    MEM32[VAL >> 2] = (1 << 6 | 1) << 2;
+                    FLT32[VAL + 4 >> 2] = fround(fround(1) / fround(VAL >> 2 | 0));
                     return KON | 0;
                 case 1:
-                    VAL = makeFloat(fround(fround(1) / fround(FLT32[VAL + 4 >> 2]))) | 0;
+                    VAL = MEMTOP;
+                    MEMTOP = MEMTOP + (1 + 1 << 2) | 0;
+                    MEM32[VAL >> 2] = (1 << 6 | 1) << 2;
+                    FLT32[VAL + 4 >> 2] = fround(fround(1) / fround(FLT32[VAL + 4 >> 2]));
                     return KON | 0;
                 default:
                     err_invalidArgument(VAL | 0);
@@ -1855,7 +1931,10 @@ function SLIP(callbacks, size) {
                     return 335;
                 }
             }
-            VAL = makeFloat(FLT) | 0;
+            VAL = MEMTOP;
+            MEMTOP = MEMTOP + (1 + 1 << 2) | 0;
+            MEM32[VAL >> 2] = (1 << 6 | 1) << 2;
+            FLT32[VAL + 4 >> 2] = FLT;
             STKTOP = STKTOP + (LEN << 2) | 0;
             return KON | 0;
         }
@@ -1933,7 +2012,6 @@ function SLIP(callbacks, size) {
             if ((STKTOP - MEMTOP | 0) < ((imul(imul(3, LEN) | 0, 4) | 0) + 128 | 0)) {
                 claimSizCollect((imul(imul(3, LEN) | 0, 4) | 0) + 128 | 0);
             }
-            ;
             VAL = 2147483625;
             for (IDX = LEN - 1 | 0; IDX; IDX = IDX - 1 | 0)
                 VAL = makePair(MEM32[STKTOP + (IDX << 2) >> 2] | 0, VAL) | 0;
@@ -2295,9 +2373,13 @@ function SLIP(callbacks, size) {
                 if ((STKTOP - MEMTOP | 0) < ((imul(LEN, 4) | 0) + 128 | 0)) {
                     claimSizCollect((imul(LEN, 4) | 0) + 128 | 0);
                 }
-                ;
-                VAL = LEN ? 3 : MEM32[PAR + 8 >> 2] | 0;
-                VAL = fillVector(LEN, VAL) | 0;
+                TMP = LEN ? 3 : MEM32[PAR + 8 >> 2] | 0;
+                VAL = MEMTOP;
+                MEMTOP = MEMTOP + (LEN + 1 << 2) | 0;
+                MEM32[VAL >> 2] = (LEN << 6 | 2) << 2;
+                for (IDX = 1; (IDX | 0) <= (LEN | 0); IDX = IDX + 1 | 0) {
+                    MEM32[VAL + (IDX << 2) >> 2] = TMP;
+                }
             } else {
                 VAL = __EMPTY_VEC__;
             }
@@ -2373,8 +2455,9 @@ function SLIP(callbacks, size) {
             if ((STKTOP - MEMTOP | 0) < ((imul(LEN, 4) | 0) + 128 | 0)) {
                 claimSizCollect((imul(LEN, 4) | 0) + 128 | 0);
             }
-            ;
-            VAL = makeVector(LEN) | 0;
+            VAL = MEMTOP;
+            MEMTOP = MEMTOP + (LEN + 1 << 2) | 0;
+            MEM32[VAL >> 2] = (LEN << 6 | 2) << 2;
             for (IDX = 0; (IDX | 0) < (LEN | 0); IDX = TMP) {
                 EXP = MEM32[STKTOP + (IDX << 2) >> 2] | 0;
                 TMP = IDX + 1 | 0;
@@ -2527,7 +2610,10 @@ function SLIP(callbacks, size) {
             if ((STKTOP - MEMTOP | 0) < 128) {
                 claimCollect();
             }
-            VAL = makeFloat(fround(+random())) | 0;
+            VAL = MEMTOP;
+            MEMTOP = MEMTOP + (1 + 1 << 2) | 0;
+            MEM32[VAL >> 2] = (1 << 6 | 1) << 2;
+            FLT32[VAL + 4 >> 2] = fround(+random());
             return KON | 0;
         }
         function _N_load() {
@@ -2612,7 +2698,10 @@ function SLIP(callbacks, size) {
                         claimCollect();
                     }
                     REA = +(+(ARG >> 2 | 0) % +fround(FLT32[EXP + 4 >> 2]));
-                    VAL = makeFloat(fround(REA)) | 0;
+                    VAL = MEMTOP;
+                    MEMTOP = MEMTOP + (1 + 1 << 2) | 0;
+                    MEM32[VAL >> 2] = (1 << 6 | 1) << 2;
+                    FLT32[VAL + 4 >> 2] = fround(REA);
                     return KON | 0;
                 }
                 err_invalidArgument(EXP | 0);
@@ -2625,11 +2714,17 @@ function SLIP(callbacks, size) {
                 switch ((EXP & 1 ? MEM8[EXP & 31] | 0 : (MEM32[EXP >> 2] | 0) >>> 2 & 63 | 0) | 0) {
                 case 69:
                     REA = +(REA % +(EXP >> 2 | 0));
-                    VAL = makeFloat(fround(REA)) | 0;
+                    VAL = MEMTOP;
+                    MEMTOP = MEMTOP + (1 + 1 << 2) | 0;
+                    MEM32[VAL >> 2] = (1 << 6 | 1) << 2;
+                    FLT32[VAL + 4 >> 2] = fround(REA);
                     return KON | 0;
                 case 1:
                     REA = +(REA % +fround(FLT32[EXP + 4 >> 2]));
-                    VAL = makeFloat(fround(REA)) | 0;
+                    VAL = MEMTOP;
+                    MEMTOP = MEMTOP + (1 + 1 << 2) | 0;
+                    MEM32[VAL >> 2] = (1 << 6 | 1) << 2;
+                    FLT32[VAL + 4 >> 2] = fround(REA);
                     return KON | 0;
                 }
                 err_invalidArgument(EXP | 0);
@@ -2680,11 +2775,17 @@ function SLIP(callbacks, size) {
             switch ((ARG & 1 ? MEM8[ARG & 31] | 0 : (MEM32[ARG >> 2] | 0) >>> 2 & 63 | 0) | 0) {
             case 69:
                 REA = +sin(+(ARG >> 2 | 0));
-                VAL = makeFloat(fround(REA)) | 0;
+                VAL = MEMTOP;
+                MEMTOP = MEMTOP + (1 + 1 << 2) | 0;
+                MEM32[VAL >> 2] = (1 << 6 | 1) << 2;
+                FLT32[VAL + 4 >> 2] = fround(REA);
                 return KON | 0;
             case 1:
                 REA = +sin(+fround(FLT32[ARG + 4 >> 2]));
-                VAL = makeFloat(fround(REA)) | 0;
+                VAL = MEMTOP;
+                MEMTOP = MEMTOP + (1 + 1 << 2) | 0;
+                MEM32[VAL >> 2] = (1 << 6 | 1) << 2;
+                FLT32[VAL + 4 >> 2] = fround(REA);
                 return KON | 0;
             }
             err_invalidArgument(ARG | 0);
@@ -2828,7 +2929,6 @@ function SLIP(callbacks, size) {
                 if ((STKTOP - MEMTOP | 0) < ((imul(imul(3, LEN) | 0, 4) | 0) + 128 | 0)) {
                     claimSizCollect((imul(imul(3, LEN) | 0, 4) | 0) + 128 | 0);
                 }
-                ;
                 VAL = makePair(VAL, 2147483625) | 0;
                 for (LEN = LEN - 1 | 0; LEN; LEN = LEN - 1 | 0)
                     VAL = makePair(pop() | 0, VAL) | 0;
@@ -3369,8 +3469,9 @@ function SLIP(callbacks, size) {
             if ((STKTOP - MEMTOP | 0) < ((imul(LEN, 4) | 0) + 128 | 0)) {
                 claimSizCollect((imul(LEN, 4) | 0) + 128 | 0);
             }
-            ;
-            EXP = makeVector(LEN) | 0;
+            EXP = MEMTOP;
+            MEMTOP = MEMTOP + (LEN + 1 << 2) | 0;
+            MEM32[EXP >> 2] = (LEN << 6 | 2) << 2;
             MEM32[EXP + (LEN << 2) >> 2] = VAL;
             for (LEN = LEN - 1 | 0; LEN; LEN = LEN - 1 | 0)
                 MEM32[EXP + (LEN << 2) >> 2] = pop() | 0;
@@ -3625,9 +3726,13 @@ function SLIP(callbacks, size) {
             if ((STKTOP - MEMTOP | 0) < ((imul(SIZ, 4) | 0) + 128 | 0)) {
                 claimSizCollect((imul(SIZ, 4) | 0) + 128 | 0);
             }
-            ;
             ENV = extendEnv() | 0;
-            FRM = fillVector(SIZ, 2147483629) | 0;
+            FRM = MEMTOP;
+            MEMTOP = MEMTOP + (SIZ + 1 << 2) | 0;
+            MEM32[FRM >> 2] = (SIZ << 6 | 2) << 2;
+            for (IDX = 1; (IDX | 0) <= (SIZ | 0); IDX = IDX + 1 | 0) {
+                MEM32[FRM + (IDX << 2) >> 2] = 2147483629;
+            }
             EXP = MEM32[EXP + 4 >> 2] | 0;
             return _E_eval() | 0;
         }
@@ -3636,13 +3741,17 @@ function SLIP(callbacks, size) {
             if ((STKTOP - MEMTOP | 0) < ((imul(SIZ, 4) | 0) + 128 | 0)) {
                 claimSizCollect((imul(SIZ, 4) | 0) + 128 | 0);
             }
-            ;
             STKTOP = STKTOP - 12 | 0;
             MEM32[STKTOP + 8 >> 2] = KON;
             MEM32[STKTOP + 4 >> 2] = ENV;
             MEM32[STKTOP >> 2] = FRM;
             ENV = extendEnv() | 0;
-            FRM = fillVector(SIZ, 2147483629) | 0;
+            FRM = MEMTOP;
+            MEMTOP = MEMTOP + (SIZ + 1 << 2) | 0;
+            MEM32[FRM >> 2] = (SIZ << 6 | 2) << 2;
+            for (IDX = 1; (IDX | 0) <= (SIZ | 0); IDX = IDX + 1 | 0) {
+                MEM32[FRM + (IDX << 2) >> 2] = 2147483629;
+            }
             EXP = MEM32[EXP + 4 >> 2] | 0;
             KON = 293;
             return _E_eval() | 0;
@@ -3685,12 +3794,20 @@ function SLIP(callbacks, size) {
                 if ((STKTOP - MEMTOP | 0) < ((imul(SIZ, 4) | 0) + 128 | 0)) {
                     claimSizCollect((imul(SIZ, 4) | 0) + 128 | 0);
                 }
-                ;
                 STKTOP = STKTOP - 12 | 0;
                 MEM32[STKTOP + 8 >> 2] = KON;
                 MEM32[STKTOP + 4 >> 2] = ENV;
                 MEM32[STKTOP >> 2] = FRM;
-                FRM = SIZ ? fillVector(SIZ, 2147483629) | 0 : __EMPTY_VEC__;
+                if (SIZ) {
+                    FRM = MEMTOP;
+                    MEMTOP = MEMTOP + (SIZ + 1 << 2) | 0;
+                    MEM32[FRM >> 2] = (SIZ << 6 | 2) << 2;
+                    for (IDX = 1; (IDX | 0) <= (SIZ | 0); IDX = IDX + 1 | 0) {
+                        MEM32[FRM + (IDX << 2) >> 2] = 2147483629;
+                    }
+                } else {
+                    FRM = __EMPTY_VEC__;
+                }
                 ENV = MEM32[VAL + 16 >> 2] | 0;
                 EXP = MEM32[VAL + 12 >> 2] | 0;
                 KON = 293;
@@ -3704,12 +3821,16 @@ function SLIP(callbacks, size) {
                 if ((STKTOP - MEMTOP | 0) < ((imul(SIZ, 4) | 0) + 128 | 0)) {
                     claimSizCollect((imul(SIZ, 4) | 0) + 128 | 0);
                 }
-                ;
                 STKTOP = STKTOP - 12 | 0;
                 MEM32[STKTOP + 8 >> 2] = KON;
                 MEM32[STKTOP + 4 >> 2] = ENV;
                 MEM32[STKTOP >> 2] = FRM;
-                FRM = fillVector(SIZ, 2147483625) | 0;
+                FRM = MEMTOP;
+                MEMTOP = MEMTOP + (SIZ + 1 << 2) | 0;
+                MEM32[FRM >> 2] = (SIZ << 6 | 2) << 2;
+                for (IDX = 1; (IDX | 0) <= (SIZ | 0); IDX = IDX + 1 | 0) {
+                    MEM32[FRM + (IDX << 2) >> 2] = 2147483625;
+                }
                 ENV = MEM32[VAL + 16 >> 2] | 0;
                 EXP = MEM32[VAL + 12 >> 2] | 0;
                 KON = 293;
@@ -3763,8 +3884,12 @@ function SLIP(callbacks, size) {
                     if ((STKTOP - MEMTOP | 0) < ((imul(SIZ, 4) | 0) + 128 | 0)) {
                         claimSizCollect((imul(SIZ, 4) | 0) + 128 | 0);
                     }
-                    ;
-                    FRM = fillVector(SIZ, 2147483629) | 0;
+                    FRM = MEMTOP;
+                    MEMTOP = MEMTOP + (SIZ + 1 << 2) | 0;
+                    MEM32[FRM >> 2] = (SIZ << 6 | 2) << 2;
+                    for (IDX = 1; (IDX | 0) <= (SIZ | 0); IDX = IDX + 1 | 0) {
+                        MEM32[FRM + (IDX << 2) >> 2] = 2147483629;
+                    }
                 } else {
                     FRM = __EMPTY_VEC__;
                 }
@@ -3780,8 +3905,12 @@ function SLIP(callbacks, size) {
                 if ((STKTOP - MEMTOP | 0) < ((imul(SIZ, 4) | 0) + 128 | 0)) {
                     claimSizCollect((imul(SIZ, 4) | 0) + 128 | 0);
                 }
-                ;
-                FRM = fillVector(SIZ, 2147483625) | 0;
+                FRM = MEMTOP;
+                MEMTOP = MEMTOP + (SIZ + 1 << 2) | 0;
+                MEM32[FRM >> 2] = (SIZ << 6 | 2) << 2;
+                for (IDX = 1; (IDX | 0) <= (SIZ | 0); IDX = IDX + 1 | 0) {
+                    MEM32[FRM + (IDX << 2) >> 2] = 2147483625;
+                }
                 ENV = MEM32[VAL + 16 >> 2] | 0;
                 EXP = MEM32[VAL + 12 >> 2] | 0;
                 return 177;
@@ -3839,8 +3968,12 @@ function SLIP(callbacks, size) {
                 if ((STKTOP - MEMTOP | 0) < ((imul(SIZ, 4) | 0) + 128 | 0)) {
                     claimSizCollect((imul(SIZ, 4) | 0) + 128 | 0);
                 }
-                ;
-                PAR = fillVector(SIZ, 2147483629) | 0;
+                PAR = MEMTOP;
+                MEMTOP = MEMTOP + (SIZ + 1 << 2) | 0;
+                MEM32[PAR >> 2] = (SIZ << 6 | 2) << 2;
+                for (IDX = 1; (IDX | 0) <= (SIZ | 0); IDX = IDX + 1 | 0) {
+                    MEM32[PAR + (IDX << 2) >> 2] = 2147483629;
+                }
                 STKTOP = STKTOP - 12 | 0;
                 MEM32[STKTOP + 8 >> 2] = KON;
                 MEM32[STKTOP + 4 >> 2] = ENV;
@@ -3857,8 +3990,12 @@ function SLIP(callbacks, size) {
                 if ((STKTOP - MEMTOP | 0) < ((imul(SIZ, 4) | 0) + 128 | 0)) {
                     claimSizCollect((imul(SIZ, 4) | 0) + 128 | 0);
                 }
-                ;
-                PAR = fillVector(SIZ, 2147483625) | 0;
+                PAR = MEMTOP;
+                MEMTOP = MEMTOP + (SIZ + 1 << 2) | 0;
+                MEM32[PAR >> 2] = (SIZ << 6 | 2) << 2;
+                for (IDX = 1; (IDX | 0) <= (SIZ | 0); IDX = IDX + 1 | 0) {
+                    MEM32[PAR + (IDX << 2) >> 2] = 2147483625;
+                }
                 STKTOP = STKTOP - 12 | 0;
                 MEM32[STKTOP + 8 >> 2] = KON;
                 MEM32[STKTOP + 4 >> 2] = ENV;
@@ -3875,7 +4012,6 @@ function SLIP(callbacks, size) {
                 if ((STKTOP - MEMTOP | 0) < ((imul(LEN, 4) | 0) + 128 | 0)) {
                     claimSizCollect((imul(LEN, 4) | 0) + 128 | 0);
                 }
-                ;
                 STKTOP = STKTOP - (LEN << 2) | 0;
                 return _E_nativeArgs() | 0;
             case 24:
@@ -3933,8 +4069,12 @@ function SLIP(callbacks, size) {
                 if ((STKTOP - MEMTOP | 0) < ((imul(SIZ, 4) | 0) + 128 | 0)) {
                     claimSizCollect((imul(SIZ, 4) | 0) + 128 | 0);
                 }
-                ;
-                PAR = fillVector(SIZ, 2147483629) | 0;
+                PAR = MEMTOP;
+                MEMTOP = MEMTOP + (SIZ + 1 << 2) | 0;
+                MEM32[PAR >> 2] = (SIZ << 6 | 2) << 2;
+                for (IDX = 1; (IDX | 0) <= (SIZ | 0); IDX = IDX + 1 | 0) {
+                    MEM32[PAR + (IDX << 2) >> 2] = 2147483629;
+                }
                 return _E_prcEvalArgs() | 0;
             case 36:
                 LEN = (MEM32[VAL + 4 >> 2] | 0) >> 2 | 0;
@@ -3946,8 +4086,12 @@ function SLIP(callbacks, size) {
                 if ((STKTOP - MEMTOP | 0) < ((imul(SIZ, 4) | 0) + 128 | 0)) {
                     claimSizCollect((imul(SIZ, 4) | 0) + 128 | 0);
                 }
-                ;
-                PAR = fillVector(SIZ, 2147483625) | 0;
+                PAR = MEMTOP;
+                MEMTOP = MEMTOP + (SIZ + 1 << 2) | 0;
+                MEM32[PAR >> 2] = (SIZ << 6 | 2) << 2;
+                for (IDX = 1; (IDX | 0) <= (SIZ | 0); IDX = IDX + 1 | 0) {
+                    MEM32[PAR + (IDX << 2) >> 2] = 2147483625;
+                }
                 if (LEN) {
                     return _E_przArgs() | 0;
                 }
@@ -3959,7 +4103,6 @@ function SLIP(callbacks, size) {
                 if ((STKTOP - MEMTOP | 0) < ((imul(LEN, 4) | 0) + 128 | 0)) {
                     claimSizCollect((imul(LEN, 4) | 0) + 128 | 0);
                 }
-                ;
                 STKTOP = STKTOP - (LEN << 2) | 0;
                 return _E_nativeArgs() | 0;
             case 24:
@@ -4686,7 +4829,10 @@ function SLIP(callbacks, size) {
             if ((STKTOP - MEMTOP | 0) < 128) {
                 claimCollect();
             }
-            VAL = makeFloat(FLT) | 0;
+            VAL = MEMTOP;
+            MEMTOP = MEMTOP + (1 + 1 << 2) | 0;
+            MEM32[VAL >> 2] = (1 << 6 | 1) << 2;
+            FLT32[VAL + 4 >> 2] = FLT;
             STKTOP = STKTOP + (LEN << 2) | 0;
             return KON | 0;
         }
@@ -4708,7 +4854,10 @@ function SLIP(callbacks, size) {
             if ((STKTOP - MEMTOP | 0) < 128) {
                 claimCollect();
             }
-            VAL = makeFloat(FLT) | 0;
+            VAL = MEMTOP;
+            MEMTOP = MEMTOP + (1 + 1 << 2) | 0;
+            MEM32[VAL >> 2] = (1 << 6 | 1) << 2;
+            FLT32[VAL + 4 >> 2] = FLT;
             STKTOP = STKTOP + (LEN << 2) | 0;
             return KON | 0;
         }
@@ -4730,7 +4879,10 @@ function SLIP(callbacks, size) {
             if ((STKTOP - MEMTOP | 0) < 128) {
                 claimCollect();
             }
-            VAL = makeFloat(FLT) | 0;
+            VAL = MEMTOP;
+            MEMTOP = MEMTOP + (1 + 1 << 2) | 0;
+            MEM32[VAL >> 2] = (1 << 6 | 1) << 2;
+            FLT32[VAL + 4 >> 2] = FLT;
             STKTOP = STKTOP + (LEN << 2) | 0;
             return KON | 0;
         }
@@ -4772,9 +4924,13 @@ function SLIP(callbacks, size) {
                 if ((STKTOP - MEMTOP | 0) < ((imul(SIZ, 4) | 0) + 128 | 0)) {
                     claimSizCollect((imul(SIZ, 4) | 0) + 128 | 0);
                 }
-                ;
                 preserveEnv();
-                FRM = fillVector(SIZ, 2147483629) | 0;
+                FRM = MEMTOP;
+                MEMTOP = MEMTOP + (SIZ + 1 << 2) | 0;
+                MEM32[FRM >> 2] = (SIZ << 6 | 2) << 2;
+                for (IDX = 1; (IDX | 0) <= (SIZ | 0); IDX = IDX + 1 | 0) {
+                    MEM32[FRM + (IDX << 2) >> 2] = 2147483629;
+                }
                 for (IDX = 1; (IDX | 0) <= (LEN | 0); IDX = IDX + 1 | 0) {
                     if (!(isPair(ARG) | 0)) {
                         err_invalidParamCount();
@@ -4797,9 +4953,13 @@ function SLIP(callbacks, size) {
                 if ((STKTOP - MEMTOP | 0) < ((imul(SIZ, 4) | 0) + 128 | 0)) {
                     claimSizCollect((imul(SIZ, 4) | 0) + 128 | 0);
                 }
-                ;
                 preserveEnv();
-                FRM = fillVector(SIZ, 2147483629) | 0;
+                FRM = MEMTOP;
+                MEMTOP = MEMTOP + (SIZ + 1 << 2) | 0;
+                MEM32[FRM >> 2] = (SIZ << 6 | 2) << 2;
+                for (IDX = 1; (IDX | 0) <= (SIZ | 0); IDX = IDX + 1 | 0) {
+                    MEM32[FRM + (IDX << 2) >> 2] = 2147483629;
+                }
                 for (IDX = 1; (IDX | 0) <= (LEN | 0); IDX = IDX + 1 | 0) {
                     if (!(isPair(ARG) | 0)) {
                         err_invalidParamCount();
@@ -4823,7 +4983,6 @@ function SLIP(callbacks, size) {
                 if ((STKTOP - MEMTOP | 0) < ((imul(LEN, 4) | 0) + 128 | 0)) {
                     claimSizCollect((imul(LEN, 4) | 0) + 128 | 0);
                 }
-                ;
                 STKTOP = STKTOP - (LEN << 2) | 0;
                 for (IDX = 0; (IDX | 0) < (LEN | 0); IDX = IDX + 1 | 0) {
                     TMP = MEM32[ARG + 4 >> 2] | 0;
@@ -5578,12 +5737,11 @@ function SLIP(callbacks, size) {
             isPrc: isPrc,
             isPrz: isPrz,
             //vectors
-            fillVector: fillVector,
             vectorAt: vectorAt,
             fvectorLength: fvectorLength,
             isVector: isVector,
             //floats
-            makeFloat: makeFloat,
+            fmakeFloat: fmakeFloat,
             ffloatNumber: ffloatNumber,
             isFloat: isFloat,
             //string
@@ -5736,7 +5894,7 @@ function SLIP(callbacks, size) {
             makeString = asm$2.makeString;
             stringSet = asm$2.stringSet;
             makeNumber = asm$2.fmakeNumber;
-            makeFloat = asm$2.makeFloat;
+            makeFloat = asm$2.fmakeFloat;
             claimSiz = asm$2.fclaimSiz;
             claim = asm$2.fclaim;
             enterPool = pool$2.enterPool;

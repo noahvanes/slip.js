@@ -378,12 +378,19 @@ function SLIP(callbacks, size) {
 
 		/* CELLS */
 
-		function makeHeader(tag, siz) {
-			tag = tag|0;
-			siz = siz|0;
-			var hdr = 0;
-			hdr = (siz << 6)|tag;
-			return (hdr << 2)|0;
+		macro makeHeader {
+			rule {($tag,$siz:expr)} => {
+				((($siz<<6)|$tag)<<2)
+			}
+			case {($tag,$siz:lit)} => {
+				var siz = unwrapSyntax(#{$siz});
+				var tag = unwrapSyntax(#{$tag});
+				var hdr = (((siz<<6)|tag)<<2);
+				letstx $hdr = [makeValue(hdr,#{here})];
+				return #{
+					$hdr
+				}
+			}
 		}
 
 		macro headerSize {
@@ -406,14 +413,29 @@ function SLIP(callbacks, size) {
 
 		/* CHUNKS */
 
-		function makeChunk(tag, siz) {
-			tag = tag|0;
-			siz = siz|0;
-			var adr = 0;
-			adr = MEMTOP;
-			MEMTOP = (MEMTOP + ((siz+1) << 2))|0;
-			MEM32[adr >> 2] = makeHeader(tag, siz)|0;
-			return adr|0;
+		macro makeChunk {
+			case {_($tag,$siz:expr) => $v:ident;} => {
+				letstx $M32 = [makeIdent('MEM32', #{here})];
+				letstx $MTP = [makeIdent('MEMTOP', #{here})];
+				letstx $HDR = [makeIdent('makeHeader', #{here})];
+				return #{
+					$v = $MTP;
+					$MTP = ($MTP+(($siz+1)<<2))|0;
+					$M32[$v>>2] = $HDR($tag,$siz);
+				}
+			}
+			case {_($tag,$siz:lit) => $v:ident;} => {
+				var nbr = unwrapSyntax(#{$siz});
+				letstx $M32 = [makeIdent('MEM32', #{here})];
+				letstx $MTP = [makeIdent('MEMTOP', #{here})];
+				letstx $HDR = [makeIdent('makeHeader', #{here})];
+				letstx $INC = [makeValue((nbr+1)<<2, #{here})];
+				return #{
+					$v = $MTP;
+					$MTP = ($MTP + $INC);
+					$M32[$v>>2] = $HDR($tag,$siz);
+				}
+			}
 		}
 
 		macro chunkTag {
@@ -751,20 +773,26 @@ function SLIP(callbacks, size) {
 
 		/* ---- VECTOR ---- */
 
-		function makeVector(siz) {
-			siz = siz|0;
-			return makeChunk(__VCT_TAG__, siz)|0;
+		macro makeVector {
+			case {_($siz) => $v:ident;} => {
+				letstx $VEC = [makeIdent('makeChunk',#{here})];
+				return #{
+					$VEC(__VCT_TAG__, $siz) => $v;
+				}
+			}
 		}
 
-		function fillVector(siz, exp) {
-			siz = siz|0;
-			exp = exp|0;
-			var vct = 0;
-			var idx = 0;
-			vct = makeChunk(__VCT_TAG__, siz)|0;
-			for(idx = 1; (idx|0) <= (siz|0); idx=(idx+1)|0)
-				chunkSet(vct, idx<<2, exp);
-			return vct|0;
+		macro fillVector {
+			case {_($siz,$exp) => $v:ident;} => {
+				letstx $VEC = [makeIdent('makeChunk',#{here})];
+				letstx $SET = [makeIdent('chunkSet',#{here})];
+				letstx $IDX = [makeIdent('IDX',#{here})];
+				return #{
+					$VEC(__VCT_TAG__, $siz) => $v;
+					for($IDX=1;($IDX|0)<=($siz|0);$IDX=($IDX+1)|0)
+						{ $SET($v,$IDX<<2,$exp) }
+				}
+			}
 		}
 
 		macro vectorRef {
@@ -827,8 +855,8 @@ function SLIP(callbacks, size) {
 			var vct = 0;
 			var cur = 0;
 			len = stkSize()|0;
-			claimSiz(len);
-			vct = makeVector(len)|0;
+			claimSiz(len)
+			makeVector(len) => vct;
 			while((idx|0) < (len|0)) {
 				cur = STK[idx]|0;
 				idx = (idx+1)|0;
@@ -842,7 +870,7 @@ function SLIP(callbacks, size) {
 			var exp = 0;
 			emptyStk();
 			len = vectorLength(PAR)|0;
-			claimSiz(len);
+			claimSiz(len)
 			STKALLOC(len);
 			while(len) {
 				exp = vectorRef(PAR, len)|0;
@@ -857,7 +885,9 @@ function SLIP(callbacks, size) {
 
 		function makeSequence(siz) {
 			siz = siz|0;
-			return makeChunk(__SEQ_TAG__, siz)|0;
+			var seq = 0;
+			makeChunk(__SEQ_TAG__, siz) => seq;
+			return seq|0;
 		}
 
 		macro sequenceRef {
@@ -1227,10 +1257,31 @@ function SLIP(callbacks, size) {
 		define __FLOAT_SIZ__ 1
 		define __FLOAT_NBR__ 4
 
-		function makeFloat(nbr) {
+		macro makeFloat {
+			case {_($v:expr) => $reg:ident;} => {
+				letstx $CHK = [makeIdent('makeChunk',#{here})];
+				letstx $SET = [makeIdent('chunkSetFloat',#{here})];
+				return #{
+					$CHK(__FLT_TAG__, __FLOAT_SIZ__) => $reg;
+					$SET($reg, __FLOAT_NBR__, $v);
+				}
+			}
+		}
+
+
+		macro floatNumber {
+			case {_($v:expr)} => {
+				letstx $get = [makeIdent('chunkGetFloat',#{here})];
+				return #{
+					$get($v, __FLOAT_NBR__)
+				}
+			}
+		}		
+
+		function fmakeFloat(nbr) {
 			nbr = fround(nbr);
 			var flt = 0;
-			flt = makeChunk(__FLT_TAG__, __FLOAT_SIZ__)|0;
+			makeChunk(__FLT_TAG__, __FLOAT_SIZ__) => flt;
 			chunkSetFloat(flt, __FLOAT_NBR__, nbr);
 			return flt|0;
 		}
@@ -1238,15 +1289,6 @@ function SLIP(callbacks, size) {
 		function ffloatNumber(flt) {
 			flt = flt|0;
 			return fround(chunkGetFloat(flt, __FLOAT_NBR__));
-		}
-
-		macro floatNumber {
-			case {_($v:expr)} => {
-				letstx $get = [makeIdent('chunkGetFloat', #{here})];
-				return #{
-					$get($v, __FLOAT_NBR__)
-				}
-			}
 		}
 
 		typecheck __FLT_TAG__ => isFloat
@@ -1259,7 +1301,7 @@ function SLIP(callbacks, size) {
 			var chk = 0;
 			var siz = 0;
 			for(siz = len; siz&0x3; siz=(siz+1)|0);
-			chk = (makeChunk(tag, siz>>2)|0);
+			makeChunk(tag, siz>>2) => chk;
 			for(len = (len+4)|0, siz = (siz+4)|0;
 				(len|0) < (siz|0);
 				len = (len + 1)|0)
@@ -1321,15 +1363,15 @@ function SLIP(callbacks, size) {
 		function initPool() {
 			__POOL_TOP__ = 0;
 			__POOL_SIZ__ = 64;
-			SYM = fillVector(__POOL_SIZ__, __VOID__)|0;
+			fillVector(__POOL_SIZ__, __VOID__) => SYM;
 		}
 
 		function growPool() {
 			var idx = 0;
 			var sym = 0;
 			__POOL_SIZ__ = imul(__POOL_SIZ__,2)|0;
-			claimSiz(__POOL_SIZ__);
-			TMP = fillVector(__POOL_SIZ__, __VOID__)|0;
+			claimSiz(__POOL_SIZ__)
+			fillVector(__POOL_SIZ__, __VOID__) => TMP;
 			while((idx|0) < (__POOL_TOP__|0)) {
 				idx = (idx + 1)|0;
 				sym = vectorRef(SYM, idx)|0;
@@ -1447,7 +1489,7 @@ function SLIP(callbacks, size) {
 		define __GLOBAL_SIZ__ 128
 
 		function initEnvironment() {
-			GLB = fillVector(__GLOBAL_SIZ__, __VOID__)|0;
+			fillVector(__GLOBAL_SIZ__, __VOID__) => GLB;
 			FRM = GLB;
 			ENV = __EMPTY_VEC__;
 		}
@@ -1457,8 +1499,8 @@ function SLIP(callbacks, size) {
 			var len = 0;
 			var idx = 0;
 			len = ((vectorLength(ENV)|0)+1)|0;
-			claimSiz(len);
-			env = makeVector(len)|0;
+			claimSiz(len)
+			makeVector(len) => env;
 			for(idx=1;(idx|0)<(len|0);idx=(idx+1)|0)
 				vectorSet(env,idx,vectorRef(ENV,idx)|0);
 			vectorSet(env,len,FRM);
@@ -1633,7 +1675,7 @@ function SLIP(callbacks, size) {
 			initMemory();
 			initTags();
 			initRegs();
-			__EMPTY_VEC__ = makeVector(0)|0;
+			makeVector(0) => __EMPTY_VEC__;
 			initPool();
 			loadSymbols();
 			initDictionary();
@@ -1673,9 +1715,7 @@ function SLIP(callbacks, size) {
 				letstx $avail = [makeIdent('available', #{here})];
 				letstx $coll = [makeIdent('claimCollect', #{here})];
 				return #{
-					if(($avail()|0) < __MARGIN__) {
-						$coll();
-					}
+					if(($avail()|0) < __MARGIN__) { $coll(); }
 				}
 			}
 		}
@@ -1685,10 +1725,9 @@ function SLIP(callbacks, size) {
 				letstx $avail = [makeIdent('available', #{here})];
 				letstx $coll = [makeIdent('claimSizCollect', #{here})];
 				return #{
-					if(($avail()|0) < (((imul($a,__UNIT_SIZ__)|0)+__MARGIN__)|0)) {
-						$coll(((imul($a,__UNIT_SIZ__)|0)+__MARGIN__)|0)
-					}
-				}
+					if(($avail()|0) < (((imul($a,__UNIT_SIZ__)|0)+__MARGIN__)|0)) 
+					  { $coll(((imul($a,__UNIT_SIZ__)|0)+__MARGIN__)|0) }
+				} 
 			}
 		}
 
@@ -1806,7 +1845,7 @@ function SLIP(callbacks, size) {
 							goto KON|0;
 						case __FLT_TAG__:
 							claim()
-							VAL = makeFloat(fround(-fround(floatNumber(VAL))))|0;
+							makeFloat(fround(-fround(floatNumber(VAL)))) => VAL;
 							goto KON|0;
 						default:
 							err_invalidArgument(VAL|0);
@@ -1880,10 +1919,10 @@ function SLIP(callbacks, size) {
 					STKUNWIND(1);
 					switch(tag(VAL)|0) {
 						case __NBR_TAG__:
-							VAL = makeFloat(fround(fround(1.0)/fround(numberVal(VAL)|0)))|0;
+							makeFloat(fround(fround(1.0)/fround(numberVal(VAL)|0))) => VAL;
 							goto KON|0;
 						case __FLT_TAG__:
-							VAL = makeFloat(fround(fround(1.0)/fround(floatNumber(VAL))))|0;
+							makeFloat(fround(fround(1.0)/fround(floatNumber(VAL)))) => VAL;
 							goto KON|0;
 						default:
 							err_invalidArgument(VAL|0);
@@ -1918,7 +1957,7 @@ function SLIP(callbacks, size) {
 					}
 				}
 
-				VAL = makeFloat(FLT)|0;
+				makeFloat(FLT) => VAL;
 				STKUNWIND(LEN);
 				goto KON|0;
 			}
@@ -2014,7 +2053,7 @@ function SLIP(callbacks, size) {
 
 			N_list {
 
-				claimSiz(imul(3,LEN)|0);
+				claimSiz(imul(3,LEN)|0)
 				VAL = __NULL__;
 				for(IDX=(LEN-1)|0;IDX;IDX=(IDX-1)|0)
 					VAL = makePair(STK[IDX]|0, VAL)|0;
@@ -2471,9 +2510,9 @@ function SLIP(callbacks, size) {
 				}
 
 				if (LEN) {
-					claimSiz(LEN);
-					VAL = (LEN? __ZERO__:(vectorRef(PAR, 2)|0));
-					VAL = fillVector(LEN, VAL)|0;
+					claimSiz(LEN)
+					TMP = (LEN? __ZERO__:(vectorRef(PAR, 2)|0));
+					fillVector(LEN, TMP) => VAL;
 				} else {
 					VAL = __EMPTY_VEC__;
 				}
@@ -2567,8 +2606,8 @@ function SLIP(callbacks, size) {
 
 			N_vector {
 
-				claimSiz(LEN);
-				VAL = makeVector(LEN)|0;
+				claimSiz(LEN)
+				makeVector(LEN) => VAL;
 				for(IDX=0;(IDX|0)<(LEN|0);IDX=TMP) {
 					EXP = STK[IDX]|0;
 					TMP = (IDX+1)|0;
@@ -2763,7 +2802,7 @@ function SLIP(callbacks, size) {
 				}
 
 				claim()
-				VAL = makeFloat(fround(+random()))|0;
+				makeFloat(fround(+random())) => VAL;
 				goto KON|0;
 			}
 
@@ -2863,7 +2902,7 @@ function SLIP(callbacks, size) {
 							case __FLT_TAG__:
 								claim()
 								REA = +((+(numberVal(ARG)|0))%(+(fround(floatNumber(EXP)))))
-								VAL = makeFloat(fround(REA))|0;
+								makeFloat(fround(REA)) => VAL;
 								goto KON|0;
 						}
 						err_invalidArgument(EXP|0);
@@ -2876,11 +2915,11 @@ function SLIP(callbacks, size) {
 						switch(tag(EXP)|0) {
 							case __NBR_TAG__:
 								REA = +(REA%(+(numberVal(EXP)|0)));
-								VAL = makeFloat(fround(REA))|0;
+								makeFloat(fround(REA)) => VAL;
 								goto KON|0;
 							case __FLT_TAG__:
 								REA = +(REA%(+fround(floatNumber(EXP))));
-								VAL = makeFloat(fround(REA))|0;
+								makeFloat(fround(REA)) => VAL;
 								goto KON|0;
 						}
 						err_invalidArgument(EXP|0);
@@ -2942,11 +2981,11 @@ function SLIP(callbacks, size) {
 				switch(tag(ARG)|0) {
 					case __NBR_TAG__:
 						REA = +sin(+(numberVal(ARG)|0));
-						VAL = makeFloat(fround(REA))|0;
+						makeFloat(fround(REA)) => VAL;
 						goto KON|0;
 					case __FLT_TAG__:
 						REA = +sin(+(fround(floatNumber(ARG))));
-						VAL = makeFloat(fround(REA))|0;
+						makeFloat(fround(REA)) => VAL;
 						goto KON|0;
 				}
 
@@ -3093,7 +3132,7 @@ function SLIP(callbacks, size) {
 				if ((look()|0) == RBR) {
 					skip();
 					LEN = numberVal(pop()|0)|0;
-					claimSiz(imul(3,LEN)|0);
+					claimSiz(imul(3,LEN)|0)
 					VAL = makePair(VAL, __NULL__)|0;
 					for(LEN=(LEN-1)|0;LEN;LEN=(LEN-1)|0)
 						VAL = makePair(pop()|0, VAL)|0;
@@ -3713,8 +3752,8 @@ function SLIP(callbacks, size) {
 
 		 		TLC = pop()|0;
 		 		LEN = numberVal(pop()|0)|0;
-		 		claimSiz(LEN);
-		 		EXP = makeVector(LEN)|0;
+		 		claimSiz(LEN)
+		 		makeVector(LEN) => EXP;
 		 		vectorSet(EXP, LEN, VAL);
 		 		for(LEN=(LEN-1)|0;LEN;LEN=(LEN-1)|0)
 		 			vectorSet(EXP, LEN, pop()|0)
@@ -4017,9 +4056,9 @@ function SLIP(callbacks, size) {
 			E_evalTtk {
 
 				SIZ = numberVal(ttkSiz(EXP)|0)|0;
-				claimSiz(SIZ);
+				claimSiz(SIZ)
 				ENV = extendEnv()|0;
-				FRM = fillVector(SIZ, __VOID__)|0;
+				fillVector(SIZ, __VOID__) => FRM;
 				EXP = ttkExp(EXP)|0;
 				goto E_eval();
 			}
@@ -4027,13 +4066,13 @@ function SLIP(callbacks, size) {
 			E_evalThk {
 
 				SIZ = numberVal(thunkSiz(EXP)|0)|0;
-				claimSiz(SIZ);
+				claimSiz(SIZ)
 				STKALLOC(3);
 				STK[2] = KON;
 				STK[1] = ENV;
 				STK[0] = FRM;
 				ENV = extendEnv()|0;
-				FRM = fillVector(SIZ, __VOID__)|0;
+				fillVector(SIZ, __VOID__) => FRM;
 				EXP = thunkExp(EXP)|0;
 				KON = E_c_return;
 				goto E_eval();
@@ -4087,12 +4126,15 @@ function SLIP(callbacks, size) {
 							goto error;
 						}
 						SIZ = numberVal(prcFrmSiz(VAL)|0)|0;
-						claimSiz(SIZ);
+						claimSiz(SIZ)
 						STKALLOC(3);
 						STK[2] = KON;
 						STK[1] = ENV;
 						STK[0] = FRM;
-						FRM = (SIZ? (fillVector(SIZ, __VOID__)|0):__EMPTY_VEC__)
+						if(SIZ)
+							{ fillVector(SIZ, __VOID__) => FRM; }
+						else
+							{ FRM = __EMPTY_VEC__ }
 						ENV = prcEnv(VAL)|0;
 						EXP = prcBdy(VAL)|0;
 						KON = E_c_return;
@@ -4104,12 +4146,12 @@ function SLIP(callbacks, size) {
 							goto error;
 						}
 						SIZ = numberVal(przFrmSiz(VAL)|0)|0;
-						claimSiz(SIZ);
+						claimSiz(SIZ)
 						STKALLOC(3);
 						STK[2] = KON;
 						STK[1] = ENV;
 						STK[0] = FRM;
-						FRM = fillVector(SIZ, __NULL__)|0;
+						fillVector(SIZ, __NULL__) => FRM;
 						ENV = przEnv(VAL)|0;
 						EXP = przBdy(VAL)|0;
 						KON = E_c_return;
@@ -4177,8 +4219,8 @@ function SLIP(callbacks, size) {
 						}
 						SIZ = numberVal(prcFrmSiz(VAL)|0)|0;
 						if(SIZ) {
-							claimSiz(SIZ);
-							FRM = fillVector(SIZ, __VOID__)|0;
+							claimSiz(SIZ)
+							fillVector(SIZ, __VOID__) => FRM;
 						} else {
 							FRM = __EMPTY_VEC__;
 						}
@@ -4192,8 +4234,8 @@ function SLIP(callbacks, size) {
 							goto error;
 						}
 						SIZ = numberVal(przFrmSiz(VAL)|0)|0;
-						claimSiz(SIZ);
-						FRM = fillVector(SIZ, __NULL__)|0;
+						claimSiz(SIZ)
+						fillVector(SIZ, __NULL__) => FRM;
 						ENV = przEnv(VAL)|0;
 						EXP = przBdy(VAL)|0;
 						goto E_eval;
@@ -4265,8 +4307,8 @@ function SLIP(callbacks, size) {
 							err_invalidParamCount();
 							goto error;
 						}
-						claimSiz(SIZ);
-						PAR = fillVector(SIZ, __VOID__)|0;
+						claimSiz(SIZ)
+						fillVector(SIZ, __VOID__) => PAR;
 						STKALLOC(3);
 						STK[2] = KON;
 						STK[1] = ENV;
@@ -4281,8 +4323,8 @@ function SLIP(callbacks, size) {
 							err_invalidParamCount();
 							goto error;
 						}
-						claimSiz(SIZ);
-						PAR = fillVector(SIZ, __NULL__)|0;
+						claimSiz(SIZ)
+						fillVector(SIZ, __NULL__) => PAR;
 						STKALLOC(3);
 						STK[2] = KON;
 						STK[1] = ENV;
@@ -4296,7 +4338,7 @@ function SLIP(callbacks, size) {
 
 					case __NAT_TAG__:
 						LEN = vectorLength(ARG)|0;
-						claimSiz(LEN);
+						claimSiz(LEN)
 						STKALLOC(LEN);
 						goto E_nativeArgs();
 
@@ -4367,8 +4409,8 @@ function SLIP(callbacks, size) {
 							err_invalidParamCount();
 							goto error;
 						}
-						claimSiz(SIZ);
-						PAR = fillVector(SIZ, __VOID__)|0;
+						claimSiz(SIZ)
+						fillVector(SIZ, __VOID__) => PAR;
 						goto E_prcEvalArgs();
 
 					case __PRZ_TAG__:
@@ -4378,8 +4420,8 @@ function SLIP(callbacks, size) {
 							err_invalidParamCount();
 							goto error;
 						}
-						claimSiz(SIZ);
-						PAR = fillVector(SIZ, __NULL__)|0;
+						claimSiz(SIZ)
+						fillVector(SIZ, __NULL__) => PAR;
 						if (LEN) { 
 							goto E_przArgs(); 
 						}
@@ -4388,7 +4430,7 @@ function SLIP(callbacks, size) {
 
 					case __NAT_TAG__:
 						LEN = vectorLength(ARG)|0;
-						claimSiz(LEN);
+						claimSiz(LEN)
 						STKALLOC(LEN);
 						goto E_nativeArgs();
 
@@ -5105,7 +5147,7 @@ function SLIP(callbacks, size) {
 					}
 				}
 				claim()
-				VAL = makeFloat(FLT)|0;
+				makeFloat(FLT) => VAL;
 				STKUNWIND(LEN);
 				goto KON|0;
 			}
@@ -5127,7 +5169,7 @@ function SLIP(callbacks, size) {
 	 				}
 	 			}
 	 			claim()
-	 			VAL = makeFloat(FLT)|0;
+	 			makeFloat(FLT) => VAL;
 				STKUNWIND(LEN);
 	 			goto KON|0;
 	 		}
@@ -5149,7 +5191,7 @@ function SLIP(callbacks, size) {
 					}
 				}
 				claim()
-				VAL = makeFloat(FLT)|0;
+				makeFloat(FLT) => VAL;
 				STKUNWIND(LEN);
 				goto KON|0;
 			}
@@ -5195,9 +5237,9 @@ function SLIP(callbacks, size) {
 					case __PRC_TAG__:
 						LEN = numberVal(prcArgc(VAL)|0)|0; 
 						SIZ = numberVal(prcFrmSiz(VAL)|0)|0;
-						claimSiz(SIZ);
+						claimSiz(SIZ)
 						preserveEnv();
-						FRM = fillVector(SIZ, __VOID__)|0;
+						fillVector(SIZ, __VOID__) => FRM;
 						for(IDX=1;(IDX|0)<=(LEN|0);IDX=(IDX+1)|0) {
 							if(!(isPair(ARG)|0)) {
 								err_invalidParamCount();
@@ -5218,9 +5260,9 @@ function SLIP(callbacks, size) {
 					case __PRZ_TAG__:
 						LEN = numberVal(przArgc(VAL)|0)|0; 
 						SIZ = numberVal(przFrmSiz(VAL)|0)|0;
-						claimSiz(SIZ);
+						claimSiz(SIZ)
 						preserveEnv();
-						FRM = fillVector(SIZ, __VOID__)|0;
+						fillVector(SIZ, __VOID__) => FRM;
 						for(IDX=1;(IDX|0)<=(LEN|0);IDX=(IDX+1)|0) {
 							if(!(isPair(ARG)|0)) {
 								err_invalidParamCount();
@@ -5242,7 +5284,7 @@ function SLIP(callbacks, size) {
 							err_invalidArgument(ARG|0);
 							goto error;
 						}
-						claimSiz(LEN);
+						claimSiz(LEN)
 						STKALLOC(LEN);
 						for(IDX=0;(IDX|0)<(LEN|0);IDX=(IDX+1)|0) {
 							TMP = pairCar(ARG)|0;
@@ -5526,12 +5568,11 @@ function SLIP(callbacks, size) {
 			isPrc: isPrc,
 			isPrz: isPrz,
 			//vectors
-			fillVector: fillVector,
 			vectorAt: vectorAt,
 			fvectorLength: fvectorLength,
 			isVector: isVector,
 			//floats
-			makeFloat: makeFloat,
+			fmakeFloat: fmakeFloat,
 			ffloatNumber: ffloatNumber,
 			isFloat: isFloat,
 			//string
@@ -5695,7 +5736,7 @@ function SLIP(callbacks, size) {
 			makeString = asm.makeString;
 			stringSet = asm.stringSet;
 			makeNumber = asm.fmakeNumber;
-			makeFloat = asm.makeFloat;
+			makeFloat = asm.fmakeFloat;
 			claimSiz = asm.fclaimSiz;
 			claim = asm.fclaim;
 			enterPool = pool.enterPool;
