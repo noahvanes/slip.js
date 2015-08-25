@@ -3,7 +3,7 @@ A performant Scheme interpreter, written in [asm.js](http://asmjs.org).
 
 ## Introduction
 
-Slip.js is an efficient Scheme (more precisely, [Slip](https://github.com/noahvanes/slip.js/raw/master/varia/Slip.pdf)),
+Slip.js is an efficient Scheme (more precisely, [Slip](https://github.com/noahvanes/slip.js/raw/master/varia/Slip.pdf))
 interpreter, written manually in asm.js for better performance. It makes use of the [sweet.js](http://sweetjs.org) macro
 expander to facilitate the writing of asm.js code by hand.
 
