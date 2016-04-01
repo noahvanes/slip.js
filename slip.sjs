@@ -216,6 +216,7 @@ function SLIP(callbacks, size) {
 		var loadErr = foreign.loadErr;
 		var loadRst = foreign.loadRst;
 		var loadCcc = foreign.loadCcc;
+		var loadCce = foreign.loadCce;
 		var loadQtt = foreign.loadQtt;
 		var loadRem = foreign.loadRem;
 		var loadLen = foreign.loadLen;
@@ -379,10 +380,7 @@ function SLIP(callbacks, size) {
 		/* CELLS */
 
 		macro makeHeader {
-			rule {($tag,$siz:expr)} => {
-				((($siz<<6)|$tag)<<2)
-			}
-			case {($tag,$siz:lit)} => {
+			case {_($tag:lit,$siz:lit)} => {
 				var siz = unwrapSyntax(#{$siz});
 				var tag = unwrapSyntax(#{$tag});
 				var hdr = (((siz<<6)|tag)<<2);
@@ -390,6 +388,9 @@ function SLIP(callbacks, size) {
 				return #{
 					$hdr
 				}
+			}
+			rule {($tag,$siz:expr)} => {
+				((($siz<<6)|$tag)<<2)
 			}
 		}
 
@@ -414,16 +415,6 @@ function SLIP(callbacks, size) {
 		/* CHUNKS */
 
 		macro makeChunk {
-			case {_($tag,$siz:expr) => $v:ident;} => {
-				letstx $M32 = [makeIdent('MEM32', #{here})];
-				letstx $MTP = [makeIdent('MEMTOP', #{here})];
-				letstx $HDR = [makeIdent('makeHeader', #{here})];
-				return #{
-					$v = $MTP;
-					$MTP = ($MTP+(($siz+1)<<2))|0;
-					$M32[$v>>2] = $HDR($tag,$siz);
-				}
-			}
 			case {_($tag,$siz:lit) => $v:ident;} => {
 				var nbr = unwrapSyntax(#{$siz});
 				letstx $M32 = [makeIdent('MEM32', #{here})];
@@ -432,7 +423,17 @@ function SLIP(callbacks, size) {
 				letstx $INC = [makeValue((nbr+1)<<2, #{here})];
 				return #{
 					$v = $MTP;
-					$MTP = ($MTP + $INC);
+					$MTP = ($MTP + $INC)|0;
+					$M32[$v>>2] = $HDR($tag,$siz);
+				}
+			}
+			case {_($tag,$siz:expr) => $v:ident;} => {
+				letstx $M32 = [makeIdent('MEM32', #{here})];
+				letstx $MTP = [makeIdent('MEMTOP', #{here})];
+				letstx $HDR = [makeIdent('makeHeader', #{here})];
+				return #{
+					$v = $MTP;
+					$MTP = ($MTP+(($siz+1)<<2))|0;
 					$M32[$v>>2] = $HDR($tag,$siz);
 				}
 			}
@@ -1015,15 +1016,6 @@ function SLIP(callbacks, size) {
 
 		typecheck __CNT_TAG__ => isContinuation
 
-		/* ---- FRAME ---- */
-
-		struct makeFrm {
-			vrb => frameVrb;
-			nxt => frameNxt;
-		} as __FRM_TAG__
-
-		typecheck __FRM_TAG__ => isFrame
-
 		/* ---- ENVIRONMENT  ---- */
 
 		struct makeEnv {
@@ -1423,7 +1415,7 @@ function SLIP(callbacks, size) {
 				err_globalOverflow();
 				return error;
 			}
-			DFR = makeFrm(PAT, DFR)|0;
+			DFR = makePair(PAT, DFR)|0;
 			currentFrmSiz = (currentFrmSiz+1)|0;
 			return currentFrmSiz|0;
 		}
@@ -1447,8 +1439,8 @@ function SLIP(callbacks, size) {
 
 		function offset(frm) {
 			frm = frm|0;
-			for(;OFS;OFS=(OFS-1)|0,frm=frameNxt(frm)|0)
-				if(((frameVrb(frm)|0) == (PAT|0))|0)
+			for(;OFS;OFS=(OFS-1)|0,frm=pairCdr(frm)|0)
+				if(((pairCar(frm)|0) == (PAT|0))|0)
 					return;
 		}
 
@@ -1616,6 +1608,7 @@ function SLIP(callbacks, size) {
 			addNative(loadDis()|0, N_display);
 			addNative(loadEva()|0, N_eval);
 			addNative(loadApl()|0, N_applyNat);
+			addNative(loadCce()|0, N_callce);
 			addNative(loadMap()|0, N_map);
 			addNative(loadAss()|0, N_assoc);
 			addNative(loadVec()|0, N_vector);
@@ -2682,6 +2675,31 @@ function SLIP(callbacks, size) {
 			}
 
 			N_callcc {
+
+				if((LEN|0) != 1) {
+					err_invalidParamCount();
+					goto error;
+				}
+
+				VAL = STK[0]|0;
+				STKUNWIND(1);
+
+				switch(tag(VAL)|0) {
+					case __PRC_TAG__:
+					case __PRZ_TAG__:
+					case __NAT_TAG__:
+					case __CNT_TAG__:
+						ARG = currentStack()|0;
+						ARG = makeContinuation(KON, FRM, ENV, ARG)|0;
+						ARG = makePair(ARG, __NULL__)|0;
+						goto N_apply();
+				}
+
+				err_invalidArgument(VAL|0);
+				goto error;
+			}
+
+			N_callce {
 
 				if((LEN|0) != 1) {
 					err_invalidParamCount();
@@ -5951,6 +5969,7 @@ function SLIP(callbacks, size) {
 		define __RND_STR__ 'random'
 		define __ERR_STR__ 'error'
 		define __CCC_STR__ 'call-with-current-continuation'
+		define __CCE_STR__ 'call-with-escape-continuation'
 		define __QTT_STR__ 'quotient'
 		define __REM_STR__ 'remainder'
 		define __LEN_STR__ 'length'
@@ -6016,6 +6035,7 @@ function SLIP(callbacks, size) {
 			loadLen: symbol(__LEN_STR__),
 			loadSin: symbol(__SIN_STR__),
 			loadExi: symbol(__EXI_STR__),
+			loadCce: symbol(__CCE_STR__),
 			link: link
 		}
 	}
@@ -6553,6 +6573,7 @@ function SLIP(callbacks, size) {
 		loadLen: pool.loadLen,
 		loadSin: pool.loadSin,
 		loadExi: pool.loadExi,
+		loadCce: pool.loadCce,
 		clock: timer.getTime,
 		reset: timer.reset,
 		invalidIf: errors.invalidIf,
