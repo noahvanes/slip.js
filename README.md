@@ -1,5 +1,5 @@
 # slip.js
-A Performant Scheme Interpreter in [asm.js](http://asmjs.org).
+A performant Scheme interpreter in [asm.js](http://asmjs.org).
 
 ## Introduction
 
