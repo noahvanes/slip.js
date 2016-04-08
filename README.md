@@ -9,7 +9,7 @@ Read the full paper [here](http://soft.vub.ac.be/Publications/2015/vub-soft-tr-1
 
 ## Running slip.js
 
-To run slip.js, simply open ```index.html``` for an interactive slip.js REPL in your browser of choice (preferably Firefox). An up-to-date version is also hosted on [this link](http://noahvanes.github.io/slipjs) if you just want to try it out quickly!
+To run slip.js, simply open ```index.html``` for an interactive slip.js REPL in your browser of choice (preferably Firefox). An up-to-date version is also hosted on [this link](http://noahvanes.github.io/slip.js) if you just want to try it out quickly!
 
 Alternatively, one can also open a slip.js REPL in a shell using either:
   - ```js spiderslip.js``` (for SpiderMonkey)
