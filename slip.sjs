@@ -1,6 +1,8 @@
 function SLIP(callbacks, size) {
 	"use strict";
 
+	define __GLOBAL_SIZ__ 256
+
 	/* -- POINTER STRUCTURES -- */
 	define __PAI_TAG__ 0x00
 	define __VCT_TAG__ 0x02
@@ -60,17 +62,17 @@ function SLIP(callbacks, size) {
 	define __LCL_TAG__ 0x47
 	define __GLB_TAG__ 0x48
 
-	/* -- CONSTANT VALUES -- */
-	define __TRUE__ 0x7fffffe1
-	define __FALSE__ 0x7fffffe5
-	define __NULL__ 0x7fffffe9
-	define __VOID__ 0x7fffffed
-	define __ZERO__ 0x3
-	define __ONE__ 0x7
-	define __TWO__ 0xB
-
 	function SLIP_ASM(stdlib, foreign, heap) {
 		"use asm";
+
+		/* -- CONSTANT VALUES -- */
+		define __TRUE__ 0x7fffffe1
+		define __FALSE__ 0x7fffffe5
+		define __NULL__ 0x7fffffe9
+		define __VOID__ 0x7fffffed
+		define __ZERO__ 0x3
+		define __ONE__ 0x7
+		define __TWO__ 0xB
 
 		/* -- IMPORTS & VARIABLES -- */
 
@@ -87,8 +89,6 @@ function SLIP(callbacks, size) {
 		var imul = stdlib.Math.imul;
 		var sin = stdlib.Math.sin;
 
-		//TODO: clean TMP etc...
-
 		//registers
 		var ARG = 0; //arguments
 		var DCT = 0; //lexical scope
@@ -97,6 +97,7 @@ function SLIP(callbacks, size) {
 		var DGL = 0; //dictionary globals
 		var ENV = 0; //environemnt
 		var EXP = 0; //expression
+		var EXT = 0; //external pool
 		var FRM = 0; //frame 
 		var FLT = fround(0.0); //float
 		var GLB = 0; //globals
@@ -119,13 +120,14 @@ function SLIP(callbacks, size) {
 		var look = foreign.look;
 		var skip = foreign.skip;
 		var read = foreign.read;
-		var readSymbol = foreign.readSymbol;
-		var readString = foreign.readString;
-		var readNumber = foreign.readNumber;
+		var freadSymbol = foreign.readSymbol;
+		var freadString = foreign.readString;
+		var freadNumber = foreign.readNumber;
 
 		//dictionary
-		var currentScpLvl = 0;
+		var dctDefine = foreign.dctDefine;
 		var currentFrmSiz = 0;
+		var currentScpLvl = 0;
 		var globalFrmSiz = 0;
 
 		//errors
@@ -148,9 +150,9 @@ function SLIP(callbacks, size) {
 		var err_invalidRange = foreign.invalidRange;
 		var err_fatalMemory = foreign.fatalMemory;
 		var err_globalOverflow = foreign.globalOverflow;
-		//pool
-		var __POOL_TOP__ = 0;
-		var __POOL_SIZ__ = 0;
+
+		//compiler
+		var compile = foreign.compile;
 
 		//timer
 		var clock = foreign.clock;
@@ -222,14 +224,16 @@ function SLIP(callbacks, size) {
 		var loadLen = foreign.loadLen;
 		var loadSin = foreign.loadSin;
 		var loadExi = foreign.loadExi;
+		var loadFre = foreign.loadFre;
+		var loadRef = foreign.loadRef;
 
 		//IO
 		var promptUserInput = foreign.promptUserInput;
 		var printNewline = foreign.printNewline;
 		var promptInput = foreign.promptInput;
-		var printOutput = foreign.printOutput;
-		var printError = foreign.printError;
-		var printLog = foreign.printLog;
+		var fprintOutput = foreign.printOutput;
+		var fprintError = foreign.printError;
+		var fprintLog = foreign.printLog;
 		var loadFile = foreign.loadFile;
 		var initREPL = foreign.initREPL;
 
@@ -239,6 +243,38 @@ function SLIP(callbacks, size) {
 		//other
 		var __EMPTY_VEC__ = 0;
 		var __GC_COUNT__ = 0;
+		var __POOL_TOP__ = 0;
+		var __POOL_SIZ__ = 0;
+		var __EXT_FREE__ = 0;
+		var __EXT_SIZ__ = 0;
+
+		//callbacks
+		function readSymbol() {
+			return deref(freadSymbol()|0)|0;
+		}
+
+		function readString() {
+			return deref(freadString()|0)|0;
+		}
+
+		function readNumber() {
+			return deref(freadNumber()|0)|0;
+		}
+
+		function printOutput(exp) {
+			exp = exp|0;
+			fprintOutput(ref(exp)|0); 
+		}
+
+		function printLog(exp) {
+			exp = exp|0;
+			fprintLog(ref(exp)|0);
+		}
+
+		function printError(exp) {
+			exp = exp|0;
+			fprintError(ref(exp)|0);
+		}
 
 		/* -- FUNCTIONS -- */
 
@@ -611,7 +647,7 @@ function SLIP(callbacks, size) {
 
 		function ftag(exp) {
 			exp = exp|0;
-			return tag(exp)|0;
+			return tag(deref(exp)|0)|0;
 		}
 
 		function initTags() {
@@ -633,11 +669,37 @@ function SLIP(callbacks, size) {
 			MEM8[0x1D] = __GLB_TAG__;
 		}
 
+		function fmake(tag,siz) {
+			tag = tag|0;
+			siz = siz|0;
+			var chk = 0;
+			claimSiz(siz)
+			makeChunk(tag,siz) => chk;
+			return ref(chk)|0;
+		}
+
+		function fset(chk,idx,itm) {
+			chk = chk|0;
+			idx = idx|0;
+			itm = itm|0;
+			chunkSet(deref(chk)|0,idx<<2,deref(itm)|0);
+		}
+
 		/*==================*/
 		/* -- IMMEDIATES -- */
 		/*==================*/
 
 		/* ---- CHARS ---- */
+
+		function fmakeChar(code) {
+			code = code|0;
+			return ref(makeChar(code)|0)|0;
+		}
+
+		function fcharCode(ch) {
+			ch = ch|0;
+			return charCode(deref(ch)|0)|0;
+		}
 
 		function makeChar(charCode) {
 			charCode = charCode|0;
@@ -675,12 +737,12 @@ function SLIP(callbacks, size) {
 
 		function fmakeNumber(val) {
 			val = val|0;
-			return (val << 2)|0x3;
+			return ref((val << 2)|0x3)|0;
 		}
 
 		function fnumberVal(val) {
 			val = val|0;
-			return (val >> 2)|0;
+			return ((deref(val)|0) >> 2)|0;
 		}
 
 		typecheck __NBR_TAG__ => isNumber
@@ -700,12 +762,17 @@ function SLIP(callbacks, size) {
 
 		function fnativePtr(nat) {
 			nat = nat|0;
-			return (nat >>> 5)|0;
+			return ((deref(nat)|0) >>> 5)|0;
 		}
 
 		typecheck __NAT_TAG__ => isNative
 
 		/* ---- LOCAL VARIABLE ---- */
+
+		function fmakeLocal(lcl) {
+			lcl = lcl|0;
+			return ref(makeLocal(lcl)|0)|0;
+		}
 
 		function makeLocal(lcl) {
 			lcl = lcl|0;
@@ -714,7 +781,7 @@ function SLIP(callbacks, size) {
 
 		function flocalOfs(lcl) {
 			lcl = lcl|0;
-			return (lcl >>> 5)|0;
+			return ((deref(lcl)|0) >>> 5)|0;
 		}
 
 		macro localOfs {
@@ -726,6 +793,11 @@ function SLIP(callbacks, size) {
 		typecheck __LCL_TAG__ => isLocal
 
 		/* ---- GLOBAL VARIABLE ---- */
+
+		function fmakeGlobal(ofs) {
+			ofs = ofs|0;
+			return ref(makeLocal(ofs)|0)|0;
+		}
 
 		function makeGlobal(ofs) {
 			ofs = ofs|0;
@@ -740,7 +812,7 @@ function SLIP(callbacks, size) {
 
 		function fglobalOfs(glb) {
 			glb = glb|0;
-			return (glb >>> 5)|0;
+			return ((deref(glb)|0) >>> 5)|0;
 		}
 
 		typecheck __GLB_TAG__ => isGlobal
@@ -816,7 +888,7 @@ function SLIP(callbacks, size) {
 		function vectorAt(vct, idx) {
 			vct = vct|0;
 			idx = idx|0;
-			return chunkGet(vct, idx<<2)|0;
+			return ref(chunkGet(deref(vct)|0,idx<<2)|0)|0;
 		}
 
 		macro vectorSet {
@@ -845,9 +917,18 @@ function SLIP(callbacks, size) {
 			}
 		}
 
+		function ffillVector(siz,fill) {
+			siz = siz|0;
+			fill = fill|0;
+			var vct = 0;
+			fill = deref(fill)|0;
+			fillVector(siz,fill) => vct;
+			return vct|0;
+		}
+
 		function fvectorLength(vct) {
 			vct = vct|0;
-			return chunkSize(vct)|0;
+			return chunkSize(deref(vct)|0)|0;
 		}
 
 		function currentStack() {
@@ -911,19 +992,19 @@ function SLIP(callbacks, size) {
 		function sequenceAt(seq, idx) {
 			seq = seq|0;
 			idx = idx|0;
-			return chunkGet(seq, idx<<2)|0;
+			return ref(chunkGet(deref(seq)|0,idx<<2)|0)|0;
 		}
 
 		function sequenceSet(seq, idx, val) {
 			seq = seq|0;
 			idx = idx|0;
 			val = val|0;
-			chunkSet(seq, idx<<2, val);
+			chunkSet(deref(seq)|0,idx<<2,deref(val)|0);
 		}
 
 		function sequenceLength(seq) {
 			seq = seq|0;
-			return chunkSize(seq)|0;
+			return chunkSize(deref(seq)|0)|0;
 		}
 
 		typecheck __SEQ_TAG__ => isSequence
@@ -1275,12 +1356,12 @@ function SLIP(callbacks, size) {
 			var flt = 0;
 			makeChunk(__FLT_TAG__, __FLOAT_SIZ__) => flt;
 			chunkSetFloat(flt, __FLOAT_NBR__, nbr);
-			return flt|0;
+			return ref(flt)|0;
 		}
 
 		function ffloatNumber(flt) {
 			flt = flt|0;
-			return fround(chunkGetFloat(flt, __FLOAT_NBR__));
+			return fround(chunkGetFloat(deref(flt)|0,__FLOAT_NBR__));
 		}
 
 		typecheck __FLT_TAG__ => isFloat
@@ -1298,25 +1379,26 @@ function SLIP(callbacks, size) {
 				(len|0) < (siz|0);
 				len = (len + 1)|0)
 				chunkSetByte(chk, len, 0);
-			return chk|0;
+			return ref(chk)|0;
 		}
 
 		function textSetChar(txt, idx, chr) {
 			txt = txt|0;
 			idx = idx|0;
 			chr = chr|0;
-			chunkSetByte(txt,(idx+4)|0, chr);
+			chunkSetByte(deref(txt)|0,(idx+4)|0, chr);
 		}
 
 		function textGetChar(txt, idx) {
 			txt = txt|0;
 			idx = idx|0;
-			return chunkGetByte(txt,(idx+4)|0)|0;
+			return chunkGetByte(deref(txt)|0,(idx+4)|0)|0;
 		}
 
 		function textLength(txt) {
 			txt = txt|0;
 			var len = 0;
+			txt = deref(txt)|0;
 			len = (chunkSize(txt)|0) << 2;
 			if (len)
 				for(;!(chunkGetByte(txt,(len+3)|0)|0);len=(len-1)|0);
@@ -1330,11 +1412,6 @@ function SLIP(callbacks, size) {
 			return makeText(__STR_TAG__, len)|0;
 		}
 
-		//stringAt === textGetChar
-		//stringSet === textSetChar
-		//stringLength === textLength
-		//stringText === decodeText
-
 		typecheck __STR_TAG__ => isString
 
 		/* --- SYMBOLS --- */
@@ -1343,8 +1420,6 @@ function SLIP(callbacks, size) {
 			len = len|0;
 			return makeText(__SYM_TAG__, len)|0;
 		}
-
-		//symbolText === decodeText
 
 		typecheck __SYM_TAG__ => isSymbol
 
@@ -1374,11 +1449,12 @@ function SLIP(callbacks, size) {
 
 		function poolAt(idx) {
 			idx = idx|0;
-			return vectorRef(SYM, idx)|0;
+			return ref(vectorRef(SYM,idx)|0)|0;
 		}
 
 		function enterPool(sym) {
 			sym = sym|0;
+			sym = deref(sym)|0;
 			if ((__POOL_TOP__|0) == (__POOL_SIZ__|0)) {
 				PAT = sym;
 				growPool();
@@ -1390,13 +1466,82 @@ function SLIP(callbacks, size) {
 		}
 
 		function loadSymbols() {
-			__QUO_SYM__ = loadQuo()|0;
-			__VEC_SYM__ = loadVec()|0;
-			__DEF_SYM__ = loadDef()|0;
-			__LMB_SYM__ = loadLmb()|0;
-			__IFF_SYM__ = loadIff()|0;
-			__BEG_SYM__ = loadBeg()|0;
-			__SET_SYM__ = loadSet()|0;
+			__QUO_SYM__ = deref(loadQuo()|0)|0;
+			__VEC_SYM__ = deref(loadVec()|0)|0;
+			__DEF_SYM__ = deref(loadDef()|0)|0;
+			__LMB_SYM__ = deref(loadLmb()|0)|0;
+			__IFF_SYM__ = deref(loadIff()|0)|0;
+			__BEG_SYM__ = deref(loadBeg()|0)|0;
+			__SET_SYM__ = deref(loadSet()|0)|0;
+		}
+
+// **********************************************************************
+// **************************** EXTERNAL ********************************
+// **********************************************************************
+
+		function initExt() {
+			__EXT_FREE__ = 1;
+			__EXT_SIZ__ = 64;
+			makeVector(__EXT_SIZ__) => EXT;
+			initFreeList();
+		}
+
+		function initFreeList() {
+			var idx = 0;
+			var nbr = 0;
+			for(idx = __EXT_FREE__;
+			   (idx|0) <= (__EXT_SIZ__|0);
+			    idx = (idx+1)|0) 
+			{				
+				nbr = makeNumber((idx+1)|0)|0;	
+				vectorSet(EXT,idx,nbr);	
+			}
+		}
+
+		function growExt() {
+			var idx = 0;
+			var val = 0;
+			__EXT_SIZ__ = imul(__EXT_SIZ__,2)|0;
+			claimSiz(__EXT_SIZ__)
+			makeVector(__EXT_SIZ__) => TMP;
+			for(idx=1;(idx|0)<(__EXT_FREE__|0);idx=(idx+1)|0) {
+				val = vectorRef(EXT,idx)|0;
+				vectorSet(TMP, idx, val);
+			}
+			EXT = TMP;
+			initFreeList();
+		}
+
+		function ref(val) {
+			val = val|0;
+			VAL = val;
+			if ((__EXT_FREE__|0) > (__EXT_SIZ__|0)) {
+				growExt();
+			}
+			IDX = __EXT_FREE__;
+			__EXT_FREE__ = vectorRef(EXT,__EXT_FREE__)|0;
+			__EXT_FREE__ = numberVal(__EXT_FREE__)|0;
+			vectorSet(EXT,IDX,VAL);
+			return IDX|0;
+		}
+
+		function free(idx) {
+			idx = idx|0;
+			VAL = vectorRef(EXT,idx)|0;
+			IDX = makeNumber(__EXT_FREE__)|0;
+			__EXT_FREE__ = idx|0;
+			vectorSet(EXT,idx,IDX);
+			return VAL|0;
+		}
+
+		function clearRefs() {
+			__EXT_FREE__ = 1;
+			initFreeList();
+		}
+
+		function deref(idx) {
+			idx = idx|0;
+			return vectorRef(EXT,idx)|0;
 		}
 
 // **********************************************************************
@@ -1477,8 +1622,6 @@ function SLIP(callbacks, size) {
 // **********************************************************************
 // *************************** ENVIRONMENT ******************************
 // **********************************************************************
-
-		define __GLOBAL_SIZ__ 128
 
 		function initEnvironment() {
 			fillVector(__GLOBAL_SIZ__, __VOID__) => GLB;
@@ -1582,6 +1725,8 @@ function SLIP(callbacks, size) {
 // **********************************************************************
 
 		function initNatives() {
+			addNative(loadFre()|0, N_free);
+			addNative(loadRef()|0, N_ref);
 			addNative(loadExi()|0, N_exit);
 			addNative(loadSin()|0, N_sin);
 			addNative(loadLen()|0, N_length);
@@ -1608,7 +1753,7 @@ function SLIP(callbacks, size) {
 			addNative(loadDis()|0, N_display);
 			addNative(loadEva()|0, N_eval);
 			addNative(loadApl()|0, N_applyNat);
-			addNative(loadCce()|0, N_callce);
+			addNative(loadCce()|0, N_callcc);	//TODO: optimize implementation of call/ec
 			addNative(loadMap()|0, N_map);
 			addNative(loadAss()|0, N_assoc);
 			addNative(loadVec()|0, N_vector);
@@ -1638,10 +1783,10 @@ function SLIP(callbacks, size) {
 		function addNative(nam, ptr) {
 			nam = nam|0;
 			ptr = ptr|0;
-			PAT = nam;
+			PAT = deref(nam)|0;
 			OFS = defineVar()|0;
 			VAL = makeNative(ptr)|0;
-			vectorSet(FRM, OFS, VAL);
+			vectorSet(FRM,OFS,VAL);
 		}
 
 // **********************************************************************
@@ -1670,6 +1815,7 @@ function SLIP(callbacks, size) {
 			initRegs();
 			makeVector(0) => __EMPTY_VEC__;
 			initPool();
+			initExt();
 			loadSymbols();
 			initDictionary();
 			initEnvironment();
@@ -1740,8 +1886,9 @@ function SLIP(callbacks, size) {
 
 		function reclaim() {
 
-			STKALLOC(14);
-			STK[13] = __EMPTY_VEC__;
+			STKALLOC(15);
+			STK[14] = __EMPTY_VEC__;
+			STK[13] = EXT;
 			STK[12] = SYM;
 			STK[11] = PAT;
 			STK[10] = GLB;
@@ -1771,8 +1918,9 @@ function SLIP(callbacks, size) {
 			GLB = STK[10]|0;
 			PAT = STK[11]|0;
 			SYM = STK[12]|0;
-			__EMPTY_VEC__ = STK[13]|0;
-			STKUNWIND(14);
+			EXT = STK[13]|0;
+			__EMPTY_VEC__ = STK[14]|0;
+			STKUNWIND(15);
 			loadSymbols();
 			__GC_COUNT__ = (__GC_COUNT__+1)|0;
 		}
@@ -1968,6 +2116,33 @@ function SLIP(callbacks, size) {
 				goto KON|0;
 			}
 
+			N_free {
+
+				if((LEN|0) != 1) {
+					err_invalidParamCount();
+					goto error;
+				}
+
+				VAL = free(numberVal(STK[0]|0)|0)|0;
+				printLog(EXT|0);
+				STKUNWIND(1);
+				goto KON|0;
+			}
+
+			N_ref {
+
+				if((LEN|0) != 1) {
+					err_invalidParamCount();
+					goto error;
+				}
+
+				VAL = makeNumber(ref(STK[0]|0)|0)|0;
+				printLog(EXT|0);
+				STKUNWIND(1);
+				goto KON|0;
+			}
+
+
 			N_car {
 
 				if((LEN|0) != 1) {
@@ -2048,7 +2223,7 @@ function SLIP(callbacks, size) {
 
 				claimSiz(imul(3,LEN)|0)
 				VAL = __NULL__;
-				for(IDX=(LEN-1)|0;IDX;IDX=(IDX-1)|0)
+				for(IDX=(LEN-1)|0;(IDX|0)>=0;IDX=(IDX-1)|0)
 					VAL = makePair(STK[IDX]|0, VAL)|0;
 				STKUNWIND(LEN);
 				goto KON|0;
@@ -2699,31 +2874,6 @@ function SLIP(callbacks, size) {
 				goto error;
 			}
 
-			N_callce {
-
-				if((LEN|0) != 1) {
-					err_invalidParamCount();
-					goto error;
-				}
-
-				VAL = STK[0]|0;
-				STKUNWIND(1);
-
-				switch(tag(VAL)|0) {
-					case __PRC_TAG__:
-					case __PRZ_TAG__:
-					case __NAT_TAG__:
-					case __CNT_TAG__:
-						ARG = currentStack()|0;
-						ARG = makeContinuation(KON, FRM, ENV, ARG)|0;
-						ARG = makePair(ARG, __NULL__)|0;
-						goto N_apply();
-				}
-
-				err_invalidArgument(VAL|0);
-				goto error;
-			}
-
 			N_stringRef {
 
 				if((LEN|0) != 2) {
@@ -3169,6 +3319,13 @@ function SLIP(callbacks, size) {
 // **********************************************************************
 // **************************** COMPILER ********************************
 // **********************************************************************
+
+			//TODO: compiler in plain JS
+			C_compile_alt {
+
+				VAL = compile(EXP|0)|0;
+				goto KON|0;
+			}
 
 			C_compile {
 
@@ -5491,6 +5648,7 @@ function SLIP(callbacks, size) {
 
 			REPL {
 
+				clearRefs();
 				dctCheckpoint();
 				KON = c1_repl;
 				promptInput();
@@ -5543,37 +5701,33 @@ function SLIP(callbacks, size) {
 			Slip_REPL: Slip_REPL,
 			inputReady: inputReady,
 
-			/**************/
-			/*** MEMORY ***/
-			/**************/
-
-			collectGarbage: collectGarbage,
-
 			/************************/
 			/*** ABSTRACT GRAMMAR ***/
 			/************************/
 
-			//tag
+			//generic
 			ftag: ftag,
+			fmake: fmake,
+			fset: fset,
 			//specials
-			isTrue: isTrue,
-			isFalse: isFalse,
-			isNull: isNull,
-			isVoid: isVoid,
+			fisTrue: fisTrue,
+			fisFalse: fisFalse,
+			fisNull: fisNull,
+			fisVoid: fisVoid,
 			//numbers
 			fmakeNumber: fmakeNumber,
 			fnumberVal: fnumberVal,
-			isNumber: isNumber,
+			fisNumber: fisNumber,
 			//characters
-			makeChar: makeChar,
-			charCode: charCode,
-			isChar: isChar,
+			fmakeChar: fmakeChar,
+			fcharCode: fcharCode,
+			fisChar: fisChar,
 			//pairs
 			fpairCar: fpairCar,
 			fpairCdr: fpairCdr,
 			fpairSetCar: fpairSetCar,
 			fpairSetCdr: fpairSetCdr,
-			isPair: isPair,
+			fisPair: fisPair,
 			//procedures
 			fprcArgc: fprcArgc,
 			fprcFrmSiz: fprcFrmSiz,
@@ -5583,68 +5737,69 @@ function SLIP(callbacks, size) {
 			fprzFrmSiz: fprzFrmSiz,
 			fprzBdy: fprzBdy,
 			fprzEnv: fprzEnv,
-			isPrc: isPrc,
-			isPrz: isPrz,
+			fisPrc: fisPrc,
+			fisPrz: fisPrz,
 			//vectors
 			vectorAt: vectorAt,
 			fvectorLength: fvectorLength,
-			isVector: isVector,
+			ffillVector: ffillVector,
+			fisVector: fisVector,
 			//floats
 			fmakeFloat: fmakeFloat,
 			ffloatNumber: ffloatNumber,
-			isFloat: isFloat,
+			fisFloat: fisFloat,
 			//string
 			makeString: makeString,
 			stringAt: textGetChar,
 			stringSet: textSetChar,
 			stringLength: textLength,
-			isString: isString,
+			fisString: fisString,
 			//symbols
 			makeSymbol: makeSymbol,
 			symbolAt: textGetChar,
 			symbolSet: textSetChar,
 			symbolLength: textLength,
-			isSymbol: isSymbol,
+			fisSymbol: fisSymbol,
 			//natives
 			fnativePtr: fnativePtr,
-			isNative: isNative,
+			fisNative: fisNative,
 			//sequences
 			sequenceAt: sequenceAt,
 			sequenceSet: sequenceSet,
 			sequenceLength: sequenceLength,
-			isSequence: isSequence,
+			fisSequence: fisSequence,
 			//single if-statements
 			fifsPredicate: fifsPredicate,
 			fifsConsequence: fifsConsequence,
-			isIfs: isIfs,
+			fisIfs: fisIfs,
 			//full if-statements
 			fiffPredicate: fiffPredicate,
 			fiffConsequence: fiffConsequence,
 			fiffAlternative: fiffAlternative,
-			isIff: isIff,
+			fisIff: fisIff,
 			//quotes
 			fquoExpression: fquoExpression,
-			isQuo: isQuo,
+			fisQuo: fisQuo,
 			//thunks
 			fthunkExp: fthunkExp,
 			fthunkSiz: fthunkSiz,
-			isThunk: isThunk,
+			fisThunk: fisThunk,
 			fttkSiz: fttkSiz,
 			fttkExp: fttkExp,
-			isTtk: isTtk,
+			fisTtk: fisTtk,
 			//lambdas
 			flmbFrmSiz: flmbFrmSiz,
 			flmbArgc: flmbArgc,
 			flmbBdy: flmbBdy,
-			isLmb: isLmb,
+			fisLmb: fisLmb,
 			flmzFrmSiz: flmzFrmSiz,
 			flmzArgc: flmzArgc,
 			flmzBdy: flmzBdy,
-			isLmz: isLmz,
+			fisLmz: fisLmz,
 			//variable definitions
 			fdfvOfs: fdfvOfs,
 			fdfvVal: fdfvVal,
-			isDfv: isDfv,
+			fisDfv: fisDfv,
 			//function definitions
 			fdffBdy: fdffBdy,
 			fdffArgc: fdffArgc,
@@ -5654,76 +5809,78 @@ function SLIP(callbacks, size) {
 			fdfzArgc: fdfzArgc,
 			fdfzFrmSiz: fdfzFrmSiz,
 			fdfzOfs: fdfzOfs,
-			isDff: isDff,
-			isDfz: isDfz,
+			fisDff: fisDff,
+			fisDfz: fisDfz,
 			//assignments
 			fsglScp: fsglScp,
 			fsglOfs: fsglOfs,
 			fsglVal: fsglVal,
 			fslcOfs: fslcOfs,
 			fslcVal: fslcVal,
-			isSgl: isSgl,
-			isSlc: isSlc,
+			fisSgl: fisSgl,
+			fisSlc: fisSlc,
 			//local & global variables
 			flocalOfs: flocalOfs,
 			fglobalOfs: fglobalOfs,
-			isLocal: isLocal,
-			isGlobal: isGlobal,
+			fisLocal: fisLocal,
+			fisGlobal: fisGlobal,
+			fmakeLocal: fmakeLocal,
+			fmakeGlobal: fmakeGlobal,
 			//applications (zero arg)
 			fapzOpr: fapzOpr,
-			isApz: isApz,
+			fisApz: fisApz,
 			falzOfs: falzOfs,
-			isAlz: isAlz,
+			fisAlz: fisAlz,
 			fagzOfs: fagzOfs,
-			isAgz: isAgz,
+			fisAgz: fisAgz,
 			fanzScp: fanzScp,
 			fanzOfs: fanzOfs,
-			isAnz: isAnz,
+			fisAnz: fisAnz,
 			//tail calls (zero arg)
 			ftpzOpr: ftplOpr,
-			isTpz: isTpz,
+			fisTpz: fisTpz,
 			ftlzOfs: ftlzOfs,
-			isTlz: isTlz,
+			fisTlz: fisTlz,
 			ftgzOfs: ftgzOfs,
-			isTgz: isTgz,
+			fisTgz: fisTgz,
 			ftnzScp: ftnzScp,
 			ftnzOfs: ftnzOfs,
-			isTnz: isTnz,
+			fisTnz: fisTnz,
 			//applications
 			faplOpr: faplOpr,
 			faplOpd: faplOpd,
-			isApl: isApl,
+			fisApl: fisApl,
 			fallOfs: fallOfs,
 			fallOpd: fallOpd,
-			isAll: isAll,
+			fisAll: fisAll,
 			faglOfs: faglOfs,
 			faglOpd: faglOpd,
-			isAgl: isAgl,
+			fisAgl: fisAgl,
 			fanlScp: fanlScp,
 			fanlOfs: fanlOfs,
 			fanlOpd: fanlOpd,
-			isAnl: isAnl,
+			fisAnl: fisAnl,
 			//tail calls
 			ftplOpr: ftplOpr,
 			ftplOpd: ftplOpd,
-			isTpl: isTpl,
+			fisTpl: fisTpl,
 			ftllOfs: ftllOfs,
 			ftllOpd: ftllOpd,
-			isTll: isTll,
+			fisTll: fisTll,
 			ftglOfs: ftglOfs,
 			ftglOpd: ftglOpd,
-			isTgl: isTgl,
+			fisTgl: fisTgl,
 			ftnlScp: ftnlScp,
 			ftnlOfs: ftnlOfs,
 			ftnlOpd: ftnlOpd,
-			isTnl: isTnl,
+			fisTnl: fisTnl,
 			//non-locals
 			fnlcScp: fnlcScp,
 			fnlcOfs: fnlcOfs,
-			isNlc: isNlc,
+			fisNlc: fisNlc,
 			//sequence tail
 			fstlExp: fstlExp,
-			isStl: isStl,
+			fisStl: fisStl,
 
 			/**************/
 			/**** POOL ****/
@@ -5736,6 +5893,400 @@ function SLIP(callbacks, size) {
 
 
 /************** NON-ASM.JS ***************/
+
+	function COMPILER() {
+		"use strict";
+
+		var asm, dct, sym, err;
+		var ref, deref, free;
+		var car, cdr, isPair;
+		var makeVector;
+		var printer;
+
+		function link(asmModule, dctModule, symModule, errModule, printerModule) {
+			asm = asmModule;
+			dct = dctModule;
+			sym = symModule;
+			err = errModule;
+			makeVector = asm.ffillVector;
+			car = asm.fpairCar;
+			cdr = asm.fpairCdr;
+			isPair = asm.isPair;
+			ref = asm.ref;
+			deref = asm.deref;
+			free = asm.free;
+			printer = printerModule;
+		}
+
+		function listLength(lst,err) {
+			var sum = 0;
+			while(asm.isPair(lst)) {
+				lst = cdr(lst);
+				++sum;
+			}
+			if (asm.isNull(lst))
+				return sum;
+			else
+				compilationError(err);
+		}
+
+		function compilationError(err) {
+			err();
+			console.log('error');
+			throw err;
+		}
+
+		function compile_exp(exp) {
+			try {
+				return compile(exp,false);
+			} catch(exception) {
+				return __NULL__;
+			}
+		}
+
+		function compile(exp,tailc) {
+
+			//allocate some refs
+			var e = ref(exp);
+			asm.refClaim(8);
+			exp = free(e);
+
+			//compound expression
+			if(isPair(exp)) {
+				var opr = car(exp);
+				var opd = cdr(exp);
+				//check for special form
+				if(asm.isSymbol(opr)) {  
+					if(opr === sym.loadIff())
+						return compileIf(opd,tailc);
+					else if (opr === sym.loadDef())
+						return compileDefine(opd);
+					else if (opr === sym.loadBeg())
+						return compileBegin(opd,tailc);
+					else if (opr === sym.loadLmb())
+						return compileLambda(opd);
+					else if (opr === sym.loadSet())
+						return compileAssignment(opd);
+					else if (opr === sym.loadQuo())
+						return compileQuote(opd);
+				}
+				//otherwise, assume application
+				return compileApplication(opr,opd);
+			}
+			//simple expression
+			if(asm.isSymbol(exp))
+				return compileVariable(exp);
+			else
+				return exp;
+		}
+
+		function compileIf(exp,tailc) {
+
+			if(!isPair(exp))
+				compilationError(err.invalidIf);
+
+			var predicate = car(exp);
+			var branches = cdr(exp);
+
+			if(!isPair(branches))
+				compilationError(err.invalidIf);
+
+			var consequent = ref(car(branches));
+			var alternative = ref(cdr(branches));
+			var c_predicate = ref(compile(predicate,false));
+			var c_consequent = ref(compileInline(free(consequent),tailc));
+
+			alternative = free(alternative);
+			if(asm.isNull(alternative))
+				return compileSingleIf(c_predicate,c_consequent);
+			else if (asm.isPair(alternative))
+				return compileDoubleIf(c_predicate,c_consequent,alternative,tailc);
+
+			compilationError(err.invalidIf);
+		}
+
+		function compileSingleIf(c_predicate,c_consequent) {
+			
+			var if_exp = asm.fmake(__IFS_TAG__,2);
+			asm.fset(if_exp,1,free(c_predicate));
+			asm.fset(if_exp,2,free(c_consequent));
+			return if_exp;
+		}
+
+		function compileDoubleIf(c_predicate,c_consequent,alternative,tailc) {
+
+			if(!asm.isNull(cdr(alternative)))
+				compilationError(err.invalidIf);
+			alternative = car(alternative);
+
+			var c_alternative = ref(compileInline(alternative,tailc));
+			
+			var if_exp = asm.fmake(__IFF_TAG__,3);
+			asm.fset(if_exp,1,free(c_predicate));
+			asm.fset(if_exp,2,free(c_consequent));
+			asm.fset(if_exp,3,free(c_alternative));
+			return if_exp;
+		}
+
+		function compileInline(exp,tailc) {
+
+			dct.enterScope();
+			var saved_exp = ref(exp);
+			var c_exp = ref(compile(exp,true));
+			var size = dct.exitScope();
+			exp = free(saved_exp);
+
+			if(size == 0) {
+				free(c_exp); //no longer needed
+				return compile(exp,tailc);
+			}
+
+			if(tailc) {
+				var ttk_exp = asm.fmake(__TTK_TAG__,2);
+				asm.fset(ttk_exp,1,free(c_exp));
+				asm.fset(ttk_exp,2,asm.fmakeNumber(size));
+				return ttk_exp;
+			} else {
+				var thk_exp = asm.fmake(__THK_TAG__,2);
+				asm.fset(thk_exp,1,free(c_exp));
+				asm.fset(thk_exp,2,asm.fmakeNumber(size));
+				return thk_exp;
+			}
+		}
+
+		function compileBegin(exp,tailc) {
+
+			var len = listLength(exp,err.invalidSequence);
+			if (len == 0)
+				return __VOID__;
+			else if (len == 1)
+				return compile(car(exp),tailc);
+			else {
+				var exp, c_exp;
+				var lst = ref(exp);
+				var seq_exp = ref(asm.fmake(__SEQ_TAG__,len));
+				for(var idx = 1; idx < len; ++idx) {
+					lst = free(lst);
+					exp = car(lst);
+					lst = ref(cdr(lst));
+					c_exp = compile(exp,false);
+					asm.fset(deref(seq_exp),idx,c_exp);
+				}
+				exp = car(free(lst));
+				c_exp = ref(compile(exp,tailc));
+				exp = asm.fmake(__STL_TAG__,1);
+				asm.fset(exp,1,free(c_exp));
+				seq_exp = free(seq_exp);
+				asm.fset(seq_exp,len,exp);
+				return seq_exp;
+			}
+		}
+
+		function compileDefine(opd) {
+
+			if(!isPair(opd))
+				compilationError(err.invalidDefine);
+			
+			var identifier = car(opd);
+			var definition = cdr(opd);
+
+			if(asm.isSymbol(identifier)) {
+				return compileVarDefinition(identifier,definition);
+			} else if(asm.isSymbol(identifier)) {
+				return compileFunDefinition(identifier,definition);
+			}
+		}
+
+		function compileVarDefinition(identifier,definition) {
+
+			if(!isPair(definition))
+				compilationError(err.invalidDefine);
+
+			var exp = car(definition);
+			var rest = cdr(definition);
+
+			if(!asm.isNull(rest))
+				compilationError(err.invalidDefine);
+
+			var ofs = dct.defineVar(identifier);
+			var c_exp = ref(compile(exp,false));
+
+			var dfv_exp = asm.fmake(__DFV_TAG__,2);
+			asm.fset(dfv_exp,1,asm.fmakeNumber(ofs));
+			asm.fset(dfv_exp,2,free(c_exp));
+			return dfv_exp;
+		}
+
+		function compileFunDefinition(identifier,definition) {
+
+			var fname = car(identifier);
+			var parameters = cdr(identifier);
+			var body = ref(definition);
+
+			if(!asm.isSymbol(fname))
+				compilationError(err.invalidDefine);
+			var ofs = dct.defineVar(fname);
+			
+			dct.enterScope();
+			var rest = compileParameters(parameters);			
+
+			if(asm.isSymbol(rest))
+				return compileVarArgFun(ofs,rest,body);
+			else if(asm.isNull(rest))
+				return compileFun(ofs,body);
+			else
+				compilationError(err.invalidDefine);
+		}
+
+		function compileVarArgFun(par,c_body,argc) {
+
+
+			
+
+		}
+
+		function compileLambda() {}
+		function compileAssignment() {}
+		function compileApplication() {}
+
+		function compileQuote(exp) {
+
+			if(!isPair(exp))
+				compilationError(err.invalidQuote);
+
+			var quoted = ref(car(exp));
+			var rest = cdr(exp);
+
+			if(!asm.isNull(rest))
+				compilationError(err.invalidQuote);
+
+			var quo_exp = asm.fmake(__QUO_TAG__,1);
+			asm.fset(quo_exp,1,free(quoted));
+			return quo_exp;
+		}
+
+		function compileVariable(sym) {
+
+			var adr = dct.lexicalAdr(sym);
+			if(adr) {
+				var scope = adr.scope;
+				var offset = adr.offset;
+				if(scope === 0) {
+					return asm.makeLocal(offset);
+				} else if (scope === 1)  {
+					return asm.makeGlobal(offset);
+				} else {
+					var nlc_exp = asm.fmake(__NLC_TAG__,2);
+					asm.fset(nlc_exp,1,scope);
+					asm.fset(nlc_exp,2,offset);
+					return nlc_exp;
+				}
+			}
+
+			compilationError(err.undefinedVariable);
+		}
+
+		return {
+			link: link,
+			init: init,
+			compile: compile_exp
+		}
+	}
+
+	function DICTIONARY() {
+		"use strict";
+
+		var asm, err;
+		var savedEnv;
+		var environment = [];
+		var frame = [];
+
+		function dctError(err) {
+			err();
+			throw err;
+		}
+
+		function link(asmModule,errModule) {
+			asm = asmModule;
+			err = errModule;
+		}
+
+		function defineVar(vrb) {
+
+			if((environment.length==0)&&(frame.length==__GLOBAL_SIZ__))
+				dctError(err.globalOverflow);
+
+			frame.push(asm.ref(vrb));
+			return frame.length;
+		}
+
+		function frameSize() {
+			return frame.length;
+		}
+
+		function enterScope() {
+
+			environment.push(frame);
+			frame = [];
+		}
+
+		function exitScope() {
+
+			var frameSize = frame.length;
+			for(var i = 0; i < frameSize; ++i)
+				asm.free(frame[i]);
+
+			frame = environment.pop();
+			return frameSize;
+		}
+
+		function offset(sym,frame) {
+			var len = frame.length;
+			for(var i = 0; i < len; ++i)
+				if(asm.deref(frame[i])===sym)
+					return i+1;
+			return false; //variable not found
+		}
+
+		function lexicalAdr(sym) {
+			var localOffset = offset(sym,frame);
+			if(localOffset) {
+				//local variable found!
+				return { scope: 0, offset: localOffset }
+			}
+			
+			for(var scopeLvl = environment.length;
+				scopeLvl > 0; 
+				--scopeLvl) 
+			{
+				var frm = environment[scopeLvl-1];
+				var ofs = offset(sym,frm);
+				if(ofs)
+					return { scope: scopeLvl, offset: ofs }
+			}
+			return false;
+		}
+
+		function dctCheckpoint() {
+			savedEnv = frame;
+		}
+
+		function dctRollback() {
+			frame = savedEnv;
+			environment = [];
+		}
+
+		return {
+			link: link,
+			defineVar: defineVar,
+			lexicalAdr: lexicalAdr,
+			enterScope: enterScope,
+			exitScope: exitScope,
+			frameSize: frameSize,
+			dctCheckpoint: dctCheckpoint,
+			dctRollback: dctRollback
+		}
+	}
 
 	function READER() {
 		"use strict";
@@ -5975,6 +6526,8 @@ function SLIP(callbacks, size) {
 		define __LEN_STR__ 'length'
 		define __SIN_STR__ 'sin'
 		define __EXI_STR__ 'exit'
+		define __REF_STR__ 'ref'
+		define __FRE_STR__ 'free'
 
 		return {
 			enterPool: enterPool,
@@ -6036,6 +6589,8 @@ function SLIP(callbacks, size) {
 			loadSin: symbol(__SIN_STR__),
 			loadExi: symbol(__EXI_STR__),
 			loadCce: symbol(__CCE_STR__),
+			loadRef: symbol(__REF_STR__),
+			loadFre: symbol(__FRE_STR__),
 			link: link
 		}
 	}
@@ -6078,8 +6633,8 @@ function SLIP(callbacks, size) {
 			symbolAt = asm.symbolAt;
 			pairCar = asm.fpairCar;
 			pairCdr = asm.fpairCdr;
-			isPair = asm.isPair;
-			isNull = asm.isNull;
+			isPair = asm.fisPair;
+			isNull = asm.fisNull;
 			vectorAt = asm.vectorAt;
 			vectorLength = asm.fvectorLength;
 			ag = asm;
@@ -6247,11 +6802,9 @@ function SLIP(callbacks, size) {
 		var printSequence = function(exp) {
 			var str = '', idx = 1;
 			var len = ag.sequenceLength(exp);
-
 			while(idx < len)
 				str += printExp(ag.sequenceAt(exp, idx++)) + ' '
-
-			str += printExp(ag.stlExp(ag.sequenceAt(exp, idx)));
+			str += printExp(ag.fstlExp(ag.sequenceAt(exp, idx)));
 			return str;
 		}
 
@@ -6502,6 +7055,8 @@ function SLIP(callbacks, size) {
 
 	//foreign modules
 	var reader = READER();
+	var compiler = COMPILER();
+	var dictionary = DICTIONARY();
 	var printer = PRINTER();
 	var errors = ERRORS();
 	var pool = SYMBOLS();
@@ -6574,6 +7129,8 @@ function SLIP(callbacks, size) {
 		loadSin: pool.loadSin,
 		loadExi: pool.loadExi,
 		loadCce: pool.loadCce,
+		loadRef: pool.loadRef,
+		loadFre: pool.loadFre,
 		clock: timer.getTime,
 		reset: timer.reset,
 		invalidIf: errors.invalidIf,
@@ -6603,7 +7160,9 @@ function SLIP(callbacks, size) {
 		printLog: io.printLog,
 		loadFile: io.loadFile,
 		initREPL: io.initREPL,
-		random: Math.random
+		random: Math.random,
+		dctDefine: dictionary.defineVar,
+		compile: compiler.compile
 	};
 
 	//asm module
@@ -6619,13 +7178,16 @@ function SLIP(callbacks, size) {
 	//linking
 	pool.link(asm);
 	reader.link(asm, pool);
+	compiler.link(asm, dictionary, pool, errors, printer);
+	dictionary.link(asm, errors);
 	printer.link(asm);
 	io.link(asm, callbacks, reader, printer);
 	errors.link(io, printer);
 	timer.reset();
 
-	//init
+	//initialization
 	asm.init();
+
 
 	/* ---- EXPORTS ---- */
 

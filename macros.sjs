@@ -9,9 +9,16 @@ macro define {
 macro typecheck {
     case { typecheck $t => $fun } => {
        letstx $tag = [makeIdent('tag', #{$t})];
-       return #{function $fun(x) {
+       letstx $deref = [makeIdent('deref', #{$t})];
+       return #{
+        macro $fun {
+          rule { ($x:expr) } => {
+            ((($tag($x)|0) == $t)|0)
+          }
+        }
+        function makeFun($fun)(x) {
           x = x|0;
-          return (($tag(x)|0) == $t)|0;
+          return (($tag($deref(x)|0)|0) == $t)|0;
         }
       }
   }
@@ -122,6 +129,8 @@ macro generate {
     case { _ $get => $idx }
         => { 
           letstx $g = [makeIdent('chunkGet', #{$get})];
+          letstx $ref = [makeIdent('ref', #{$get})];
+          letstx $deref = [makeIdent('deref', #{$get})];
           return #{
             macro $get {
               rule {($chk:expr)} => {
@@ -130,7 +139,7 @@ macro generate {
             }
             function makeFun($get)(chk) {
                 chk = chk|0;
-                return $g(chk, $idx)|0;
+                return $ref($g($deref(chk)|0, $idx)|0)|0;
             }
           }
         }
@@ -138,6 +147,8 @@ macro generate {
         => { 
             letstx $g = [makeIdent('chunkGet', #{$get})];
             letstx $s = [makeIdent('chunkSet', #{$set})];
+            letstx $ref = [makeIdent('ref', #{$get})];
+            letstx $deref = [makeIdent('deref', #{$get})];
             return #{
               macro $get {
                 rule {($chk:expr)} => {
@@ -146,7 +157,7 @@ macro generate {
               }
               function makeFun($get)(chk) {
                   chk = chk|0;
-                  return $g(chk, $idx)|0;
+                  return $ref($g($deref(chk)|0,$idx)|0)|0;
               }
               macro $set {
                 rule {($chk:expr, $val:expr)} => {
@@ -156,7 +167,7 @@ macro generate {
               function makeFun($set)(chk, val) {
                 chk = chk|0;
                 val = val|0;
-                $s(chk, $idx, val)
+                $s($deref(chk)|0,$idx,$deref(val)|0)
             }
            }
           }
