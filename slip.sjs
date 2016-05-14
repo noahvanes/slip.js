@@ -239,8 +239,6 @@ function SLIP(callbacks, size) {
 		//other
 		var __EMPTY_VEC__ = 0;
 		var __GC_COUNT__ = 0;
-		var __POOL_TOP__ = 0;
-		var __POOL_SIZ__ = 0;
 		var __EXT_FREE__ = 0;
 		var __EXT_SIZ__ = 0;
 
@@ -1390,6 +1388,7 @@ function SLIP(callbacks, size) {
 			len = len|0;
 			var chk = 0;
 			var siz = 0;
+			claimSiz(len)  //overestimation
 			for(siz = len; siz&0x3; siz=(siz+1)|0);
 			makeChunk(tag, siz>>2) => chk;
 			for(len = (len+4)|0, siz = (siz+4)|0;
@@ -1435,52 +1434,10 @@ function SLIP(callbacks, size) {
 
 		function makeSymbol(len) {
 			len = len|0;
-			return makeText(__SYM_TAG__, len)|0;
+			return makeText(__SYM_TAG__,len)|0;
 		}
 
 		typecheck __SYM_TAG__ => isSymbol
-
-// **********************************************************************
-// ****************************** POOL **********************************
-// **********************************************************************
-
-		function initPool() {
-			__POOL_TOP__ = 0;
-			__POOL_SIZ__ = 64;
-			fillVector(__POOL_SIZ__, __VOID__) => SYM;
-		}
-
-		function growPool() {
-			var idx = 0;
-			var sym = 0;
-			__POOL_SIZ__ = imul(__POOL_SIZ__,2)|0;
-			claimSiz(__POOL_SIZ__)
-			fillVector(__POOL_SIZ__, __VOID__) => TMP;
-			while((idx|0) < (__POOL_TOP__|0)) {
-				idx = (idx + 1)|0;
-				sym = vectorRef(SYM, idx)|0;
-				vectorSet(TMP, idx, sym);
-			}
-			SYM = TMP;
-		}
-
-		function poolAt(idx) {
-			idx = idx|0;
-			return ref(vectorRef(SYM,idx)|0)|0;
-		}
-
-		function enterPool(sym) {
-			sym = sym|0;
-			sym = deref(sym)|0;
-			if ((__POOL_TOP__|0) == (__POOL_SIZ__|0)) {
-				PAT = sym;
-				growPool();
-				sym = PAT;
-			}
-			__POOL_TOP__ = (__POOL_TOP__+1)|0;
-			vectorSet(SYM, __POOL_TOP__, sym);
-			return __POOL_TOP__|0;
-		}
 
 
 // **********************************************************************
@@ -1765,7 +1722,6 @@ function SLIP(callbacks, size) {
 			initTags();
 			initRegs();
 			makeVector(0) => __EMPTY_VEC__;
-			initPool();
 			initExt();
 			initEnvironment();
 			initNatives();
@@ -4981,6 +4937,10 @@ function SLIP(callbacks, size) {
 			fmake: fmake,
 			fset: fset,
 			fsetRaw: fsetRaw,
+			//textual information
+			makeText: makeText,
+			textGetChar: textGetChar,
+			textSetChar: textSetChar,
 			//specials
 			fisTrue: fisTrue,
 			fisFalse: fisFalse,
@@ -5157,9 +5117,7 @@ function SLIP(callbacks, size) {
 			slipVoid: slipVoid,
 			//other
 			feq: feq,
-			protect: protect,
-			enterPool: enterPool,
-			poolAt: poolAt
+			protect: protect
 		};
 	}
 
@@ -5695,6 +5653,92 @@ function SLIP(callbacks, size) {
 			enterPool = pool.enterPool;
 		}
 
+		function read_exp() {
+
+			try {
+				return read()
+			} catch(exception) {
+				return asm.slipVoid();
+			}
+		}
+
+		function read() {
+
+			switch(peekC()) {
+
+				case '(': 
+					return read_lbr()
+				case '#': 
+					return read_shr()
+				case '\'': 
+					return read_quo()
+				case '\"': 
+					return read_str()
+				case '+':
+				case '-':
+				case '0':
+				case '1':
+				case '2':
+				case '3':
+				case '4':
+				case '5':
+				case '6':
+				case '7':
+				case '8':
+				case '9':
+					return read_num()
+				default:
+					return read_sym()
+			}
+		}
+
+		function read_lbr() {
+
+			skipC();  //skip the '('
+
+			// an empty list
+			if(peekC() === ')') {
+				skipC()
+				return asm.slipNull()
+			}
+
+			// a non-empty list
+			elements = []
+			do {
+				elements.push(read())
+				if(peekC() === '.') {
+					skipC()
+					var tail = read()
+					expect(')',err.expectedRBR)
+					return buildList(elements,tail)
+				}
+			} while(peekC() !== ')')
+
+			skipC() // slip the final ')'
+			return buildList(elements,asm.slipNull())
+		}
+
+		function buildList(elements,tail) {
+			var len = elements.length;
+			var lst = tail;
+			while(len) {
+				var exp = elements[--len];
+				lst = make(__PAI_TAG__,exp,lst)
+			}
+			return lst;
+		}
+
+		function readerError(err) {
+			err(arguments[1])
+			throw err
+		}
+
+		function expect(ch,err) {
+			var res = readC()
+			if(res !== ch)
+				readerError(err,res)
+		}
+
 		function isTerminator(c) {
 			switch (c) {
 				case ' ': case '': case '\n': case '\t':
@@ -5727,19 +5771,19 @@ function SLIP(callbacks, size) {
 			}
 		}
 
-		function skip() {
+		function skipC() {
 			skipWhiteSpace();
 			++position;
 		}
 
-		function peek() {
+		function peekC() {
 			skipWhiteSpace();
-			return program.charCodeAt(position);
+			return program.charAt(position);
 		}
 
-		function read() {
+		function readC() {
 			skipWhiteSpace();
-			return program.charCodeAt(position++);
+			return program.charAt(position++);
 		}
 
 		function readSymbol() {
@@ -5787,9 +5831,9 @@ function SLIP(callbacks, size) {
 
 		return {
 			load: load,
-			skip: skip,
-			peek: peek,
-			read: read,
+			skip: skipC,
+			peek: peekC,
+			read: readC,
 			readSymbol: readSymbol,
 			readString: readString,
 			readNumber: readNumber,
@@ -5800,47 +5844,28 @@ function SLIP(callbacks, size) {
 	function SYMBOLS() {
 		"use strict";
 
-		var __POOL__ = Object.create(null);
-		var makeSymbol, symbolSet, symbolAt,
-		symbolLength, addToPool, poolAt, claimSiz;
+		var pool = Object.create(null);
+		var asm;
 
-		function link(asm) {
-			makeSymbol = asm.makeSymbol;
-			symbolSet = asm.symbolSet;
-			symbolAt = asm.symbolAt;
-			symbolLength = asm.symbolLength;
-			addToPool = asm.enterPool;
-			poolAt = asm.poolAt;
-			claimSiz = asm.fclaimSiz;
+		function link(asmModule) {
+			asm = asmModule;
 		}
 
 		function buildSymbol(txt) {
 			var len = txt.length;
-			claimSiz(len);
-			var sym = makeSymbol(len);
+			var sym = asm.makeText(len);
 			for(var i = 0; i < len; ++i)
-				symbolSet(sym, i, txt.charCodeAt(i));
+				asm.textSetChar(sym,i,txt.charCodeAt(i));
 			return sym;
 		}
 
-		function symbolText(chk) {
-			var len = symbolLength(chk);
-			var arr = new Array(len);
-			for(var i = 0; i < len; ++i)
-				arr[i] = symbolAt(chk, i);
-			return String.fromCharCode.apply(null, arr);
-		}
-
 		function enterPool(str) {
-			var idx;
-			//already in pool
-			if ((idx = __POOL__[str])) {
-				return poolAt(idx);
+			var sym = pool[str]
+			if (!sym) {// new symbol
+				sym = buildSymbol(str)
+				asm.protect(sym)
+				pool[str] = sym
 			}
-			//not in pool yet
-			var sym = buildSymbol(str);
-			idx = addToPool(sym);
-			__POOL__[str] = idx;
 			return sym;
 		}
 

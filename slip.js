@@ -177,8 +177,6 @@ function SLIP(callbacks, size) {
         //other
         var __EMPTY_VEC__ = 0;
         var __GC_COUNT__ = 0;
-        var __POOL_TOP__ = 0;
-        var __POOL_SIZ__ = 0;
         var __EXT_FREE__ = 0;
         var __EXT_SIZ__ = 0;
         function readSymbol() {
@@ -1488,7 +1486,11 @@ function SLIP(callbacks, size) {
             len = len | 0;
             var chk = 0;
             var siz = 0;
-            for (siz = len; siz & 3; siz = siz + 1 | 0);
+            if ((STKTOP - MEMTOP | 0) < ((imul(len, 4) | 0) + 128 | 0)) {
+                claimSizCollect((imul(len, 4) | 0) + 128 | 0);
+            }
+            for (siz = //overestimation
+                len; siz & 3; siz = siz + 1 | 0);
             chk = MEMTOP;
             MEMTOP = MEMTOP + ((siz >> 2) + 1 << 2) | 0;
             MEM32[chk >> 2] = (siz >> 2 << 6 | tag) << 2;
@@ -1531,52 +1533,6 @@ function SLIP(callbacks, size) {
         function fisSymbol(x) {
             x = x | 0;
             return (((deref(x) | 0) & 1 ? MEM8[(deref(x) | 0) & 31] | 0 : (MEM32[(deref(x) | 0) >> 2] | 0) >>> 2 & 63 | 0) | 0) == 3 | 0;
-        }
-        function initPool() {
-            __POOL_TOP__ = 0;
-            __POOL_SIZ__ = 64;
-            SYM = MEMTOP;
-            MEMTOP = MEMTOP + (__POOL_SIZ__ + 1 << 2) | 0;
-            MEM32[SYM >> 2] = (__POOL_SIZ__ << 6 | 2) << 2;
-            for (IDX = 1; (IDX | 0) <= (__POOL_SIZ__ | 0); IDX = IDX + 1 | 0) {
-                MEM32[SYM + (IDX << 2) >> 2] = 2147483629;
-            }
-        }
-        function growPool() {
-            var idx = 0;
-            var sym = 0;
-            __POOL_SIZ__ = imul(__POOL_SIZ__, 2) | 0;
-            if ((STKTOP - MEMTOP | 0) < ((imul(__POOL_SIZ__, 4) | 0) + 128 | 0)) {
-                claimSizCollect((imul(__POOL_SIZ__, 4) | 0) + 128 | 0);
-            }
-            TMP = MEMTOP;
-            MEMTOP = MEMTOP + (__POOL_SIZ__ + 1 << 2) | 0;
-            MEM32[TMP >> 2] = (__POOL_SIZ__ << 6 | 2) << 2;
-            for (IDX = 1; (IDX | 0) <= (__POOL_SIZ__ | 0); IDX = IDX + 1 | 0) {
-                MEM32[TMP + (IDX << 2) >> 2] = 2147483629;
-            }
-            while ((idx | 0) < (__POOL_TOP__ | 0)) {
-                idx = idx + 1 | 0;
-                sym = MEM32[SYM + (idx << 2) >> 2] | 0;
-                MEM32[TMP + (idx << 2) >> 2] = sym;
-            }
-            SYM = TMP;
-        }
-        function poolAt(idx) {
-            idx = idx | 0;
-            return ref(MEM32[SYM + (idx << 2) >> 2] | 0) | 0;
-        }
-        function enterPool(sym) {
-            sym = sym | 0;
-            sym = deref(sym) | 0;
-            if ((__POOL_TOP__ | 0) == (__POOL_SIZ__ | 0)) {
-                PAT = sym;
-                growPool();
-                sym = PAT;
-            }
-            __POOL_TOP__ = __POOL_TOP__ + 1 | 0;
-            MEM32[SYM + (__POOL_TOP__ << 2) >> 2] = sym;
-            return __POOL_TOP__ | 0;
         }
         function initExt() {
             __EXT_FREE__ = 1;
@@ -1779,7 +1735,6 @@ function SLIP(callbacks, size) {
             __EMPTY_VEC__ = MEMTOP;
             MEMTOP = MEMTOP + 4 | 0;
             MEM32[__EMPTY_VEC__ >> 2] = (0 << 6 | 2) << 2;
-            initPool();
             initExt();
             initEnvironment();
             initNatives();
@@ -5211,6 +5166,10 @@ function SLIP(callbacks, size) {
             fmake: fmake,
             fset: fset,
             fsetRaw: fsetRaw,
+            //textual information
+            makeText: makeText,
+            textGetChar: textGetChar,
+            textSetChar: textSetChar,
             //specials
             fisTrue: fisTrue,
             fisFalse: fisFalse,
@@ -5387,27 +5346,25 @@ function SLIP(callbacks, size) {
             slipVoid: slipVoid,
             //other
             feq: feq,
-            protect: protect,
-            enterPool: enterPool,
-            poolAt: poolAt
+            protect: protect
         };
     }
     function COMPILER() {
         'use strict';
-        var asm$2, dct, sym, err;
+        var asm$2, dct, sym, err$2;
         var isPair, isNull;
         var car, cdr;
         function link(asmModule, dctModule, symModule, errModule) {
             asm$2 = asmModule;
             dct = dctModule;
             sym = symModule;
-            err = errModule;
+            err$2 = errModule;
             car = asm$2.fpairCar;
             cdr = asm$2.fpairCdr;
             isPair = asm$2.fisPair;
             isNull = asm$2.fisNull;
         }
-        function make() {
+        function make$2() {
             var tag = arguments[0];
             var len = arguments.length;
             var chk = asm$2.fmake(tag, len - 1);
@@ -5423,7 +5380,7 @@ function SLIP(callbacks, size) {
                 asm$2.fsetRaw(chk, i, arguments[i]);
             return chk;
         }
-        function listLength(lst, err$2) {
+        function listLength(lst, err$3) {
             var sum = 0;
             while (isPair(lst)) {
                 lst = cdr(lst);
@@ -5432,11 +5389,11 @@ function SLIP(callbacks, size) {
             if (isNull(lst))
                 return sum;
             else
-                compilationError(err$2, lst);
+                compilationError(err$3, lst);
         }
-        function compilationError(err$2) {
-            err$2(arguments[1]);
-            throw err$2;
+        function compilationError(err$3) {
+            err$3(arguments[1]);
+            throw err$3;
         }
         function compile_exp(exp, tail) {
             try {
@@ -5477,22 +5434,22 @@ function SLIP(callbacks, size) {
         }
         function compileIf(exp, tailc) {
             if (!isPair(exp))
-                compilationError(err.invalidIf);
+                compilationError(err$2.invalidIf);
             var predicate = car(exp);
             var branches = cdr(exp);
             if (!isPair(branches))
-                compilationError(err.invalidIf);
+                compilationError(err$2.invalidIf);
             var consequent = car(branches);
             var alternative = cdr(branches);
             var c_predicate = compile(predicate, false);
             var c_consequent = compileInline(consequent, tailc);
             if (asm$2.fisNull(alternative))
-                return make(8, c_predicate, c_consequent);
+                return make$2(8, c_predicate, c_consequent);
             else if (asm$2.fisPair(alternative)) {
                 var c_alternative = compile(car(alternative), tailc);
-                return make(10, c_predicate, c_consequent, c_alternative);
+                return make$2(10, c_predicate, c_consequent, c_alternative);
             } else
-                compilationError(err.invalidIf);
+                compilationError(err$2.invalidIf);
         }
         function compileInline(exp, tailc) {
             dct.enterScope();
@@ -5503,12 +5460,12 @@ function SLIP(callbacks, size) {
                 return compile(exp, tailc);
             size$2 = asm$2.fmakeNumber(size$2);
             if (tailc)
-                return make(38, c_exp, size$2);
+                return make$2(38, c_exp, size$2);
             else
-                return make(32, c_exp, size$2);
+                return make$2(32, c_exp, size$2);
         }
         function compileSequence(exp, tailc) {
-            var len = listLength(exp, err.invalidSequence);
+            var len = listLength(exp, err$2.invalidSequence);
             if (len === 0)
                 return asm$2.slipVoid();
             else if (len === 1)
@@ -5520,14 +5477,14 @@ function SLIP(callbacks, size) {
                     exp = cdr(exp);
                 }
                 var last_exp = compile(car(exp), tailc);
-                var last_entry = make(56, last_exp);
+                var last_entry = make$2(56, last_exp);
                 sequence.push(last_entry);
-                return make.apply(null, sequence);
+                return make$2.apply(null, sequence);
             }
         }
         function compileDefine(opd) {
             if (!isPair(opd))
-                compilationError(err.invalidDefine);
+                compilationError(err$2.invalidDefine);
             var identifier = car(opd);
             var definition = cdr(opd);
             if (asm$2.fisSymbol(identifier))
@@ -5537,21 +5494,21 @@ function SLIP(callbacks, size) {
         }
         function compileVarDefinition(identifier, definition) {
             if (!isPair(definition))
-                compilationError(err.invalidDefine);
+                compilationError(err$2.invalidDefine);
             var exp = car(definition);
             var rest = cdr(definition);
             if (!asm$2.fisNull(rest))
-                compilationError(err.invalidDefine);
+                compilationError(err$2.invalidDefine);
             var pos = dct.defineVar(identifier);
             var ofs = asm$2.fmakeNumber(pos);
             var c_exp = compile(exp, false);
-            return make(12, ofs, c_exp);
+            return make$2(12, ofs, c_exp);
         }
         function compileFunDefinition(identifier, body) {
             var fname = car(identifier);
             var parameters = cdr(identifier);
             if (!asm$2.fisSymbol(fname))
-                compilationError(err.invalidDefine);
+                compilationError(err$2.invalidDefine);
             var ofs = asm$2.fmakeNumber(dct.defineVar(fname));
             dct.enterScope();
             var rest = compileParameters(parameters);
@@ -5559,20 +5516,20 @@ function SLIP(callbacks, size) {
             if (isNull(rest)) {
                 var c_body = compileSequence(body, true);
                 var frmSiz = asm$2.fmakeNumber(dct.exitScope());
-                return make(14, ofs, argc, frmSiz, c_body);
+                return make$2(14, ofs, argc, frmSiz, c_body);
             } else if (asm$2.fisSymbol(rest)) {
                 dct.defineVar(rest);
                 var c_body = compileSequence(body, true);
                 var frmSiz = asm$2.fmakeNumber(dct.exitScope());
-                return make(30, ofs, argc, frmSiz, c_body);
+                return make$2(30, ofs, argc, frmSiz, c_body);
             } else
-                compilationError(err.invalidDefine);
+                compilationError(err$2.invalidDefine);
         }
         function compileParameters(lst) {
             while (isPair(lst)) {
                 var par = car(lst);
                 if (!asm$2.fisSymbol(par))
-                    compilationError(err.invalidParameter, par);
+                    compilationError(err$2.invalidParameter, par);
                 dct.defineVar(par);
                 lst = cdr(lst);
             }
@@ -5580,7 +5537,7 @@ function SLIP(callbacks, size) {
         }
         function compileLambda(exp) {
             if (!isPair(exp))
-                compilationError(err.invalidLambda);
+                compilationError(err$2.invalidLambda);
             var parameters = car(exp);
             var body = cdr(exp);
             dct.enterScope();
@@ -5589,22 +5546,22 @@ function SLIP(callbacks, size) {
             if (isNull(rest)) {
                 var c_body = compileSequence(body, true);
                 var frmSiz = asm$2.fmakeNumber(dct.exitScope());
-                return make(18, argc, frmSiz, c_body);
+                return make$2(18, argc, frmSiz, c_body);
             } else if (asm$2.fisSymbol(rest)) {
                 dct.defineVar(rest);
                 var c_body = compileSequence(body, true);
                 var frmSiz = asm$2.fmakeNumber(dct.exitScope());
-                return make(34, argc, frmSiz, c_body);
+                return make$2(34, argc, frmSiz, c_body);
             } else
-                compilationError(err.invalidParameter);
+                compilationError(err$2.invalidParameter);
         }
         function compileAssignment(exp) {
             if (!isPair(exp))
-                compilationError(err.invalidAssignment);
+                compilationError(err$2.invalidAssignment);
             var identifier = car(exp);
             var definition = cdr(exp);
             if (!asm$2.fisSymbol(identifier) || !isPair(definition) || !isNull(cdr(definition)))
-                compilationError(err.invalidAssignment);
+                compilationError(err$2.invalidAssignment);
             var expression = car(definition);
             var c_exp = compile(expression, false);
             var adr = dct.lexicalAdr(identifier);
@@ -5613,13 +5570,13 @@ function SLIP(callbacks, size) {
                 var offset = adr.offset;
                 var ofs = asm$2.fmakeNumber(offset);
                 if (scope == 0) {
-                    return make(16, ofs, c_exp);
+                    return make$2(16, ofs, c_exp);
                 } else {
                     var scp = asm$2.fmakeNumber(scope);
-                    return make(20, scp, ofs, c_exp);
+                    return make$2(20, scp, ofs, c_exp);
                 }
             }
-            compilationError(err.undefinedVariable, identifier);
+            compilationError(err$2.undefinedVariable, identifier);
         }
         function compileArguments(opd, argc, tailc) {
             var args = [2];
@@ -5632,10 +5589,10 @@ function SLIP(callbacks, size) {
             var exp = car(opd);
             var c_exp = compile(exp, tailc);
             args.push(c_exp);
-            return make.apply(null, args);
+            return make$2.apply(null, args);
         }
         function compileApplication(opr, opd, tailc) {
-            var argc = listLength(opd, err.invalidParameter);
+            var argc = listLength(opd, err$2.invalidParameter);
             if (argc === 0) {
                 var c_opr = compile(opr, tailc);
                 return specializeApz(c_opr, tailc);
@@ -5658,7 +5615,7 @@ function SLIP(callbacks, size) {
                 var ofs = asm$2.fnlcOfs(c_opr);
                 return tailc ? makeRaw(19, scp, ofs) : makeRaw(17, scp, ofs);
             default:
-                return tailc ? make(44, c_opr) : make(46, c_opr);
+                return tailc ? make$2(44, c_opr) : make$2(46, c_opr);
             }
         }
         function specializeApl(c_opr, c_args, tailc) {
@@ -5666,29 +5623,29 @@ function SLIP(callbacks, size) {
             case 71:
                 var ofs = asm$2.flocalOfs(c_opr);
                 ofs = asm$2.fmakeNumber(ofs);
-                return tailc ? make(50, ofs, c_args) : make(48, ofs, c_args);
+                return tailc ? make$2(50, ofs, c_args) : make$2(48, ofs, c_args);
             case 72:
                 var ofs = asm$2.fglobalOfs(c_opr);
                 ofs = asm$2.fmakeNumber(ofs);
-                return tailc ? make(54, ofs, c_args) : make(52, ofs, c_args);
+                return tailc ? make$2(54, ofs, c_args) : make$2(52, ofs, c_args);
             case 15:
                 var scp = asm$2.fnlcScp(c_opr);
                 var ofs = asm$2.fnlcOfs(c_opr);
                 scp = asm$2.fmakeNumber(scp);
                 ofs = asm$2.fmakeNumber(ofs);
-                return tailc ? make(60, scp, ofs, c_args) : make(58, scp, ofs, c_args);
+                return tailc ? make$2(60, scp, ofs, c_args) : make$2(58, scp, ofs, c_args);
             default:
-                return tailc ? make(42, c_opr, c_args) : make(40, c_opr, c_args);
+                return tailc ? make$2(42, c_opr, c_args) : make$2(40, c_opr, c_args);
             }
         }
         function compileQuote(exp) {
             if (!isPair(exp))
-                compilationError(err.invalidQuote);
+                compilationError(err$2.invalidQuote);
             var quoted = car(exp);
             var rest = cdr(exp);
             if (!asm$2.fisNull(rest))
-                compilationError(err.invalidQuote);
-            return make(22, quoted);
+                compilationError(err$2.invalidQuote);
+            return make$2(22, quoted);
         }
         function compileVariable(sym$2) {
             var adr = dct.lexicalAdr(sym$2);
@@ -5702,7 +5659,7 @@ function SLIP(callbacks, size) {
                 else
                     return makeRaw(15, scope, offset);
             }
-            compilationError(err.undefinedVariable, sym$2);
+            compilationError(err$2.undefinedVariable, sym$2);
         }
         return {
             link: link,
@@ -5711,21 +5668,21 @@ function SLIP(callbacks, size) {
     }
     function DICTIONARY() {
         'use strict';
-        var asm$2, err;
+        var asm$2, err$2;
         var savedEnv;
         var environment = [];
         var frame = [];
-        function dctError(err$2) {
-            err$2();
-            throw err$2;
+        function dctError(err$3) {
+            err$3();
+            throw err$3;
         }
         function link(asmModule, errModule) {
             asm$2 = asmModule;
-            err = errModule;
+            err$2 = errModule;
         }
         function defineVar(vrb) {
             if (environment.length == 0 && frame.length == 256)
-                dctError(err.globalOverflow);
+                dctError(err$2.globalOverflow);
             if (environment.length == 0)
                 asm$2.protect(vrb);
             //we don't want globals gone
@@ -5806,6 +5763,81 @@ function SLIP(callbacks, size) {
             claim = asm$2.fclaim;
             enterPool = pool$2.enterPool;
         }
+        function read_exp() {
+            try {
+                return read();
+            } catch (exception) {
+                return asm.slipVoid();
+            }
+        }
+        function read() {
+            switch (peekC()) {
+            case '(':
+                return read_lbr();
+            case '#':
+                return read_shr();
+            case '\'':
+                return read_quo();
+            case '"':
+                return read_str();
+            case '+':
+            case '-':
+            case '0':
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+            case '5':
+            case '6':
+            case '7':
+            case '8':
+            case '9':
+                return read_num();
+            default:
+                return read_sym();
+            }
+        }
+        function read_lbr() {
+            skipC();
+            if (//skip the '('
+                // an empty list
+                peekC() === ')') {
+                skipC();
+                return asm.slipNull();
+            }
+            // a non-empty list
+            elements = [];
+            do {
+                elements.push(read());
+                if (peekC() === '.') {
+                    skipC();
+                    var tail = read();
+                    expect(')', err.expectedRBR);
+                    return buildList(elements, tail);
+                }
+            } while (peekC() !== ')');
+            skipC();
+            return // slip the final ')'
+            buildList(elements, asm.slipNull());
+        }
+        function buildList(elements$2, tail) {
+            var len = elements$2.length;
+            var lst = tail;
+            while (len) {
+                var exp = elements$2[--len];
+                lst = make(0, exp, lst);
+            }
+            return lst;
+        }
+        function readerError(err$2) {
+            err$2(arguments[1]);
+            throw err$2;
+        }
+        function expect(ch, err$2) {
+            var res = readC();
+            if (res !== ch)
+                readerError(err$2, res);
+        }
         function isTerminator(c) {
             switch (c) {
             case ' ':
@@ -5844,17 +5876,17 @@ function SLIP(callbacks, size) {
                 }
             }
         }
-        function skip() {
+        function skipC() {
             skipWhiteSpace();
             ++position;
         }
-        function peek() {
+        function peekC() {
             skipWhiteSpace();
-            return program.charCodeAt(position);
+            return program.charAt(position);
         }
-        function read() {
+        function readC() {
             skipWhiteSpace();
-            return program.charCodeAt(position++);
+            return program.charAt(position++);
         }
         function readSymbol() {
             hold = position;
@@ -5898,9 +5930,9 @@ function SLIP(callbacks, size) {
         }
         return {
             load: load,
-            skip: skip,
-            peek: peek,
-            read: read,
+            skip: skipC,
+            peek: peekC,
+            read: readC,
             readSymbol: readSymbol,
             readString: readString,
             readNumber: readNumber,
@@ -5909,42 +5941,26 @@ function SLIP(callbacks, size) {
     }
     function SYMBOLS() {
         'use strict';
-        var __POOL__ = Object.create(null);
-        var makeSymbol, symbolSet, symbolAt, symbolLength, addToPool, poolAt, claimSiz;
-        function link(asm$2) {
-            makeSymbol = asm$2.makeSymbol;
-            symbolSet = asm$2.symbolSet;
-            symbolAt = asm$2.symbolAt;
-            symbolLength = asm$2.symbolLength;
-            addToPool = asm$2.enterPool;
-            poolAt = asm$2.poolAt;
-            claimSiz = asm$2.fclaimSiz;
+        var pool$2 = Object.create(null);
+        var asm$2;
+        function link(asmModule) {
+            asm$2 = asmModule;
         }
         function buildSymbol(txt) {
             var len = txt.length;
-            claimSiz(len);
-            var sym = makeSymbol(len);
+            var sym = asm$2.makeText(len);
             for (var i = 0; i < len; ++i)
-                symbolSet(sym, i, txt.charCodeAt(i));
+                asm$2.textSetChar(sym, i, txt.charCodeAt(i));
             return sym;
         }
-        function symbolText(chk) {
-            var len = symbolLength(chk);
-            var arr = new Array(len);
-            for (var i = 0; i < len; ++i)
-                arr[i] = symbolAt(chk, i);
-            return String.fromCharCode.apply(null, arr);
-        }
         function enterPool(str) {
-            var idx;
-            if (//already in pool
-                idx = __POOL__[str]) {
-                return poolAt(idx);
+            var sym = pool$2[str];
+            if (!sym) {
+                // new symbol
+                sym = buildSymbol(str);
+                asm$2.protect(sym);
+                pool$2[str] = sym;
             }
-            var //not in pool yet
-            sym = buildSymbol(str);
-            idx = addToPool(sym);
-            __POOL__[str] = idx;
             return sym;
         }
         function symbol(str) {
