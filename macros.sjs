@@ -173,9 +173,87 @@ macro generate {
           }
 }
 
+macro rawstruct {
+    case {
+            _ $nam {
+                $($prop => $funs (,) ...) (;) ...
+            } as $tag
+        }
+        =>
+        {
+            var siz = #{$prop ...}.length;
+            letstx $siz = [makeValue(siz, #{here})];
+            var idxs = new Array(siz);
+            for(var i = 0; i < siz; ++i)
+                idxs[i] = makeValue(((i+1)<<2), #{here});
+            letstx $idx ... = idxs;
+            letstx $ctor = [makeIdent('makeChunk', #{$nam})];
+            letstx $s = [makeIdent('chunkSet', #{$nam})];
+            return #{
+                function $nam($prop (,) ...) {
+                   $($prop = $prop|0) (;) ...
+                   var chk = 0;
+                   $ctor($tag, $siz) => chk;
+                   $($s(chk, $idx, $prop)) (;) ...
+                   return chk|0;
+                }
+                $(generateRaw $funs (,) ... => $idx) ...
+            }
+        }
+}
+
+macro generateRaw {
+    case { _ $get => $idx }
+        => { 
+          letstx $g = [makeIdent('chunkGet', #{$get})];
+          letstx $ref = [makeIdent('ref', #{$get})];
+          letstx $deref = [makeIdent('deref', #{$get})];
+          return #{
+            macro $get {
+              rule {($chk:expr)} => {
+                $g($chk,$idx)
+              }
+            }
+            function makeFun($get)(chk) {
+                chk = chk|0;
+                return $g($deref(chk)|0, $idx)|0;
+            }
+          }
+        }
+    case { _ $get, $set => $idx }
+        => { 
+            letstx $g = [makeIdent('chunkGet', #{$get})];
+            letstx $s = [makeIdent('chunkSet', #{$set})];
+            letstx $ref = [makeIdent('ref', #{$get})];
+            letstx $deref = [makeIdent('deref', #{$get})];
+            return #{
+              macro $get {
+                rule {($chk:expr)} => {
+                  $g($chk,$idx)
+                }
+              }
+              function makeFun($get)(chk) {
+                  chk = chk|0;
+                  return $g($deref(chk)|0,$idx)|0;
+              }
+              macro $set {
+                rule {($chk:expr, $val:expr)} => {
+                  $s($chk,$idx,$val)
+                }
+              }
+              function makeFun($set)(chk, val) {
+                chk = chk|0;
+                val = val|0;
+                $s($deref(chk)|0,$idx,val)
+            }
+           }
+          }
+}
+
 export define
 export typecheck
 export instructions
 export goto
 export halt
 export struct
+export rawstruct
