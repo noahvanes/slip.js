@@ -108,7 +108,6 @@ function SLIP(callbacks, size) {
 		var REA = 0.1; //double
 		var SCP = 0; //lexical scope level
 		var SIZ = 0; //size
-		var SYM = 0; //symbol pool
 		var TLC = 0; //tail call
 		var TMP = 0; //temporary
 		var VAL = 0; //value
@@ -1390,6 +1389,7 @@ function SLIP(callbacks, size) {
 			len = len|0;
 			var chk = 0;
 			var siz = 0;
+			claimSiz(siz>>2)
 			for(siz = len; siz&0x3; siz=(siz+1)|0);
 			makeChunk(tag, siz>>2) => chk;
 			for(len = (len+4)|0, siz = (siz+4)|0;
@@ -1439,48 +1439,6 @@ function SLIP(callbacks, size) {
 		}
 
 		typecheck __SYM_TAG__ => isSymbol
-
-// **********************************************************************
-// ****************************** POOL **********************************
-// **********************************************************************
-
-		function initPool() {
-			__POOL_TOP__ = 0;
-			__POOL_SIZ__ = 64;
-			fillVector(__POOL_SIZ__, __VOID__) => SYM;
-		}
-
-		function growPool() {
-			var idx = 0;
-			var sym = 0;
-			__POOL_SIZ__ = imul(__POOL_SIZ__,2)|0;
-			claimSiz(__POOL_SIZ__)
-			fillVector(__POOL_SIZ__, __VOID__) => TMP;
-			while((idx|0) < (__POOL_TOP__|0)) {
-				idx = (idx + 1)|0;
-				sym = vectorRef(SYM, idx)|0;
-				vectorSet(TMP, idx, sym);
-			}
-			SYM = TMP;
-		}
-
-		function poolAt(idx) {
-			idx = idx|0;
-			return ref(vectorRef(SYM,idx)|0)|0;
-		}
-
-		function enterPool(sym) {
-			sym = sym|0;
-			sym = deref(sym)|0;
-			if ((__POOL_TOP__|0) == (__POOL_SIZ__|0)) {
-				PAT = sym;
-				growPool();
-				sym = PAT;
-			}
-			__POOL_TOP__ = (__POOL_TOP__+1)|0;
-			vectorSet(SYM, __POOL_TOP__, sym);
-			return __POOL_TOP__|0;
-		}
 
 
 // **********************************************************************
@@ -1757,7 +1715,6 @@ function SLIP(callbacks, size) {
 			FRM = __VOID__;
 			GLB = __VOID__;
 			PAT = __VOID__;
-			SYM = __VOID__;
 		}
 
 		function init() {
@@ -1765,7 +1722,6 @@ function SLIP(callbacks, size) {
 			initTags();
 			initRegs();
 			makeVector(0) => __EMPTY_VEC__;
-			initPool();
 			initExt();
 			initEnvironment();
 			initNatives();
@@ -1835,10 +1791,9 @@ function SLIP(callbacks, size) {
 
 		function reclaim() {
 
-			STKALLOC(12);
-			STK[11] = __EMPTY_VEC__;
-			STK[10] = EXT;
-			STK[9] = SYM;
+			STKALLOC(11);
+			STK[10] = __EMPTY_VEC__;
+			STK[9] = EXT;
 			STK[8] = PAT;
 			STK[7] = GLB;
 			STK[6] = FRM;
@@ -1860,10 +1815,9 @@ function SLIP(callbacks, size) {
 			FRM = STK[6]|0;
 			GLB = STK[7]|0;
 			PAT = STK[8]|0;
-			SYM = STK[9]|0;
-			EXT = STK[10]|0;
-			__EMPTY_VEC__ = STK[11]|0;
-			STKUNWIND(12);
+			EXT = STK[9]|0;
+			__EMPTY_VEC__ = STK[10]|0;
+			STKUNWIND(11);
 
 			__GC_COUNT__ = (__GC_COUNT__+1)|0;
 		}
@@ -4981,6 +4935,10 @@ function SLIP(callbacks, size) {
 			fmake: fmake,
 			fset: fset,
 			fsetRaw: fsetRaw,
+			//text 
+			makeText: makeText,
+			textGetChar: textGetChar,
+			textSetChar: textSetChar,
 			//specials
 			fisTrue: fisTrue,
 			fisFalse: fisFalse,
@@ -5157,9 +5115,7 @@ function SLIP(callbacks, size) {
 			slipVoid: slipVoid,
 			//other
 			feq: feq,
-			protect: protect,
-			enterPool: enterPool,
-			poolAt: poolAt
+			protect: protect
 		};
 	}
 
@@ -5800,47 +5756,28 @@ function SLIP(callbacks, size) {
 	function SYMBOLS() {
 		"use strict";
 
-		var __POOL__ = Object.create(null);
-		var makeSymbol, symbolSet, symbolAt,
-		symbolLength, addToPool, poolAt, claimSiz;
+		var pool = Object.create(null);
+		var asm;
 
-		function link(asm) {
-			makeSymbol = asm.makeSymbol;
-			symbolSet = asm.symbolSet;
-			symbolAt = asm.symbolAt;
-			symbolLength = asm.symbolLength;
-			addToPool = asm.enterPool;
-			poolAt = asm.poolAt;
-			claimSiz = asm.fclaimSiz;
+		function link(asmModule) {
+			asm = asmModule;
 		}
 
 		function buildSymbol(txt) {
 			var len = txt.length;
-			claimSiz(len);
-			var sym = makeSymbol(len);
+			var sym = asm.makeText(__SYM_TAG__,len);
 			for(var i = 0; i < len; ++i)
-				symbolSet(sym, i, txt.charCodeAt(i));
+				asm.textSetChar(sym,i,txt.charCodeAt(i));
 			return sym;
 		}
 
-		function symbolText(chk) {
-			var len = symbolLength(chk);
-			var arr = new Array(len);
-			for(var i = 0; i < len; ++i)
-				arr[i] = symbolAt(chk, i);
-			return String.fromCharCode.apply(null, arr);
-		}
-
 		function enterPool(str) {
-			var idx;
-			//already in pool
-			if ((idx = __POOL__[str])) {
-				return poolAt(idx);
+			var sym = pool[str]
+			if (!sym) {  // new symbol
+				sym = buildSymbol(str)
+				asm.protect(sym)
+				pool[str] = sym
 			}
-			//not in pool yet
-			var sym = buildSymbol(str);
-			idx = addToPool(sym);
-			__POOL__[str] = idx;
 			return sym;
 		}
 

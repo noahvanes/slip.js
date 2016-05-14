@@ -51,8 +51,6 @@ function SLIP(callbacks, size) {
         //lexical scope level
         var SIZ = 0;
         //size
-        var SYM = 0;
-        //symbol pool
         var TLC = 0;
         //tail call
         var TMP = 0;
@@ -1488,6 +1486,9 @@ function SLIP(callbacks, size) {
             len = len | 0;
             var chk = 0;
             var siz = 0;
+            if ((STKTOP - MEMTOP | 0) < ((imul(siz >> 2, 4) | 0) + 128 | 0)) {
+                claimSizCollect((imul(siz >> 2, 4) | 0) + 128 | 0);
+            }
             for (siz = len; siz & 3; siz = siz + 1 | 0);
             chk = MEMTOP;
             MEMTOP = MEMTOP + ((siz >> 2) + 1 << 2) | 0;
@@ -1531,52 +1532,6 @@ function SLIP(callbacks, size) {
         function fisSymbol(x) {
             x = x | 0;
             return (((deref(x) | 0) & 1 ? MEM8[(deref(x) | 0) & 31] | 0 : (MEM32[(deref(x) | 0) >> 2] | 0) >>> 2 & 63 | 0) | 0) == 3 | 0;
-        }
-        function initPool() {
-            __POOL_TOP__ = 0;
-            __POOL_SIZ__ = 64;
-            SYM = MEMTOP;
-            MEMTOP = MEMTOP + (__POOL_SIZ__ + 1 << 2) | 0;
-            MEM32[SYM >> 2] = (__POOL_SIZ__ << 6 | 2) << 2;
-            for (IDX = 1; (IDX | 0) <= (__POOL_SIZ__ | 0); IDX = IDX + 1 | 0) {
-                MEM32[SYM + (IDX << 2) >> 2] = 2147483629;
-            }
-        }
-        function growPool() {
-            var idx = 0;
-            var sym = 0;
-            __POOL_SIZ__ = imul(__POOL_SIZ__, 2) | 0;
-            if ((STKTOP - MEMTOP | 0) < ((imul(__POOL_SIZ__, 4) | 0) + 128 | 0)) {
-                claimSizCollect((imul(__POOL_SIZ__, 4) | 0) + 128 | 0);
-            }
-            TMP = MEMTOP;
-            MEMTOP = MEMTOP + (__POOL_SIZ__ + 1 << 2) | 0;
-            MEM32[TMP >> 2] = (__POOL_SIZ__ << 6 | 2) << 2;
-            for (IDX = 1; (IDX | 0) <= (__POOL_SIZ__ | 0); IDX = IDX + 1 | 0) {
-                MEM32[TMP + (IDX << 2) >> 2] = 2147483629;
-            }
-            while ((idx | 0) < (__POOL_TOP__ | 0)) {
-                idx = idx + 1 | 0;
-                sym = MEM32[SYM + (idx << 2) >> 2] | 0;
-                MEM32[TMP + (idx << 2) >> 2] = sym;
-            }
-            SYM = TMP;
-        }
-        function poolAt(idx) {
-            idx = idx | 0;
-            return ref(MEM32[SYM + (idx << 2) >> 2] | 0) | 0;
-        }
-        function enterPool(sym) {
-            sym = sym | 0;
-            sym = deref(sym) | 0;
-            if ((__POOL_TOP__ | 0) == (__POOL_SIZ__ | 0)) {
-                PAT = sym;
-                growPool();
-                sym = PAT;
-            }
-            __POOL_TOP__ = __POOL_TOP__ + 1 | 0;
-            MEM32[SYM + (__POOL_TOP__ << 2) >> 2] = sym;
-            return __POOL_TOP__ | 0;
         }
         function initExt() {
             __EXT_FREE__ = 1;
@@ -1770,7 +1725,6 @@ function SLIP(callbacks, size) {
             FRM = 2147483629;
             GLB = 2147483629;
             PAT = 2147483629;
-            SYM = 2147483629;
         }
         function init() {
             initMemory();
@@ -1779,7 +1733,6 @@ function SLIP(callbacks, size) {
             __EMPTY_VEC__ = MEMTOP;
             MEMTOP = MEMTOP + 4 | 0;
             MEM32[__EMPTY_VEC__ >> 2] = (0 << 6 | 2) << 2;
-            initPool();
             initExt();
             initEnvironment();
             initNatives();
@@ -1817,10 +1770,9 @@ function SLIP(callbacks, size) {
             }
         }
         function reclaim() {
-            STKTOP = STKTOP - 48 | 0;
-            MEM32[STKTOP + 44 >> 2] = __EMPTY_VEC__;
-            MEM32[STKTOP + 40 >> 2] = EXT;
-            MEM32[STKTOP + 36 >> 2] = SYM;
+            STKTOP = STKTOP - 44 | 0;
+            MEM32[STKTOP + 40 >> 2] = __EMPTY_VEC__;
+            MEM32[STKTOP + 36 >> 2] = EXT;
             MEM32[STKTOP + 32 >> 2] = PAT;
             MEM32[STKTOP + 28 >> 2] = GLB;
             MEM32[STKTOP + 24 >> 2] = FRM;
@@ -1840,10 +1792,9 @@ function SLIP(callbacks, size) {
             FRM = MEM32[STKTOP + 24 >> 2] | 0;
             GLB = MEM32[STKTOP + 28 >> 2] | 0;
             PAT = MEM32[STKTOP + 32 >> 2] | 0;
-            SYM = MEM32[STKTOP + 36 >> 2] | 0;
-            EXT = MEM32[STKTOP + 40 >> 2] | 0;
-            __EMPTY_VEC__ = MEM32[STKTOP + 44 >> 2] | 0;
-            STKTOP = STKTOP + 48 | 0;
+            EXT = MEM32[STKTOP + 36 >> 2] | 0;
+            __EMPTY_VEC__ = MEM32[STKTOP + 40 >> 2] | 0;
+            STKTOP = STKTOP + 44 | 0;
             __GC_COUNT__ = __GC_COUNT__ + 1 | 0;
         }
         function _N_add() {
@@ -5211,6 +5162,10 @@ function SLIP(callbacks, size) {
             fmake: fmake,
             fset: fset,
             fsetRaw: fsetRaw,
+            //text 
+            makeText: makeText,
+            textGetChar: textGetChar,
+            textSetChar: textSetChar,
             //specials
             fisTrue: fisTrue,
             fisFalse: fisFalse,
@@ -5387,9 +5342,7 @@ function SLIP(callbacks, size) {
             slipVoid: slipVoid,
             //other
             feq: feq,
-            protect: protect,
-            enterPool: enterPool,
-            poolAt: poolAt
+            protect: protect
         };
     }
     function COMPILER() {
@@ -5909,42 +5862,26 @@ function SLIP(callbacks, size) {
     }
     function SYMBOLS() {
         'use strict';
-        var __POOL__ = Object.create(null);
-        var makeSymbol, symbolSet, symbolAt, symbolLength, addToPool, poolAt, claimSiz;
-        function link(asm$2) {
-            makeSymbol = asm$2.makeSymbol;
-            symbolSet = asm$2.symbolSet;
-            symbolAt = asm$2.symbolAt;
-            symbolLength = asm$2.symbolLength;
-            addToPool = asm$2.enterPool;
-            poolAt = asm$2.poolAt;
-            claimSiz = asm$2.fclaimSiz;
+        var pool$2 = Object.create(null);
+        var asm$2;
+        function link(asmModule) {
+            asm$2 = asmModule;
         }
         function buildSymbol(txt) {
             var len = txt.length;
-            claimSiz(len);
-            var sym = makeSymbol(len);
+            var sym = asm$2.makeText(3, len);
             for (var i = 0; i < len; ++i)
-                symbolSet(sym, i, txt.charCodeAt(i));
+                asm$2.textSetChar(sym, i, txt.charCodeAt(i));
             return sym;
         }
-        function symbolText(chk) {
-            var len = symbolLength(chk);
-            var arr = new Array(len);
-            for (var i = 0; i < len; ++i)
-                arr[i] = symbolAt(chk, i);
-            return String.fromCharCode.apply(null, arr);
-        }
         function enterPool(str) {
-            var idx;
-            if (//already in pool
-                idx = __POOL__[str]) {
-                return poolAt(idx);
+            var sym = pool$2[str];
+            if (!sym) {
+                // new symbol
+                sym = buildSymbol(str);
+                asm$2.protect(sym);
+                pool$2[str] = sym;
             }
-            var //not in pool yet
-            sym = buildSymbol(str);
-            idx = addToPool(sym);
-            __POOL__[str] = idx;
             return sym;
         }
         function symbol(str) {
