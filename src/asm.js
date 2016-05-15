@@ -393,7 +393,7 @@ function SLIP(callbacks, size) {
 		var fprintOutput = foreign.printOutput;
 		var fprintError = foreign.printError;
 		var fprintLog = foreign.printLog;
-		var loadFile = foreign.loadFile;
+		var floadFile = foreign.loadFile;
 		var initREPL = foreign.initREPL;
 
 		//custom
@@ -422,6 +422,11 @@ function SLIP(callbacks, size) {
 		function printError(exp) {
 			exp = exp|0;
 			fprintError(ref(exp)|0);
+		}
+
+		function loadFile(arg) {
+			arg = arg|0;
+			floadFile(ref(arg|0));
 		}
 
 		function compile(exp,tailc) {

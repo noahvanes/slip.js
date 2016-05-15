@@ -151,7 +151,7 @@ function SLIP(callbacks, size) {
         var fprintOutput = foreign$2.printOutput;
         var fprintError = foreign$2.printError;
         var fprintLog = foreign$2.printLog;
-        var loadFile = foreign$2.loadFile;
+        var floadFile = foreign$2.loadFile;
         var initREPL = foreign$2.initREPL;
         var //custom
         random = foreign$2.random;
@@ -173,6 +173,10 @@ function SLIP(callbacks, size) {
         function printError(exp) {
             exp = exp | 0;
             fprintError(ref(exp) | 0);
+        }
+        function loadFile(arg) {
+            arg = arg | 0;
+            floadFile(ref(arg | 0));
         }
         function compile(exp, tailc) {
             exp = exp | 0;
