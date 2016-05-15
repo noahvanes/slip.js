@@ -6,254 +6,74 @@ macro define {
         }
 }
 
-macro typecheck {
-    case { typecheck $t => $fun } => {
-       letstx $tag = [makeIdent('tag', #{$t})];
-       letstx $deref = [makeIdent('deref', #{$t})];
-       return #{
-        macro $fun {
-          rule { ($x:expr) } => {
-            ((($tag($x)|0) == $t)|0)
-          }
+macro defineGlobal {
+     rule { $nam $val } =>
+        { define $nam $val
+          export $nam
         }
-        function makeFun($fun)(x) {
-          x = x|0;
-          return (($tag($deref(x)|0)|0) == $t)|0;
-        }
-      }
-  }
-}
-
-macro makeLabel {
-    case {_($lab)} => {
-        var label = unwrapSyntax(#{$lab});
-        return [makeIdent('_'+label, #{here})];
-    }
-}
-
-macro defun {
-    rule {$f $v} => {
-        macro $f {
-          rule {()} => {makeLabel($f)()|0}
-          rule {} => {$v}
-        }
-    }
-}
-
-macro instructions {
-    case {
-      _ {
-        $($lab {
-            $body ...
-          }) ...
-      } generate $fun
-    } => {
-        function nextPowTwo(x) {
-          var current = 1;
-          while(current < x)
-            current = current<<1;
-          return current;
-        }
-        var len = #{$lab ...}.length;
-        var numbers = new Array(len);
-        for(var i = 0; i < len; ++i)
-            numbers[i] = (makeValue((2*i)+1, #{here}));
-        letstx $nbr ... = numbers;
-        len = nextPowTwo(2*len);
-        var diff = len - ((2*i));
-        var nops = new Array(diff);
-        while(diff--)
-          nops[diff] = (makeIdent('nop', #{here}));
-        letstx $nop ... = nops;
-        letstx $mask = [makeValue(len-1, #{here})];
-        return #{
-            $(defun $lab $nbr) ...
-            $(function makeLabel($lab)() {
-                 $body ...
-            }) ...
-            function nop() { halt; }
-            function $fun(instr) {
-                instr = instr|0;
-                for(;instr;instr=FUNTAB[instr&$mask]()|0);
-            }
-            var FUNTAB = [$(nop, makeLabel($lab)) (,) ..., $nop (,) ...];
-        }
-     }
- }
-
-macro goto {
-    rule {$f} => {return $f}
-}
-
-macro halt {
-    rule {} => {return 0}
-}
-
-macro makeFun {
-    case {_($lab)} => {
-        var label = unwrapSyntax(#{$lab});
-        return [makeIdent('f'+label, #{here})];
-    }
-}
-
-macro struct {
-    case {
-            _ $nam {
-                $($prop => $funs (,) ...) (;) ...
-            } as $tag
-        }
-        =>
-        {
-            var siz = #{$prop ...}.length;
-            letstx $siz = [makeValue(siz, #{here})];
-            var idxs = new Array(siz);
-            for(var i = 0; i < siz; ++i)
-                idxs[i] = makeValue(((i+1)<<2), #{here});
-            letstx $idx ... = idxs;
-            letstx $ctor = [makeIdent('makeChunk', #{$nam})];
-            letstx $s = [makeIdent('chunkSet', #{$nam})];
-            return #{
-                function $nam($prop (,) ...) {
-                   $($prop = $prop|0) (;) ...
-                   var chk = 0;
-                   $ctor($tag, $siz) => chk;
-                   $($s(chk, $idx, $prop)) (;) ...
-                   return chk|0;
-                }
-                $(generate $funs (,) ... => $idx) ...
-            }
-        }
-}
-
-macro generate {
-    case { _ $get => $idx }
-        => { 
-          letstx $g = [makeIdent('chunkGet', #{$get})];
-          letstx $ref = [makeIdent('ref', #{$get})];
-          letstx $deref = [makeIdent('deref', #{$get})];
-          return #{
-            macro $get {
-              rule {($chk:expr)} => {
-                $g($chk,$idx)
-              }
-            }
-            function makeFun($get)(chk) {
-                chk = chk|0;
-                return $ref($g($deref(chk)|0, $idx)|0)|0;
-            }
-          }
-        }
-    case { _ $get, $set => $idx }
-        => { 
-            letstx $g = [makeIdent('chunkGet', #{$get})];
-            letstx $s = [makeIdent('chunkSet', #{$set})];
-            letstx $ref = [makeIdent('ref', #{$get})];
-            letstx $deref = [makeIdent('deref', #{$get})];
-            return #{
-              macro $get {
-                rule {($chk:expr)} => {
-                  $g($chk,$idx)
-                }
-              }
-              function makeFun($get)(chk) {
-                  chk = chk|0;
-                  return $ref($g($deref(chk)|0,$idx)|0)|0;
-              }
-              macro $set {
-                rule {($chk:expr, $val:expr)} => {
-                  $s($chk,$idx,$val)
-                }
-              }
-              function makeFun($set)(chk, val) {
-                chk = chk|0;
-                val = val|0;
-                $s($deref(chk)|0,$idx,$deref(val)|0)
-            }
-           }
-          }
-}
-
-macro rawstruct {
-    case {
-            _ $nam {
-                $($prop => $funs (,) ...) (;) ...
-            } as $tag
-        }
-        =>
-        {
-            var siz = #{$prop ...}.length;
-            letstx $siz = [makeValue(siz, #{here})];
-            var idxs = new Array(siz);
-            for(var i = 0; i < siz; ++i)
-                idxs[i] = makeValue(((i+1)<<2), #{here});
-            letstx $idx ... = idxs;
-            letstx $ctor = [makeIdent('makeChunk', #{$nam})];
-            letstx $s = [makeIdent('chunkSet', #{$nam})];
-            return #{
-                function $nam($prop (,) ...) {
-                   $($prop = $prop|0) (;) ...
-                   var chk = 0;
-                   $ctor($tag, $siz) => chk;
-                   $($s(chk, $idx, $prop)) (;) ...
-                   return chk|0;
-                }
-                $(generateRaw $funs (,) ... => $idx) ...
-            }
-        }
-}
-
-macro generateRaw {
-    case { _ $get => $idx }
-        => { 
-          letstx $g = [makeIdent('chunkGet', #{$get})];
-          letstx $ref = [makeIdent('ref', #{$get})];
-          letstx $deref = [makeIdent('deref', #{$get})];
-          return #{
-            macro $get {
-              rule {($chk:expr)} => {
-                $g($chk,$idx)
-              }
-            }
-            function makeFun($get)(chk) {
-                chk = chk|0;
-                return $g($deref(chk)|0, $idx)|0;
-            }
-          }
-        }
-    case { _ $get, $set => $idx }
-        => { 
-            letstx $g = [makeIdent('chunkGet', #{$get})];
-            letstx $s = [makeIdent('chunkSet', #{$set})];
-            letstx $ref = [makeIdent('ref', #{$get})];
-            letstx $deref = [makeIdent('deref', #{$get})];
-            return #{
-              macro $get {
-                rule {($chk:expr)} => {
-                  $g($chk,$idx)
-                }
-              }
-              function makeFun($get)(chk) {
-                  chk = chk|0;
-                  return $g($deref(chk)|0,$idx)|0;
-              }
-              macro $set {
-                rule {($chk:expr, $val:expr)} => {
-                  $s($chk,$idx,$val)
-                }
-              }
-              function makeFun($set)(chk, val) {
-                chk = chk|0;
-                val = val|0;
-                $s($deref(chk)|0,$idx,val)
-            }
-           }
-          }
 }
 
 export define
-export typecheck
-export instructions
-export goto
-export halt
-export struct
-export rawstruct
+
+/* global application constants */
+
+defineGlobal __GLOBAL_SIZ__ 256
+
+/* -- POINTER STRUCTURES -- */
+defineGlobal __PAI_TAG__ 0x00
+defineGlobal __VCT_TAG__ 0x02
+defineGlobal __PRC_TAG__ 0x04
+defineGlobal __SEQ_TAG__ 0x06
+defineGlobal __IFS_TAG__ 0x08
+defineGlobal __IFF_TAG__ 0x0A
+defineGlobal __DFV_TAG__ 0x0C
+defineGlobal __DFF_TAG__ 0x0E
+defineGlobal __SLC_TAG__ 0x10
+defineGlobal __LMB_TAG__ 0x12
+defineGlobal __SGL_TAG__ 0x14
+defineGlobal __QUO_TAG__ 0x16
+defineGlobal __CNT_TAG__ 0x18
+defineGlobal __DFZ_TAG__ 0x1E
+defineGlobal __THK_TAG__ 0x20
+defineGlobal __LMZ_TAG__ 0x22
+defineGlobal __PRZ_TAG__ 0x24
+defineGlobal __TTK_TAG__ 0x26
+defineGlobal __APL_TAG__ 0x28
+defineGlobal __TPL_TAG__ 0x2A
+defineGlobal __TPZ_TAG__ 0x2C
+defineGlobal __APZ_TAG__ 0x2E
+defineGlobal __ALL_TAG__ 0x30
+defineGlobal __TLL_TAG__ 0x32
+defineGlobal __AGL_TAG__ 0x34
+defineGlobal __TGL_TAG__ 0x36
+defineGlobal __STL_TAG__ 0x38
+defineGlobal __ANL_TAG__ 0x3A
+defineGlobal __TNL_TAG__ 0x3C
+defineGlobal __PRT_TAG__ 0x3E
+//available:
+//			0x1A
+//			0x1C
+
+/* -- RAW CHUNKS -- */
+defineGlobal __FLT_TAG__ 0x01
+defineGlobal __SYM_TAG__ 0x03
+defineGlobal __STR_TAG__ 0x05
+defineGlobal __TGZ_TAG__ 0x07
+defineGlobal __AGZ_TAG__ 0x09
+defineGlobal __ALZ_TAG__ 0x0B
+defineGlobal __TLZ_TAG__ 0x0D
+defineGlobal __NLC_TAG__ 0x0F
+defineGlobal __ANZ_TAG__ 0x11
+defineGlobal __TNZ_TAG__ 0x13
+
+/* -- IMMEDIATES -- */
+//(tags > maxTag = 0x3f)
+defineGlobal __CHR_TAG__ 0x40
+defineGlobal __TRU_TAG__ 0x41
+defineGlobal __FLS_TAG__ 0x42
+defineGlobal __VOI_TAG__ 0x43
+defineGlobal __NUL_TAG__ 0x44
+defineGlobal __NBR_TAG__ 0x45
+defineGlobal __NAT_TAG__ 0x46
+defineGlobal __LCL_TAG__ 0x47
+defineGlobal __GLB_TAG__ 0x48

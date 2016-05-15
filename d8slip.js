@@ -33,7 +33,15 @@ function readFile(path, clb) {
 
 // MAIN
 
-load("./slip.js");
+load("./compiled/asm.js");
+load("./compiled/compiler.js");
+load("./compiled/dictionary.js");
+load("./compiled/errors.js");
+load("./compiled/io.js");
+load("./compiled/printer.js");
+load("./compiled/reader.js");
+load("./compiled/symbols.js");
+load("./compiled/timer.js");
 
 var stdlib = {
 	Math: Math, 

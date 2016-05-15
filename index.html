@@ -8,7 +8,15 @@
     <link rel="stylesheet" type="text/css" href="stylesheets/github-dark.css" media="screen">
     <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print">
 	<script src="lib/jquery.js"></script>
-	<script src="slip.js" async onload='init()'></script>
+	<script src="compiled/compiler.js"></script>
+	<script src="compiled/dictionary.js"></script>
+	<script src="compiled/errors.js"></script>
+	<script src="compiled/io.js"></script>
+	<script src="compiled/printer.js"></script>
+	<script src="compiled/reader.js"></script>
+	<script src="compiled/symbols.js"></script>
+	<script src="compiled/timer.js"></script>
+	<script src="compiled/asm.js" async onload='init()'></script>
 
     <title>slip.js</title>
 
@@ -61,6 +69,8 @@
 <a id="what-is-slipjs" class="anchor" href="#what-is-slipjs" aria-hidden="true"><span class="octicon octicon-link"></span></a>What is slip.js?</h3>
 
 <p>Slip.js is a handwritten <a href="http://asmjs.org/spec/latest">asm.js</a> implementation of <a href="http://soft.vub.ac.be/%7Etjdhondt/PLE/introduction.html">Slip</a>. The language was originally designed as a variant of Scheme and implemented in C by Prof. T. D'Hondt at the Vrije Universiteit Brussel. This version aims to bring that same language to the web while maintaining similar performance as the original native Slip. For this reason, the interpreter runs on top of asm.js, a very optimizable low-level subset of JavaScript. </p>
+
+<p>Read the full paper <a href="http://soft.vub.ac.be/Publications/2015/vub-soft-tr-15-12.pdf">here</a> or have a look at our <a href="http://www.slideshare.net/noahves/a-performant-scheme-interpreter-in-asmjs">slideshow</a> presented at SAC2016.</p>
 
 <h3>
 <a id="try-it-now" class="anchor" href="#try-it-now" aria-hidden="true"><span class="octicon octicon-link"></span></a>Try it now!</h3>
@@ -166,7 +176,6 @@
 
 				slip.Slip_REPL();
 			}
-
 		</script>
       </section>
     </div>

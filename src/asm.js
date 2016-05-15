@@ -1,69 +1,252 @@
 function SLIP(callbacks, size) {
 	"use strict";
 
-	define __GLOBAL_SIZ__ 256
-
-	/* -- POINTER STRUCTURES -- */
-	define __PAI_TAG__ 0x00
-	define __VCT_TAG__ 0x02
-	define __PRC_TAG__ 0x04
-	define __SEQ_TAG__ 0x06
-	define __IFS_TAG__ 0x08
-	define __IFF_TAG__ 0x0A
-	define __DFV_TAG__ 0x0C
-	define __DFF_TAG__ 0x0E
-	define __SLC_TAG__ 0x10
-	define __LMB_TAG__ 0x12
-	define __SGL_TAG__ 0x14
-	define __QUO_TAG__ 0x16
-	define __CNT_TAG__ 0x18
-	define __DFZ_TAG__ 0x1E
-	define __THK_TAG__ 0x20
-	define __LMZ_TAG__ 0x22
-	define __PRZ_TAG__ 0x24
-	define __TTK_TAG__ 0x26
-	define __APL_TAG__ 0x28
-	define __TPL_TAG__ 0x2A
-	define __TPZ_TAG__ 0x2C
-	define __APZ_TAG__ 0x2E
-	define __ALL_TAG__ 0x30
-	define __TLL_TAG__ 0x32
-	define __AGL_TAG__ 0x34
-	define __TGL_TAG__ 0x36
-	define __STL_TAG__ 0x38
-	define __ANL_TAG__ 0x3A
-	define __TNL_TAG__ 0x3C
-	define __PRT_TAG__ 0x3E
-	//available:
-	//			0x1A
-	//			0x1C
-
-	/* -- RAW CHUNKS -- */
-	define __FLT_TAG__ 0x01
-	define __SYM_TAG__ 0x03
-	define __STR_TAG__ 0x05
-	define __TGZ_TAG__ 0x07
-	define __AGZ_TAG__ 0x09
-	define __ALZ_TAG__ 0x0B
-	define __TLZ_TAG__ 0x0D
-	define __NLC_TAG__ 0x0F
-	define __ANZ_TAG__ 0x11
-	define __TNZ_TAG__ 0x13
-
-	/* -- IMMEDIATES -- */
-	//(tags > maxTag = 0x3f)
-	define __CHR_TAG__ 0x40
-	define __TRU_TAG__ 0x41
-	define __FLS_TAG__ 0x42
-	define __VOI_TAG__ 0x43
-	define __NUL_TAG__ 0x44
-	define __NBR_TAG__ 0x45
-	define __NAT_TAG__ 0x46
-	define __LCL_TAG__ 0x47
-	define __GLB_TAG__ 0x48
-
 	function SLIP_ASM(stdlib, foreign, heap) {
 		"use asm";
+
+		macro typecheck {
+		    case { typecheck $t => $fun } => {
+		       letstx $tag = [makeIdent('tag', #{$t})];
+		       letstx $deref = [makeIdent('deref', #{$t})];
+		       return #{
+		        macro $fun {
+		          rule { ($x:expr) } => {
+		            ((($tag($x)|0) == $t)|0)
+		          }
+		        }
+		        function makeFun($fun)(x) {
+		          x = x|0;
+		          return (($tag($deref(x)|0)|0) == $t)|0;
+		        }
+		      }
+		  }
+		}
+
+		macro makeLabel {
+		    case {_($lab)} => {
+		        var label = unwrapSyntax(#{$lab});
+		        return [makeIdent('_'+label, #{here})];
+		    }
+		}
+
+		macro defun {
+		    rule {$f $v} => {
+		        macro $f {
+		          rule {()} => {makeLabel($f)()|0}
+		          rule {} => {$v}
+		        }
+		    }
+		}
+
+		macro instructions {
+		    case {
+		      _ {
+		        $($lab {
+		            $body ...
+		          }) ...
+		      } generate $fun
+		    } => {
+		        function nextPowTwo(x) {
+		          var current = 1;
+		          while(current < x)
+		            current = current<<1;
+		          return current;
+		        }
+		        var len = #{$lab ...}.length;
+		        var numbers = new Array(len);
+		        for(var i = 0; i < len; ++i)
+		            numbers[i] = (makeValue((2*i)+1, #{here}));
+		        letstx $nbr ... = numbers;
+		        len = nextPowTwo(2*len);
+		        var diff = len - ((2*i));
+		        var nops = new Array(diff);
+		        while(diff--)
+		          nops[diff] = (makeIdent('nop', #{here}));
+		        letstx $nop ... = nops;
+		        letstx $mask = [makeValue(len-1, #{here})];
+		        return #{
+		            $(defun $lab $nbr) ...
+		            $(function makeLabel($lab)() {
+		                 $body ...
+		            }) ...
+		            function nop() { halt; }
+		            function $fun(instr) {
+		                instr = instr|0;
+		                for(;instr;instr=FUNTAB[instr&$mask]()|0);
+		            }
+		            var FUNTAB = [$(nop, makeLabel($lab)) (,) ..., $nop (,) ...];
+		        }
+		     }
+		 }
+
+		macro goto {
+		    rule {$f} => {return $f}
+		}
+
+		macro halt {
+		    rule {} => {return 0}
+		}
+
+		macro makeFun {
+		    case {_($lab)} => {
+		        var label = unwrapSyntax(#{$lab});
+		        return [makeIdent('f'+label, #{here})];
+		    }
+		}
+
+		macro struct {
+		    case {
+		            _ $nam {
+		                $($prop => $funs (,) ...) (;) ...
+		            } as $tag
+		        }
+		        =>
+		        {
+		            var siz = #{$prop ...}.length;
+		            letstx $siz = [makeValue(siz, #{here})];
+		            var idxs = new Array(siz);
+		            for(var i = 0; i < siz; ++i)
+		                idxs[i] = makeValue(((i+1)<<2), #{here});
+		            letstx $idx ... = idxs;
+		            letstx $ctor = [makeIdent('makeChunk', #{$nam})];
+		            letstx $s = [makeIdent('chunkSet', #{$nam})];
+		            return #{
+		                function $nam($prop (,) ...) {
+		                   $($prop = $prop|0) (;) ...
+		                   var chk = 0;
+		                   $ctor($tag, $siz) => chk;
+		                   $($s(chk, $idx, $prop)) (;) ...
+		                   return chk|0;
+		                }
+		                $(generate $funs (,) ... => $idx) ...
+		            }
+		        }
+		}
+
+		macro generate {
+		    case { _ $get => $idx }
+		        => { 
+		          letstx $g = [makeIdent('chunkGet', #{$get})];
+		          letstx $ref = [makeIdent('ref', #{$get})];
+		          letstx $deref = [makeIdent('deref', #{$get})];
+		          return #{
+		            macro $get {
+		              rule {($chk:expr)} => {
+		                $g($chk,$idx)
+		              }
+		            }
+		            function makeFun($get)(chk) {
+		                chk = chk|0;
+		                return $ref($g($deref(chk)|0, $idx)|0)|0;
+		            }
+		          }
+		        }
+		    case { _ $get, $set => $idx }
+		        => { 
+		            letstx $g = [makeIdent('chunkGet', #{$get})];
+		            letstx $s = [makeIdent('chunkSet', #{$set})];
+		            letstx $ref = [makeIdent('ref', #{$get})];
+		            letstx $deref = [makeIdent('deref', #{$get})];
+		            return #{
+		              macro $get {
+		                rule {($chk:expr)} => {
+		                  $g($chk,$idx)
+		                }
+		              }
+		              function makeFun($get)(chk) {
+		                  chk = chk|0;
+		                  return $ref($g($deref(chk)|0,$idx)|0)|0;
+		              }
+		              macro $set {
+		                rule {($chk:expr, $val:expr)} => {
+		                  $s($chk,$idx,$val)
+		                }
+		              }
+		              function makeFun($set)(chk, val) {
+		                chk = chk|0;
+		                val = val|0;
+		                $s($deref(chk)|0,$idx,$deref(val)|0)
+		            }
+		           }
+		          }
+		}
+
+		macro rawstruct {
+		    case {
+		            _ $nam {
+		                $($prop => $funs (,) ...) (;) ...
+		            } as $tag
+		        }
+		        =>
+		        {
+		            var siz = #{$prop ...}.length;
+		            letstx $siz = [makeValue(siz, #{here})];
+		            var idxs = new Array(siz);
+		            for(var i = 0; i < siz; ++i)
+		                idxs[i] = makeValue(((i+1)<<2), #{here});
+		            letstx $idx ... = idxs;
+		            letstx $ctor = [makeIdent('makeChunk', #{$nam})];
+		            letstx $s = [makeIdent('chunkSet', #{$nam})];
+		            return #{
+		                function $nam($prop (,) ...) {
+		                   $($prop = $prop|0) (;) ...
+		                   var chk = 0;
+		                   $ctor($tag, $siz) => chk;
+		                   $($s(chk, $idx, $prop)) (;) ...
+		                   return chk|0;
+		                }
+		                $(generateRaw $funs (,) ... => $idx) ...
+		            }
+		        }
+		}
+
+		macro generateRaw {
+		    case { _ $get => $idx }
+		        => { 
+		          letstx $g = [makeIdent('chunkGet', #{$get})];
+		          letstx $ref = [makeIdent('ref', #{$get})];
+		          letstx $deref = [makeIdent('deref', #{$get})];
+		          return #{
+		            macro $get {
+		              rule {($chk:expr)} => {
+		                $g($chk,$idx)
+		              }
+		            }
+		            function makeFun($get)(chk) {
+		                chk = chk|0;
+		                return $g($deref(chk)|0, $idx)|0;
+		            }
+		          }
+		        }
+		    case { _ $get, $set => $idx }
+		        => { 
+		            letstx $g = [makeIdent('chunkGet', #{$get})];
+		            letstx $s = [makeIdent('chunkSet', #{$set})];
+		            letstx $ref = [makeIdent('ref', #{$get})];
+		            letstx $deref = [makeIdent('deref', #{$get})];
+		            return #{
+		              macro $get {
+		                rule {($chk:expr)} => {
+		                  $g($chk,$idx)
+		                }
+		              }
+		              function makeFun($get)(chk) {
+		                  chk = chk|0;
+		                  return $g($deref(chk)|0,$idx)|0;
+		              }
+		              macro $set {
+		                rule {($chk:expr, $val:expr)} => {
+		                  $s($chk,$idx,$val)
+		                }
+		              }
+		              function makeFun($set)(chk, val) {
+		                chk = chk|0;
+		                val = val|0;
+		                $s($deref(chk)|0,$idx,val)
+		            }
+		           }
+		          }
+		}
 
 		/* -- CONSTANT VALUES -- */
 		define __TRUE__ 0x7fffffe1
@@ -4929,1398 +5112,10 @@ function SLIP(callbacks, size) {
 		};
 	}
 
-
-/************** NON-ASM.JS ***************/
-
-	function COMPILER() {
-		"use strict";
-
-		var asm, dct, sym, err;		
-		var isPair, isNull;
-		var car, cdr;
-
-		function link(asmModule, dctModule, symModule, errModule) {
-			asm = asmModule;
-			dct = dctModule;
-			sym = symModule;
-			err = errModule;
-			car = asm.fpairCar;
-			cdr = asm.fpairCdr;
-			isPair = asm.fisPair;
-			isNull = asm.fisNull;
-		}
-
-		function make() {
-			var tag = arguments[0];
-			var len = arguments.length;
-			var chk = asm.fmake(tag,len-1);
-			for(var i = 1; i < len; ++i)
-				asm.fset(chk,i,arguments[i]);
-			return chk;
-		}
-
-		function makeRaw() {
-			var tag = arguments[0];
-			var len = arguments.length;
-			var chk = asm.fmake(tag,len-1);
-			for(var i = 1; i < len; ++i)
-				asm.fsetRaw(chk,i,arguments[i]);
-			return chk;
-		}
-
-
-		function listLength(lst,err) {
-			var sum = 0;
-			while(isPair(lst)) {
-				lst = cdr(lst);
-				++sum;
-			}
-			if (isNull(lst))
-				return sum;
-			else
-				compilationError(err,lst);
-		}
-
-		function compilationError(err) {
-			err(arguments[1])
-			throw err;
-		}
-
-		function compile_exp(exp,tail) {
-			try {
-				dct.checkpoint();
-				return compile(exp,tail>0);
-			} catch(exception) {
-				dct.rollback();
-				return asm.slipVoid();
-			}
-		}
-
-		function compile(exp,tailc) {
-
-			//compound expression
-			if(isPair(exp)) {
-				var opr = car(exp);
-				var opd = cdr(exp);
-				//check for special form
-				if(asm.fisSymbol(opr)) {  
-					if(asm.feq(opr,sym.loadIff()))
-						return compileIf(opd,tailc);
-					else if (asm.feq(opr,sym.loadDef()))
-						return compileDefine(opd);
-					else if (asm.feq(opr,sym.loadBeg()))
-						return compileSequence(opd,tailc);
-					else if (asm.feq(opr,sym.loadLmb()))
-						return compileLambda(opd);
-					else if (asm.feq(opr,sym.loadSet()))
-						return compileAssignment(opd);
-					else if (asm.feq(opr,sym.loadQuo()))
-						return compileQuote(opd);
-				}
-				//otherwise, assume application
-				return compileApplication(opr,opd,tailc);
-			}
-			//simple expression
-			if(asm.fisSymbol(exp))
-				return compileVariable(exp);
-			else
-				return exp;
-		}
-
-		function compileIf(exp,tailc) {
-
-			if(!isPair(exp))
-				compilationError(err.invalidIf);
-
-			var predicate = car(exp);
-			var branches = cdr(exp);
-
-			if(!isPair(branches))
-				compilationError(err.invalidIf);
-
-			var consequent = car(branches);
-			var alternative = cdr(branches);
-			var c_predicate = compile(predicate,false);
-			var c_consequent = compileInline(consequent,tailc);
-
-			if(asm.fisNull(alternative))
-				return make(__IFS_TAG__,c_predicate,c_consequent);
-			else if (asm.fisPair(alternative)) {
-				var c_alternative = compile(car(alternative),tailc);
-				return make(__IFF_TAG__,c_predicate,c_consequent,c_alternative);
-			} else
-				compilationError(err.invalidIf);
-		}
-
-		function compileInline(exp,tailc) {
-
-			dct.enterScope();
-			var c_exp = compile(exp,true);
-			var size = dct.exitScope();
-
-			if(size == 0) //no thunking needed
-				return compile(exp,tailc);
-
-			size = asm.fmakeNumber(size);
-			if(tailc)
-				return make(__TTK_TAG__,c_exp,size);
-			else 
-				return make(__THK_TAG__,c_exp,size);
-		}
-
-		function compileSequence(exp,tailc) {
-
-			var len = listLength(exp,err.invalidSequence);
-			if (len === 0)
-				return asm.slipVoid();
-			else if (len === 1)
-				return compile(car(exp),tailc);
-			else {
-				var sequence = [__SEQ_TAG__];
-				for(var idx = 1; idx < len; ++idx) {
-					sequence.push(compile(car(exp),false));
-					exp = cdr(exp);
-				}
-				var last_exp = compile(car(exp),tailc);
-				var last_entry = make(__STL_TAG__,last_exp);
-				sequence.push(last_entry);
-				return make.apply(null,sequence);
-			}
-		}
-
-		function compileDefine(opd) {
-
-			if(!isPair(opd))
-				compilationError(err.invalidDefine);
-			
-			var identifier = car(opd);
-			var definition = cdr(opd);
-
-			if(asm.fisSymbol(identifier))
-				return compileVarDefinition(identifier,definition);
-		 	else if(isPair(identifier))
-				return compileFunDefinition(identifier,definition);
-		}
-
-		function compileVarDefinition(identifier,definition) {
-
-			if(!isPair(definition))
-				compilationError(err.invalidDefine);
-
-			var exp = car(definition);
-			var rest = cdr(definition);
-
-			if(!asm.fisNull(rest))
-				compilationError(err.invalidDefine);
-
-			var pos = dct.defineVar(identifier);
-			var ofs = asm.fmakeNumber(pos);
-			var c_exp = compile(exp,false);
-			return make(__DFV_TAG__,ofs,c_exp);
-		}
-
-		function compileFunDefinition(identifier,body) {
-
-			var fname = car(identifier);
-			var parameters = cdr(identifier);
-
-			if(!asm.fisSymbol(fname))
-				compilationError(err.invalidDefine);
-			var ofs = asm.fmakeNumber(dct.defineVar(fname));
-			
-			dct.enterScope();
-			var rest = compileParameters(parameters);
-			var argc = asm.fmakeNumber(dct.frameSize());			
-
-			if(isNull(rest)) {
-				var c_body = compileSequence(body,true);
-				var frmSiz = asm.fmakeNumber(dct.exitScope());
-				return make(__DFF_TAG__,ofs,argc,frmSiz,c_body);
-			} else if(asm.fisSymbol(rest)) {
-				dct.defineVar(rest);
-				var c_body = compileSequence(body,true);
-				var frmSiz = asm.fmakeNumber(dct.exitScope());
-				return make(__DFZ_TAG__,ofs,argc,frmSiz,c_body);
-			} else
-				compilationError(err.invalidDefine);
-		}
-
-		function compileParameters(lst) {
-
-			while(isPair(lst)) {
-				var par = car(lst);
-				if(!asm.fisSymbol(par))
-					compilationError(err.invalidParameter,par);
-				dct.defineVar(par);
-				lst = cdr(lst);
-			}
-			return lst;
-		}
-
-		function compileLambda(exp) {
-
-			if(!isPair(exp))
-				compilationError(err.invalidLambda)
-
-			var parameters = car(exp);
-			var body = cdr(exp);
-
-			dct.enterScope();
-			var rest = compileParameters(parameters);
-			var argc = asm.fmakeNumber(dct.frameSize());
-
-			if(isNull(rest)) {
-				var c_body = compileSequence(body,true);
-				var frmSiz = asm.fmakeNumber(dct.exitScope());
-				return make(__LMB_TAG__,argc,frmSiz,c_body);
-			} else if(asm.fisSymbol(rest)) {
-				dct.defineVar(rest);
-				var c_body = compileSequence(body,true);
-				var frmSiz = asm.fmakeNumber(dct.exitScope());
-				return make(__LMZ_TAG__,argc,frmSiz,c_body);
-			} else
-				compilationError(err.invalidParameter);
-		}
-
-		function compileAssignment(exp) {
-
-			if(!isPair(exp))
-				compilationError(err.invalidAssignment);
-
-			var identifier = car(exp);
-			var definition = cdr(exp);
-
-			if(!asm.fisSymbol(identifier) 
-				|| !isPair(definition) 
-				|| !isNull(cdr(definition)))
-				compilationError(err.invalidAssignment);
-
-			var expression = car(definition);
-			var c_exp = compile(expression,false);
-
-			var adr = dct.lexicalAdr(identifier);
-			if(adr) {
-				var scope = adr.scope;
-				var offset = adr.offset;
-				var ofs = asm.fmakeNumber(offset);
-				if(scope == 0) {
-					return make(__SLC_TAG__,ofs,c_exp);
-				} else {
-					var scp = asm.fmakeNumber(scope);
-					return make(__SGL_TAG__,scp,ofs,c_exp);
-				}
-			}
-
-			compilationError(err.undefinedVariable,identifier);
-		}
-
-		function compileArguments(opd,argc,tailc) {
-
-			var args = [__VCT_TAG__];
-			for(var i = 1; i < argc; ++i) {
-				var exp = car(opd);
-				var c_exp = compile(exp,false);
-				args.push(c_exp);
-				opd = cdr(opd);
-			}
-			var exp = car(opd);
-			var c_exp = compile(exp,tailc);
-			args.push(c_exp);
-
-			return make.apply(null,args);
-		}
-
-		function compileApplication(opr,opd,tailc) {
-
-			var argc = listLength(opd,err.invalidParameter);
-			if (argc === 0) {
-				var c_opr = compile(opr,tailc);
-				return specializeApz(c_opr,tailc);
-			} else {
-				var c_opr = compile(opr,false);
-				var c_args = compileArguments(opd,argc,tailc);
-				return specializeApl(c_opr,c_args,tailc);
-			}
-		}
-
-		function specializeApz(c_opr,tailc) {
-
-			switch(asm.ftag(c_opr)) {
-
-				case __LCL_TAG__:
-					var ofs = asm.flocalOfs(c_opr);
-					return (tailc?
-							 makeRaw(__TLZ_TAG__,ofs):
-							 makeRaw(__ALZ_TAG__,ofs));
-
-				case __GLB_TAG__:
-					var ofs = asm.fglobalOfs(c_opr);
-					return (tailc?
-							makeRaw(__TGZ_TAG__,ofs):
-							makeRaw(__AGZ_TAG__,ofs));
-
-				case __NLC_TAG__:
-					var scp = asm.fnlcScp(c_opr);
-					var ofs = asm.fnlcOfs(c_opr);
-					return (tailc?
-							makeRaw(__TNZ_TAG__,scp,ofs):
-							makeRaw(__ANZ_TAG__,scp,ofs));
-
-				default:
-					return (tailc?
-							make(__TPZ_TAG__,c_opr):
-							make(__APZ_TAG__,c_opr));
-			}
-		}
-
-		function specializeApl(c_opr,c_args,tailc) {
-
-			switch(asm.ftag(c_opr)) {
-
-				case __LCL_TAG__:
-					var ofs = asm.flocalOfs(c_opr);
-					ofs = asm.fmakeNumber(ofs);
-					return (tailc?
-							 make(__TLL_TAG__,ofs,c_args):
-							 make(__ALL_TAG__,ofs,c_args));
-
-				case __GLB_TAG__:
-					var ofs = asm.fglobalOfs(c_opr);
-					ofs = asm.fmakeNumber(ofs);
-					return (tailc?
-							make(__TGL_TAG__,ofs,c_args):
-							make(__AGL_TAG__,ofs,c_args));
-
-				case __NLC_TAG__:
-					var scp = asm.fnlcScp(c_opr);
-					var ofs = asm.fnlcOfs(c_opr);
-					scp = asm.fmakeNumber(scp);
-					ofs = asm.fmakeNumber(ofs);
-					return (tailc?
-							make(__TNL_TAG__,scp,ofs,c_args):
-							make(__ANL_TAG__,scp,ofs,c_args));
-
-				default:
-					return (tailc?
-							make(__TPL_TAG__,c_opr,c_args):
-							make(__APL_TAG__,c_opr,c_args));
-			}
-		}
-
-		function compileQuote(exp) {
-
-			if(!isPair(exp))
-				compilationError(err.invalidQuote);
-
-			var quoted = car(exp);
-			var rest = cdr(exp);
-
-			if(!asm.fisNull(rest))
-				compilationError(err.invalidQuote);
-
-			return make(__QUO_TAG__,quoted);
-		}
-
-		function compileVariable(sym) {
-
-			var adr = dct.lexicalAdr(sym);
-			if(adr) {
-				var scope = adr.scope;
-				var offset = adr.offset;
-				if(scope === 0)
-					return asm.fmakeLocal(offset);
-				else if (scope === 1) 
-					return asm.fmakeGlobal(offset);
-				else 
-					return makeRaw(__NLC_TAG__,scope,offset);
-			}
-
-			compilationError(err.undefinedVariable,sym);
-		}
-
-		return {
-			link: link,
-			compile: compile_exp
-		}
-	}
-
-	function DICTIONARY() {
-		"use strict";
-
-		var asm, err;
-		var savedOffset = 0;
-		var environment = [];
-		var frame = [];
-
-		function dctError(err) {
-			err();
-			throw err;
-		}
-
-		function link(asmModule,errModule) {
-			asm = asmModule;
-			err = errModule;
-		}
-
-		function defineVar(vrb) {
-
-			if((environment.length==0)&&(frame.length==__GLOBAL_SIZ__))
-				dctError(err.globalOverflow);
-
-			if(environment.length==0)
-				asm.protect(vrb); //we don't want globals gone
-
-			frame.push(vrb);
-			return frame.length;
-		}
-
-		function frameSize() {
-			return frame.length;
-		}
-
-		function enterScope() {
-
-			environment.push(frame);
-			frame = [];
-		}
-
-		function exitScope() {
-
-			var frameSize = frame.length;
-			frame = environment.pop();
-			return frameSize;
-		}
-
-		function offset(sym,frame) {
-			var len = frame.length;
-			while(len-- > 0) 
-				if(asm.feq(frame[len],sym))
-					return len+1;
-			return false; //variable not found
-		}
-
-		function lexicalAdr(sym) {
-			var localOffset = offset(sym,frame);
-			if(localOffset) {
-				//local variable found!
-				return { scope: 0, offset: localOffset }
-			}
-			
-			for(var scopeLvl = environment.length;
-				scopeLvl > 0; 
-				--scopeLvl) 
-			{
-				var frm = environment[scopeLvl-1];
-				var ofs = offset(sym,frm);
-				if(ofs)
-					return { scope: scopeLvl, offset: ofs }
-			}
-			return false;
-		}
-
-		function checkpoint() {
-			savedOffset = frame.length;
-		}
-
-		function rollback() {
-			frame.length = savedOffset;
-			environment = [];
-		}
-
-		return {
-			link: link,
-			defineVar: defineVar,
-			lexicalAdr: lexicalAdr,
-			enterScope: enterScope,
-			exitScope: exitScope,
-			frameSize: frameSize,
-			checkpoint: checkpoint,
-			rollback: rollback
-		}
-	}
-
-	function READER() {
-		"use strict";
-
-		var program, position, hold;
-		var asm, pool, err;
-
-		function load(str) {
-			program = str;
-			position = 0;
-		}
-
-		function link(asmModule, errModule, poolModule) {
-			asm = asmModule;
-			err = errModule;
-			pool = poolModule;
-		}
-
-		function make() {
-			var tag = arguments[0];
-			var len = arguments.length;
-			var chk = asm.fmake(tag,len-1);
-			for(var i = 1; i < len; ++i)
-				asm.fset(chk,i,arguments[i]);
-			return chk;
-		}
-
-		function readerError(err) {
-			err(arguments[1])
-			throw err
-		}
-
-		function expect(ch,err) {
-			var res = readC()
-			if(res !== ch)
-				readerError(err,res)
-		}
-
-		function read_exp() {
-
-			try {
-				return read()
-			} catch(exception) {
-				console.log(exception);
-				return asm.slipVoid();
-			}
-		}
-
-		function read() {
-
-			switch(peekC()) {
-
-				case '(': 
-					return read_lbr()
-				case '#': 
-					return read_shr()
-				case '\'': 
-					return read_quo()
-				case '\"': 
-					return read_str()
-				case '+':
-				case '-':
-				case '0':
-				case '1':
-				case '2':
-				case '3':
-				case '4':
-				case '5':
-				case '6':
-				case '7':
-				case '8':
-				case '9':
-					return read_num()
-				default:
-					return read_sym()
-			}
-		}
-
-		function read_lbr() {
-
-			skipC();  //skip the '('
-
-			// an empty list
-			if(peekC() === ')') {
-				skipC()
-				return asm.slipNull()
-			}
-
-			// a non-empty list
-			var elements = []
-			do {
-				elements.push(read())
-				if(peekC() === '.') {
-					skipC()
-					var tail = read()
-					expect(')',err.expectedRBR);
-					return buildList(elements,tail)
-				}
-			} while(peekC() !== ')')
-
-			skipC();
-			return buildList(elements,asm.slipNull());
-		}
-
-		function read_quo() {
-
-			skipC();  // skip '
-			var quoted = read();
-			var exp = make(__PAI_TAG__,quoted,asm.slipNull());
-			exp = make(__PAI_TAG__,pool.loadQuo(),exp);
-			return exp;
-		}
-
-		function read_shr() {
-
-			skipC();  // skip #
-
-			switch(readC()) {
-
-				case 't':
-					return asm.slipTrue();
-				case 'f':
-					return asm.slipFalse();
-				case '\\':
-					var code = readC().charCodeAt(0)
-					var char = asm.fmakeChar(code)
-					return char;
-				case '(':
-					return read_vec();
-				default:
-					readerError(err.invalidSyntax)
-			}
-		}
-
-		function read_vec() {
-
-			if(peekC() === ')') {
-				skipC();
-				return make(__PAI_TAG__,
-							pool.loadVec(),
-							asm.slipNull());
-			}
-
-			var elements = []
-			do {
-				elements.push(read())
-			} while(peekC() !== ')')
-
-			var args = buildList(elements,asm.slipNull());
-			var vctApl = make(__PAI_TAG__,pool.loadVec(),args);
-			return vctApl;
-		}
-
-		function read_str() {
-			hold = position;
-			while(program.charAt(++position) !== '\"');
-			return extractString(hold+1,position++);
-		}
-
-		function read_sym() {
-			hold = position;
-			while(!isTerminator(program.charAt(++position)));
-			return pool.enterPool(program.substring(hold,position));
-		}
-
-		function read_num() {
-			hold = position;
-			//step 1: check for sign
-			switch(program.charAt(position)) {
-				case '+':
-				case '-':
-					if(!isNumber(program.charAt(++position))) {
-						--position; //oops, go back
-						return read_sym();
-					}
-			}
-			//step 2: parse number in front of .
-			while(isNumber(program.charAt(++position)));
-			//step 3: parse number after .
-			if(program.charAt(position) === '.') {
-				while(isNumber(program.charAt(++position)));
-				var flt = parseFloat(program.substring(hold, position));
-				return asm.fmakeFloat(flt);
-			}
-			var int = parseInt(program.substring(hold, position));
-			return asm.fmakeNumber(int);
-		}
-
-
-		/*  HELPERS  */
-
-		function isTerminator(c) {
-			switch (c) {
-				case ' ': case '': case '\n': case '\t':
-				case '\'': case '\"': case ')': case '(':
-				case ';': case '.': case '\r':
-					return true;
-				default:
-					return false;
-			}
-		}
-
-		function isNumber(c) {
-			return !(c < '0' || c > '9');
-		}
-
-		function skipWhiteSpace() {
-			while(true) {
-				switch (program.charAt(position)) {
-					case ';':
-						var current;
-						while((current = program.charAt(++position)) != '\n'
-						    	&& current != '\r' && current != '');
-					case '\n': case '\r':
-					case '\t': case ' ':
-						++position;
-						break;
-					default:
-						return;
-				}
-			}
-		}
-
-		function skipC() {
-			skipWhiteSpace();
-			++position;
-		}
-
-		function peekC() {
-			skipWhiteSpace();
-			return program.charAt(position);
-		}
-
-		function readC() {
-			skipWhiteSpace();
-			return program.charAt(position++);
-		}
-
-		function buildList(elements,tail) {
-			var len = elements.length;
-			var lst = tail;
-			while(len) {
-				var exp = elements[--len];
-				lst = make(__PAI_TAG__,exp,lst)
-			}
-			return lst;
-		}
-
-
-		function extractString(from, to) {
-			var len = to - from;
-			var str = asm.fmakeText(__STR_TAG__,len);
-			for(var i = 0; i < len; ++i) {
-				var chr = program.charCodeAt(from+i);
-				asm.ftextSetChar(str,i,chr);
-			}
-			return str;
-		}
-
-		return {
-			load: load,
-			link: link,
-			read: read_exp
-		}
-	}
-
-	function SYMBOLS() {
-		"use strict";
-
-		var pool = Object.create(null);
-		var asm;
-
-		function link(asmModule) {
-			asm = asmModule;
-		}
-
-		function buildSymbol(txt) {
-			var len = txt.length;
-			var sym = asm.fmakeText(__SYM_TAG__,len);
-			for(var i = 0; i < len; ++i)
-				asm.ftextSetChar(sym,i,txt.charCodeAt(i));
-			return sym;
-		}
-
-		function enterPool(str) {
-			var sym = pool[str]
-			if (!sym) {  // new symbol
-				sym = buildSymbol(str)
-				asm.protect(sym)
-				pool[str] = sym
-			}
-			return sym;
-		}
-
-		function symbol(str) {
-			return function() {
-				return enterPool(str);
-			}
-		}
-
-		define __QUO_STR__ 'quote'
-		define __VEC_STR__ 'vector'
-		define __IFF_STR__ 'if'
-		define __DEF_STR__ 'define'
-		define __LMB_STR__ 'lambda'
-		define __SET_STR__ 'set!'
-		define __BEG_STR__ 'begin'
-
-		define __PLS_STR__ '+'
-		define __MIN_STR__ '-'
-		define __MUL_STR__ '*'
-		define __DIV_STR__ '/'
-		define __CNS_STR__ 'cons'
-		define __CAR_STR__ 'car'
-		define __CDR_STR__ 'cdr'
-		define __SCA_STR__ 'set-car!'
-		define __SCD_STR__ 'set-cdr!'
-		define __LST_STR__ 'list'
-		define __NEQ_STR__ '='
-		define __LEQ_STR__ '>='
-		define __SEQ_STR__ '<='
-		define __LRG_STR__ '>'
-		define __SMA_STR__ '<'
-		define __ASS_STR__ 'assoc'
-		define __MAP_STR__ 'map'
-		define __VEC_STR__ 'vector'
-		define __VCM_STR__ 'make-vector'
-		define __VCR_STR__ 'vector-ref'
-		define __VCS_STR__ 'vector-set!'
-		define __VCL_STR__ 'vector-length'
-		define __EQU_STR__ 'eq?'
-		define __EQL_STR__ 'equal?'
-		define __EVA_STR__ 'eval'
-		define __REA_STR__ 'read'
-		define __LOA_STR__ 'load'
-		define __APL_STR__ 'apply'
-		define __DIS_STR__ 'display'
-		define __NEW_STR__ 'newline'
-		define __IPA_STR__ 'pair?'
-		define __INU_STR__ 'null?'
-		define __ISY_STR__ 'symbol?'
-		define __IVE_STR__ 'vector?'
-		define __IST_STR__ 'string?'
-		define __SRE_STR__ 'string-ref'
-		define __SSE_STR__ 'string-set!'
-		define __SLE_STR__ 'string-length'
-		define __AVL_STR__ 'available'
-		define __COL_STR__ 'collect'
-		define __CLK_STR__ 'clock'
-		define __RST_STR__ 'reset'
-		define __SLP_STR__ 'sleep'
-		define __RND_STR__ 'random'
-		define __ERR_STR__ 'error'
-		define __CCC_STR__ 'call-with-current-continuation'
-		define __CCE_STR__ 'call-with-escape-continuation'
-		define __QTT_STR__ 'quotient'
-		define __REM_STR__ 'remainder'
-		define __LEN_STR__ 'length'
-		define __SIN_STR__ 'sin'
-		define __EXI_STR__ 'exit'
-		define __REF_STR__ 'ref'
-		define __FRE_STR__ 'free'
-
-		return {
-			enterPool: enterPool,
-			loadCcc: symbol(__CCC_STR__),
-			loadAvl: symbol(__AVL_STR__),
-			loadCol: symbol(__COL_STR__),
-			loadClk: symbol(__CLK_STR__),
-			loadSlp: symbol(__SLP_STR__),
-			loadRnd: symbol(__RND_STR__),
-			loadErr: symbol(__ERR_STR__),
-			loadSre: symbol(__SRE_STR__),
-			loadSse: symbol(__SSE_STR__),
-			loadSle: symbol(__SLE_STR__),
-			loadIpa: symbol(__IPA_STR__),
-			loadInu: symbol(__INU_STR__),
-			loadIsy: symbol(__ISY_STR__),
-			loadIve: symbol(__IVE_STR__),
-			loadIst: symbol(__IST_STR__),
-			loadQuo: symbol(__QUO_STR__),
-			loadIff: symbol(__IFF_STR__),
-			loadDef: symbol(__DEF_STR__),
-			loadLmb: symbol(__LMB_STR__),
-			loadSet: symbol(__SET_STR__),
-			loadBeg: symbol(__BEG_STR__),
-			loadPls: symbol(__PLS_STR__),
-			loadMns: symbol(__MIN_STR__),
-			loadMul: symbol(__MUL_STR__),
-			loadDiv: symbol(__DIV_STR__),
-			loadCns: symbol(__CNS_STR__),
-			loadCar: symbol(__CAR_STR__),
-			loadCdr: symbol(__CDR_STR__),
-			loadSca: symbol(__SCA_STR__),
-			loadScd: symbol(__SCD_STR__),
-			loadLst: symbol(__LST_STR__),
-			loadSma: symbol(__SMA_STR__),
-			loadLrg: symbol(__LRG_STR__),
-			loadLeq: symbol(__LEQ_STR__),
-			loadSeq: symbol(__SEQ_STR__),
-			loadNeq: symbol(__NEQ_STR__),
-			loadAss: symbol(__ASS_STR__),
-			loadMap: symbol(__MAP_STR__),
-			loadVec: symbol(__VEC_STR__),
-			loadVcm: symbol(__VCM_STR__),
-			loadVcr: symbol(__VCR_STR__),
-			loadVcs: symbol(__VCS_STR__),
-			loadVcl: symbol(__VCL_STR__),
-			loadEql: symbol(__EQL_STR__),
-			loadEqu: symbol(__EQU_STR__),
-			loadEva: symbol(__EVA_STR__),
-			loadRea: symbol(__REA_STR__),
-			loadLoa: symbol(__LOA_STR__),
-			loadApl: symbol(__APL_STR__),
-			loadDis: symbol(__DIS_STR__),
-			loadNew: symbol(__NEW_STR__),
-			loadRst: symbol(__RST_STR__),
-			loadQtt: symbol(__QTT_STR__),
-			loadRem: symbol(__REM_STR__),
-			loadLen: symbol(__LEN_STR__),
-			loadSin: symbol(__SIN_STR__),
-			loadExi: symbol(__EXI_STR__),
-			loadCce: symbol(__CCE_STR__),
-			loadRef: symbol(__REF_STR__),
-			loadFre: symbol(__FRE_STR__),
-			link: link
-		}
-	}
-
-	function TIMER() {
-		"use strict";
-
-		var __START__;
-
-		function reset() {
-			__START__ = new Date().getTime();
-		}
-
-		function getTime() {
-			var current = new Date().getTime();
-			return current - __START__;
-		}
-
-		return {
-			getTime: getTime,
-			reset: reset
-		}
-	}
-
-	function PRINTER() {
-		"use strict";
-
-		var getTag, numberVal, floatNumber, charCode,
-		stringText, symbolLength, symbolAt,
-		pairCar, pairCdr, isPair, isNull,
-		vectorAt, vectorLength, ag;
-
-		function link(asm) {
-			getTag = asm.ftag;
-			numberVal = asm.fnumberVal;
-			floatNumber = asm.ffloatNumber;
-			charCode = asm.fcharCode;
-			stringText = asm.stringText;
-			symbolLength = asm.ftextLength;
-			symbolAt = asm.ftextGetChar;
-			pairCar = asm.fpairCar;
-			pairCdr = asm.fpairCdr;
-			isPair = asm.fisPair;
-			isNull = asm.fisNull;
-			vectorAt = asm.vectorAt;
-			vectorLength = asm.fvectorLength;
-			ag = asm;
-		}
-
-		function printExp(exp) {
-
-			var tag = getTag(exp);
-
-			switch(tag) {
-
-				case __NUL_TAG__: return '()';
-				case __VOI_TAG__: return '#<void>';
-				case __TRU_TAG__: return '#t';
-				case __FLS_TAG__: return '#f';
-				case __NBR_TAG__: return numberVal(exp).toString();
-				case __CHR_TAG__:
-					return '#\\'+String.fromCharCode(charCode(exp).toString());
-				case __PAI_TAG__: return printPair(exp);
-				case __VCT_TAG__: return printVector(exp);
-				case __STR_TAG__: return stringText(exp);
-				case __FLT_TAG__: return floatNumber(exp).toString();
-				case __NAT_TAG__: return '#<native procedure>';
-				case __CNT_TAG__: return '#<continuation>';
-				case __SYM_TAG__: return symbolText(exp);
-				case __PRC_TAG__:
-				case __PRZ_TAG__: 
-					return '#<procedure>'
-				case __LCL_TAG__:
-					return '#<local variable @ offset '
-								+ ag.flocalOfs(exp) + '>';
-				case __GLB_TAG__:
-					return '#<global variable @ offset: '
-								+ ag.fglobalOfs(exp) + '>';
-				case __NLC_TAG__:
-					return '#<non-local variable @ scope-level/offset: '
-								+ ag.fnlcScp(exp) + '/'
-								+ ag.fnlcOfs(exp) + '>';
-				case __SEQ_TAG__:
-					return '#<sequence '
-								+ printSequence(exp) + '>';
-				case __IFS_TAG__:
-					return '#<simple-if '
-								+ printExp(ag.fifsPredicate(exp)) + ' '
-								+ printExp(ag.fifsConsequence(exp)) + '>';
-				case __IFF_TAG__:
-					return '#<full-if '
-								+ printExp(ag.fiffPredicate(exp)) + ' '
-								+ printExp(ag.fiffConsequence(exp)) + ' '
-								+ printExp(ag.fiffAlternative(exp)) + '>';
-				case __THK_TAG__:
-					return '#<thunk (size: '
-								+ printExp(ag.fthunkSiz(exp)) + '; body: '
-								+ printExp(ag.fthunkExp(exp)) + ')>';
-				case __TTK_TAG__:
-					return '#<thunk* (size: '
-								+ printExp(ag.fttkSiz(exp)) + '; body: '
-								+ printExp(ag.fttkExp(exp)) + ')>';
-				case __QUO_TAG__:
-					return '#<quote '
-								+ printExp(ag.fquoExpression(exp)) + '>';
-				case __LMB_TAG__:
-					return '#<lambda (argument count: '
-								+ printExp(ag.flmbArgc(exp)) + '; frame size: '
-								+ printExp(ag.flmbFrmSiz(exp)) + '; body: '
-								+ printExp(ag.flmbBdy(exp)) + ')>';
-				case __LMZ_TAG__:
-					return '#<lambda (argument* count: '
-								+ printExp(ag.flmzArgc(exp)) + '; frame size: '
-								+ printExp(ag.flmzFrmSiz(exp)) + '; body: '
-								+ printExp(ag.flmzBdy(exp)) + ')>';
-				case __DFV_TAG__:
-					return '#<variable definition @ offset '
-								+ printExp(ag.fdfvOfs(exp)) + ' (value: '
-								+ printExp(ag.fdfvVal(exp)) + ')>';
-				case __DFF_TAG__:
-					return '#<function definition @ offset '
-								+ printExp(ag.fdffOfs(exp)) + ' (argument count: '
-								+ printExp(ag.fdffArgc(exp)) + '; frame size:  '
-								+ printExp(ag.fdffFrmSiz(exp)) + '; body:  '
-								+ printExp(ag.fdffBdy(exp)) + ')>';
-				case __DFZ_TAG__:
-					return '#<function definition @ offset '
-							 + printExp(ag.fdfzOfs(exp)) + ' (argument* count: '
-							 + printExp(ag.fdfzArgc(exp)) + '; frame size:  '
-							 + printExp(ag.fdfzFrmSiz(exp)) + '; body:  '
-							 + printExp(ag.fdfzBdy(exp)) + ')>';
-				case __SGL_TAG__:
-					return '#<assignment @ scope-level/offset: '
-								+ printExp(ag.fsglScp(exp)) + '/'
-								+ printExp(ag.fsglOfs(exp)) + ' (value: '
-								+ printExp(ag.fsglVal(exp)) + ')>';
-				case __SLC_TAG__:
-					return '#<local assignment @ offset: '
-								+ printExp(ag.fslcOfs(exp)) + ' (value: '
-								+ printExp(ag.fslcVal(exp)) + ')>';
-				case __APZ_TAG__:
-					return '#<application (zero argument): '
-								+ printExp(ag.fapzOpr(exp)) + '>';
-				case __ALZ_TAG__:
-					return '#<local application (zero argument) @ offset '
-								+ ag.falzOfs(exp) + '>';
-				case __ANZ_TAG__:
-					return '#<non-local application (zero argument) @ scope/offset: '
-								+ ag.fanzScp(exp) + '/'
-								+ ag.fanzOfs(exp) + '>'
-				case __AGZ_TAG__:
-					return '#<global application (zero argument) @ offset '
-								+ ag.fagzOfs(exp) + '>';
-				case __TPZ_TAG__:
-					return '#<tail call (zero argument): '
-								+ printExp(ag.ftpzOpr(exp)) + '>';
-				case __TLZ_TAG__:
-					return '#<local tail call (zero argument) @ offset '
-								+ ag.ftlzOfs(exp) + '>';
-				case __TNZ_TAG__:
-					return '#<non-local tail call (zero argument) @ scope/offset: '
-								+ ag.ftnzScp(exp) + '/'
-								+ ag.ftnzOfs(exp) + '>'
-				case __TGZ_TAG__:
-					return '#<global tail call (zero argument) @ offset '
-								+ ag.ftgzOfs(exp) + '>';
-				case __APL_TAG__:
-					return '#<application '
-								+ printExp(ag.faplOpr(exp)) + ' @ '
-								+ printExp(ag.faplOpd(exp)) + '>';				
-				case __ALL_TAG__:
-					return '#<local application (offset: '
-								+ printExp(ag.fallOfs(exp)) + ') @ '
-								+ printExp(ag.fallOpd(exp)) + '>';
-				case __ANL_TAG__:
-					return '#<non-local application (scope/offset: '
-								+ printExp(ag.fanlScp(exp)) + '/'
-								+ printExp(ag.fanlOfs(exp)) + ') @ '
-								+ printExp(ag.fanlOpd(exp)) + '>';
-				case __AGL_TAG__:
-					return '#<global application (offset: '
-								+ printExp(ag.faglOfs(exp)) + ') @'
-								+ printExp(ag.faglOpd(exp)) + '>';
-				case __TPL_TAG__:
-					return '#<tail call '
-								+ printExp(ag.ftplOpr(exp)) + ' @ '
-								+ printExp(ag.ftplOpd(exp)) + '>';
-				case __TLL_TAG__:
-					return '#<local tail call (offset '
-								+ printExp(ag.ftllOfs(exp)) + ') @ '
-								+ printExp(ag.ftllOpd(exp)) + '>';				
-				case __TNL_TAG__:
-					return '#<non-local tail call (scope/offset: '
-								+ printExp(ag.ftnlScp(exp)) + '/'
-								+ printExp(ag.ftnlOfs(exp)) + ') @ '
-								+ printExp(ag.ftnlOpd(exp)) + '>';
-				case __TGL_TAG__:
-					return '#<global tail call (offset: '
-								+ printExp(ag.ftglOfs(exp)) + ') @'
-								+ printExp(ag.ftglOpd(exp)) + '>';
-				case __STL_TAG__:
-					return '#<sequence tail (body: '
-								+ printExp(ag.fstlExp(exp)) + ')>';
-				default:
-					return '<unknown expression (tag: ' + tag + ')>';
-			}
-		}
-
-		var printSequence = function(exp) {
-			var str = '', idx = 1;
-			var len = ag.sequenceLength(exp);
-			while(idx < len)
-				str += printExp(ag.sequenceAt(exp, idx++)) + ' '
-			str += printExp(ag.fstlExp(ag.sequenceAt(exp, idx)));
-			return str;
-		}
-
-		function symbolText(chk) {
-			var len = symbolLength(chk);
-			var arr = new Array(len);
-			for(var i = 0; i < len; ++i)
-				arr[i] = symbolAt(chk, i);
-			return String.fromCharCode.apply(null, arr);
-		}
-
-		function printPair(exp) {
-			var str = '(' + printExp(pairCar(exp));
-			var cdr = pairCdr(exp)
-			var cdrStr = printExp(cdr);
-			if(isPair(cdr)) { // prettier!
-				cdrStr = cdrStr.substring(1, cdrStr.length-1);
-				return str + ' ' + cdrStr + ')';
-			}
-			if (isNull(cdr))
-				return str + ')';
-			return str + " . " + cdrStr + ')';
-		}
-
-		function printVector(exp) {
-			var len = vectorLength(exp);
-			if (len === 0)
-				return "#()";
-			var str = "#(";
-			for(var idx = 1; idx < len; ++idx) {
-				str += printExp(vectorAt(exp, idx)) + ' ';
-			}
-			str += printExp(vectorAt(exp, len)) + ')';
-			return str;
-		}
-
-		return {
-			printExp: printExp,
-			link: link
-		}
-	}
-
-	function ERRORS() {
-		"use strict";
-
-		var report, printExp;
-
-		function link(io, printer) {
-			report = io.printError;
-			printExp = printer.printExp;
-		}
-
-		function invalidLength(len) {
-			report('invalid length: ' + len);
-		}
-
-		function invalidRange(idx, from, to) {
-			report('expected index in range [' + from + ', ' + to + '], given ' + idx);
-		}
-
-		function expectedRBR(code) {
-			report('expected ), given ' + String.fromCharCode(code));
-		}
-
-		function invalidSyntax() {
-			report('invalid syntax');
-		}
-
-		function invalidParameter(exp) {
-			report('invalid parameter: ' + printExp(exp));
-		}
-
-		function invalidSequence() {
-			report('invalid sequence');
-		}
-
-		function invalidQuote() {
-			report('invalid quote');
-		}
-
-		function invalidIf() {
-			report('invalid if');
-		}
-
-		function invalidDefine() {
-			report('invalid definition');
-		}
-
-		function invalidAssignment() {
-			report('invalid assignment');
-		}
-
-		function invalidLambda() {
-			report('invalid lambda');
-		}
-
-		function invalidApplication() {
-			report('invalid application');
-		}
-
-		function globalOverflow() {
-			report('too many global variables');
-		}
-
-		function undefinedVariable(exp) {
-			report('undefined variable: ' + printExp(exp));
-		}
-
-		function invalidExpression(exp) {
-			report('invalid expression:' + printExp(exp));
-		}
-
-		function invalidOperator(exp) {
-			report('invalid operator:' + printExp(exp));
-		}
-
-		function invalidParamCount() {
-			report('invalid parameter count');
-		}
-
-		function invalidArgument(exp) {
-			report('invalid argument: ' + printExp(exp));
-		}
-
-		function fatalMemory() {
-			report('insufficient memory!');
-			throw 'SLIP ERROR:: out of memory';
-		}
-
-		return {
-			expectedRBR: expectedRBR,
-			invalidSyntax: invalidSyntax,
-			invalidSequence: invalidSequence,
-			invalidQuote: invalidQuote,
-			invalidIf: invalidIf,
-			invalidDefine: invalidDefine,
-			invalidAssignment: invalidAssignment,
-			invalidLambda: invalidLambda,
-			invalidApplication: invalidApplication,
-			undefinedVariable: undefinedVariable,
-			invalidOperator: invalidOperator,
-			invalidParamCount: invalidParamCount,
-			invalidParameter: invalidParameter,
-			invalidArgument: invalidArgument,
-			invalidExpression: invalidExpression,
-			invalidLength: invalidLength,
-			invalidRange: invalidRange,
-			globalOverflow: globalOverflow,
-			fatalMemory: fatalMemory,
-			link: link
-		}
-	}
-
-	function IO() {
-		"use strict";
-
-		define __WELCOME_STR__ 'Welcome to the slip.js REPL'
-		define __PROMPT1_STR__ '> '
-		define __PROMPT2_STR__ ':: '
-		define __ERROR_STR__ 'ERROR: '
-
-		var readExpression, printline, printOut, plog, ld,
-		inputReady, loadInput, printExp, printErr, text;
-
-		function link(asm, clbs, reader, printer) {
-			readExpression = clbs.readExpression;
-			printline = clbs.printline;
-			printOut = clbs.print;
-			printErr = clbs.printerror;
-			plog = clbs.printlog;
-			ld = clbs.load;
-			inputReady = asm.inputReady;
-			text = asm.stringText;
-			loadInput = reader.load;
-			printExp = printer.printExp;
-		}
-
-		function onInput(txt) {
-			reader.load(txt);
-			var exp = reader.read();
-			inputReady(exp);
-		}
-
-		function promptInput() {
-			printOut(__PROMPT1_STR__);
-			readExpression(onInput);
-		}
-
-		function promptUserInput() {
-			printOut(__PROMPT2_STR__);
-			readExpression(onInput);
-		}
-
-		function onError() {
-			inputReady(asm.slipVoid());
-		}
-
-		function loadFile(str) {
-			ld(text(str), onInput, onError);
-		}
-
-		function printLog(exp) {
-			plog(printExp(exp));
-		}
-
-		function printNewline() {
-			printline('');
-		}
-
-		function printOutput(exp) {
-			printline(printExp(exp));
-		}
-
-		function printCustomError(exp) {
-			printErr(__ERROR_STR__ + printExp(exp));
-		}
-
-		function printError(txt) {
-			printErr(__ERROR_STR__ + txt);
-		}
-
-		function initREPL() {
-			printline(__WELCOME_STR__);
-			printline('');
-		}
-
-		return {
-			printCustomError: printCustomError,
-			promptUserInput: promptUserInput,
-			printNewline: printNewline,
-			promptInput: promptInput,
-			printOutput: printOutput,
-			printError: printError,
-			printLog: printLog,
-			initREPL: initREPL,
-			loadFile: loadFile,
-			link: link
-		}
-	}
-
 	/* --- INITIALISATION --- */
 
 	//memory
-	define __DEFAULT_MEM__ 24
+	var __DEFAULT_MEM__ = 24;
 	var memSiz = 0x1 << (size || __DEFAULT_MEM__);
 	var buffer = new ArrayBuffer(memSiz);
 
