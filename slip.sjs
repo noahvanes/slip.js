@@ -112,18 +112,9 @@ function SLIP(callbacks, size) {
 		var TMP = 0; //temporary
 		var VAL = 0; //value
 
-		//reader
-		var look = foreign.look;
-		var skip = foreign.skip;
-		var read = foreign.read;
-		var freadSymbol = foreign.readSymbol;
-		var freadString = foreign.readString;
-		var freadNumber = foreign.readNumber;
-
-		//dictionary
+		//compiler & dictionary
+		var fcompile = foreign.compile;
 		var dctDefine = foreign.dctDefine;
-		var dctCheckpoint = foreign.dctCheckpoint;
-		var dctRollback = foreign.dctRollback;
 
 		//errors
 		var err_expectedRBR = foreign.expectedRBR;
@@ -146,21 +137,11 @@ function SLIP(callbacks, size) {
 		var err_fatalMemory = foreign.fatalMemory;
 		var err_globalOverflow = foreign.globalOverflow;
 
-		//compiler
-		var compile = foreign.compile;
-
 		//timer
 		var clock = foreign.clock;
 		var reset = foreign.reset;
 
 		//symbols
-		var __QUO_SYM__ = 0;
-		var __VEC_SYM__ = 0;
-		var __DEF_SYM__ = 0;
-		var __LMB_SYM__ = 0;
-		var __IFF_SYM__ = 0;
-		var __BEG_SYM__ = 0;
-		var __SET_SYM__ = 0;
 		var loadQuo = foreign.loadQuo;
 		var loadVec = foreign.loadVec;
 		var loadDef = foreign.loadDef;
@@ -244,17 +225,6 @@ function SLIP(callbacks, size) {
 		var __EXT_SIZ__ = 0;
 
 		//callbacks
-		function readSymbol() {
-			return deref(freadSymbol()|0)|0;
-		}
-
-		function readString() {
-			return deref(freadString()|0)|0;
-		}
-
-		function readNumber() {
-			return deref(freadNumber()|0)|0;
-		}
 
 		function printOutput(exp) {
 			exp = exp|0;
@@ -269,6 +239,12 @@ function SLIP(callbacks, size) {
 		function printError(exp) {
 			exp = exp|0;
 			fprintError(ref(exp)|0);
+		}
+
+		function compile(exp,tailc) {
+			exp = exp|0;
+			tailc = tailc|0;
+			return deref(fcompile(ref(exp)|0,tailc|0)|0)|0;
 		}
 
 		/* -- FUNCTIONS -- */
@@ -707,6 +683,18 @@ function SLIP(callbacks, size) {
 			return ref(__VOID__)|0;
 		}
 
+		function slipNull() {
+			return ref(__NULL__)|0;
+		}
+
+		function slipTrue() {
+			return ref(__TRUE__)|0;
+		}
+
+		function slipFalse() {
+			return ref(__FALSE__)|0;
+		}
+
 		/* ---- CHARS ---- */
 
 		function fmakeChar(code) {
@@ -733,7 +721,6 @@ function SLIP(callbacks, size) {
 
 		/* ---- SPECIAL VALUES ---- */
 
-		//TODO: replace with more efficient typechecks
 		typecheck __TRU_TAG__ => isTrue
 		typecheck __FLS_TAG__ => isFalse
 		typecheck __VOI_TAG__ => isVoid
@@ -1370,6 +1357,7 @@ function SLIP(callbacks, size) {
 		function fmakeFloat(nbr) {
 			nbr = fround(nbr);
 			var flt = 0;
+			claim();
 			makeChunk(__FLT_TAG__, __FLOAT_SIZ__) => flt;
 			chunkSetFloat(flt, __FLOAT_NBR__, nbr);
 			return ref(flt)|0;
@@ -1384,6 +1372,30 @@ function SLIP(callbacks, size) {
 
 		/* --- TEXT --- */
 
+		function fmakeText(tag,len) {
+			tag = tag|0;
+			len = len|0;
+			return ref(makeText(tag,len)|0)|0;
+		}
+
+		function ftextSetChar(txt,idx,chr) {
+			txt = txt|0;
+			idx = idx|0;
+			chr = chr|0;
+			textSetChar(deref(txt)|0,idx,chr);
+		}
+
+		function ftextGetChar(txt,idx) {
+			txt = txt|0;
+			idx = idx|0;
+			return textGetChar(deref(txt)|0,idx)|0;
+		}
+
+		function ftextLength(txt) {
+			txt = txt|0;
+			return textLength(deref(txt)|0)|0;
+		}
+
 		function makeText(tag, len) {
 			tag = tag|0;
 			len = len|0;
@@ -1396,50 +1408,33 @@ function SLIP(callbacks, size) {
 				(len|0) < (siz|0);
 				len = (len + 1)|0)
 				chunkSetByte(chk, len, 0);
-			return ref(chk)|0;
+			return chk|0;
 		}
 
 		function textSetChar(txt, idx, chr) {
 			txt = txt|0;
 			idx = idx|0;
 			chr = chr|0;
-			chunkSetByte(deref(txt)|0,(idx+4)|0, chr);
+			chunkSetByte(txt,(idx+4)|0,chr);
 		}
 
 		function textGetChar(txt, idx) {
 			txt = txt|0;
 			idx = idx|0;
-			return chunkGetByte(deref(txt)|0,(idx+4)|0)|0;
+			return chunkGetByte(txt,(idx+4)|0)|0;
 		}
 
 		function textLength(txt) {
 			txt = txt|0;
 			var len = 0;
-			txt = deref(txt)|0;
 			len = (chunkSize(txt)|0) << 2;
 			if (len)
 				for(;!(chunkGetByte(txt,(len+3)|0)|0);len=(len-1)|0);
 			return len|0;
 		}
 
-		/* --- STRINGS --- */
-
-		function makeString(len) {
-			len = len|0;
-			return makeText(__STR_TAG__, len)|0;
-		}
-
 		typecheck __STR_TAG__ => isString
-
-		/* --- SYMBOLS --- */
-
-		function makeSymbol(len) {
-			len = len|0;
-			return makeText(__SYM_TAG__, len)|0;
-		}
-
 		typecheck __SYM_TAG__ => isSymbol
-
 
 // **********************************************************************
 // **************************** EXTERNAL ********************************
@@ -1732,8 +1727,10 @@ function SLIP(callbacks, size) {
 			run(REPL);
 		}
 
-		function inputReady() {
-			run(R_read);
+		function inputReady(exp) {
+			exp = exp|0;
+			VAL = deref(exp)|0;;
+			run(KON);
 		}
 
 		define __MARGIN__ 128
@@ -1775,20 +1772,6 @@ function SLIP(callbacks, size) {
 			}
 		}
 
-		function fclaim() {
-			if((available()|0) < __MARGIN__) {
-				claimCollect();
-			}
-		}
-
-		function fclaimSiz(amount) {
-			amount = amount|0;
-			amount = ((imul(amount, __UNIT_SIZ__)|0) + __MARGIN__)|0;
-			if((available()|0) < (amount|0)) {
-				claimSizCollect(amount);
-			}
-		}
-
 		function reclaim() {
 
 			STKALLOC(11);
@@ -1826,17 +1809,6 @@ function SLIP(callbacks, size) {
 // ************************** INSTRUCTIONS ******************************
 // **********************************************************************
 
-		define LBR 40
-		define RBR 41
-		define SHR 35
-		define QUO 39
-		define DQU 34
-		define PLS 43
-		define MIN 45
-		define DOT 46
-		define SLH 92
-		define LTT 116
-		define LTF 102
 
 		instructions {
 
@@ -2437,7 +2409,7 @@ function SLIP(callbacks, size) {
 				STK[2] = KON;
 				STK[1] = ENV;
 				STK[0] = FRM;
-				EXP = deref(compile(ref(EXP)|0,1)|0)|0;
+				EXP = compile(EXP,1)|0;
 				FRM = GLB;
 				ENV = __EMPTY_VEC__;
 				KON = E_c_return;
@@ -3064,157 +3036,6 @@ function SLIP(callbacks, size) {
 
 				halt;
 			}
-
-// **********************************************************************
-// ***************************** READER *********************************
-// **********************************************************************
-
-			R_read {
-
-				switch (look()|0) {
-
-					case LBR: goto R_readLBR;
-					case SHR: goto R_readSHR;
-					case QUO: goto R_readQUO;
-					case DQU:
-						VAL = readString()|0;
-						goto KON|0;
-					case PLS: case MIN: case 48:
-					case 49: case 50: case 51:
-					case 52: case 53: case 54:
-					case 55: case 56: case 57:
-						VAL = readNumber()|0;
-						goto KON|0;
-				}
-
-				VAL = readSymbol()|0;
-				goto KON|0;
-			}
-
-			R_readLBR {
-
-				skip();
-				if ((look()|0) == RBR) {
-					skip();
-					VAL = __NULL__;
-					goto KON|0;
-				}
-				claim()
-				push(KON);
-				push(__ZERO__);
-				KON = R_c1_LBR;
-				goto R_read;
-			}
-
-			R_c1_LBR {
-
-				claim()
-				if ((look()|0) == RBR) {
-					skip();
-					VAL = makePair(VAL, __NULL__)|0;
-					goto R_c3_LBR;
-				}
-				IDX = numberVal(peek()|0)|0;
-				poke(VAL);
-				push((makeNumber((IDX+1)|0))|0);
-				if ((look()|0) == DOT) {
-					skip();
-					KON = R_c2_LBR;
-				}
-				goto R_read;
-			}
-
-			R_c2_LBR {
-
-				if ((look()|0) != RBR) {
-					err_expectedRBR(look()|0);
-					goto error;
-				}
-
-				skip();
-				goto R_c3_LBR;
-			}
-
-			R_c3_LBR {
-
-				IDX = numberVal(pop()|0)|0;
-				for(;IDX;IDX=(IDX-1)|0) {
-					claim()
-					VAL = makePair(pop()|0, VAL)|0;
-				}
-				KON = pop()|0;
-				goto KON|0;
-			}
-
-			R_readQUO {
-
-				claim()
-				skip();
-				push(KON);
-				KON = R_c_QUO;
-				goto R_read;
-			}
-
-			R_c_QUO {
-
-				claim()
-				VAL = makePair(VAL, __NULL__)|0;
-				VAL = makePair(__QUO_SYM__, VAL)|0;
-				KON = pop()|0;
-				goto KON|0;
-			}
-
-			R_readSHR {
-
-				skip();
-				switch(read()|0) {
-					case LTT:
-						VAL = __TRUE__;
-						goto KON|0;
-					case LTF:
-						VAL = __FALSE__;
-						goto KON|0;
-					case SLH:
-						VAL = makeChar(read()|0)|0;
-						goto KON|0;
-					case LBR:
-						claim()
-						if ((look()|0) == RBR) {
-							skip();
-							VAL = makePair(__VEC_SYM__, __NULL__)|0;
-							goto KON|0;
-						}
-						push(KON);
-						push(__ONE__);
-						KON = R_c_vector;
-						goto R_read;
-				}
-
-				err_invalidSyntax();
-				goto error;
-			}
-
-			R_c_vector {
-
-				if ((look()|0) == RBR) {
-					skip();
-					LEN = numberVal(pop()|0)|0;
-					claimSiz(imul(3,LEN)|0)
-					VAL = makePair(VAL, __NULL__)|0;
-					for(LEN=(LEN-1)|0;LEN;LEN=(LEN-1)|0)
-						VAL = makePair(pop()|0, VAL)|0;
-					VAL = makePair(__VEC_SYM__, VAL)|0;
-					KON = pop()|0;
-					goto KON|0;
-				}
-
-				claim()
-				IDX = numberVal(peek()|0)|0;
-				poke(VAL);
-				push(makeNumber((IDX+1)|0)|0);
-				goto R_read;
-			}
-
 
 // **********************************************************************
 // *************************** EVALUATOR ********************************
@@ -4742,7 +4563,7 @@ function SLIP(callbacks, size) {
 
 			N_c1_load {
 
-				EXP = deref(compile(ref(VAL)|0,1)|0)|0;
+				EXP = compile(VAL,1)|0;
 				FRM = GLB;
 				ENV = __EMPTY_VEC__;
 				KON = E_c_return;
@@ -4882,7 +4703,6 @@ function SLIP(callbacks, size) {
 			REPL {
 
 				clearRefs();
-				dctCheckpoint();
 				KON = c1_repl;
 				promptInput();
 				halt;
@@ -4890,7 +4710,7 @@ function SLIP(callbacks, size) {
 
 			c1_repl {
 
-				EXP = deref(compile(ref(VAL)|0,0)|0)|0;
+				EXP = compile(VAL,0)|0;
 				KON = c2_repl;
 				goto E_eval;
 			}
@@ -4905,7 +4725,6 @@ function SLIP(callbacks, size) {
 
 				FRM = GLB;
 				ENV = __EMPTY_VEC__;
-				dctRollback();
 				emptyStk();
 				goto REPL;
 			}
@@ -4921,8 +4740,6 @@ function SLIP(callbacks, size) {
 			/**************/
 
 			init: init,
-			fclaim: fclaim,
-			fclaimSiz: fclaimSiz,
 			Slip_REPL: Slip_REPL,
 			inputReady: inputReady,
 
@@ -4936,9 +4753,12 @@ function SLIP(callbacks, size) {
 			fset: fset,
 			fsetRaw: fsetRaw,
 			//text 
-			makeText: makeText,
-			textGetChar: textGetChar,
-			textSetChar: textSetChar,
+			fmakeText: fmakeText,
+			ftextGetChar: ftextGetChar,
+			ftextSetChar: ftextSetChar,
+			ftextLength: ftextLength,
+			fisString: fisString,
+			fisSymbol: fisSymbol,
 			//specials
 			fisTrue: fisTrue,
 			fisFalse: fisFalse,
@@ -4978,18 +4798,6 @@ function SLIP(callbacks, size) {
 			fmakeFloat: fmakeFloat,
 			ffloatNumber: ffloatNumber,
 			fisFloat: fisFloat,
-			//string
-			makeString: makeString,
-			stringAt: textGetChar,
-			stringSet: textSetChar,
-			stringLength: textLength,
-			fisString: fisString,
-			//symbols
-			makeSymbol: makeSymbol,
-			symbolAt: textGetChar,
-			symbolSet: textSetChar,
-			symbolLength: textLength,
-			fisSymbol: fisSymbol,
 			//natives
 			fnativePtr: fnativePtr,
 			fisNative: fisNative,
@@ -5111,11 +4919,13 @@ function SLIP(callbacks, size) {
 			//sequence tail
 			fstlExp: fstlExp,
 			fisStl: fisStl,
-			//void
-			slipVoid: slipVoid,
 			//other
-			feq: feq,
-			protect: protect
+			slipVoid: slipVoid,
+			slipNull: slipNull,
+			slipTrue: slipTrue,
+			slipFalse: slipFalse,
+			protect: protect,
+			feq: feq
 		};
 	}
 
@@ -5178,9 +4988,10 @@ function SLIP(callbacks, size) {
 
 		function compile_exp(exp,tail) {
 			try {
+				dct.checkpoint();
 				return compile(exp,tail>0);
 			} catch(exception) {
-				console.log(exception);
+				dct.rollback();
 				return asm.slipVoid();
 			}
 		}
@@ -5537,7 +5348,7 @@ function SLIP(callbacks, size) {
 		"use strict";
 
 		var asm, err;
-		var savedEnv;
+		var savedOffset = 0;
 		var environment = [];
 		var frame = [];
 
@@ -5559,7 +5370,7 @@ function SLIP(callbacks, size) {
 			if(environment.length==0)
 				asm.protect(vrb); //we don't want globals gone
 
-			frame.push((vrb));
+			frame.push(vrb);
 			return frame.length;
 		}
 
@@ -5582,9 +5393,9 @@ function SLIP(callbacks, size) {
 
 		function offset(sym,frame) {
 			var len = frame.length;
-			for(var i = 0; i < len; ++i)
-				if(asm.feq(frame[i],sym))
-					return i+1;
+			while(len-- > 0) 
+				if(asm.feq(frame[len],sym))
+					return len+1;
 			return false; //variable not found
 		}
 
@@ -5608,11 +5419,11 @@ function SLIP(callbacks, size) {
 		}
 
 		function checkpoint() {
-			savedEnv = frame;
+			savedOffset = frame.length;
 		}
 
 		function rollback() {
-			frame = savedEnv;
+			frame.length = savedOffset;
 			environment = [];
 		}
 
@@ -5632,24 +5443,191 @@ function SLIP(callbacks, size) {
 		"use strict";
 
 		var program, position, hold;
-		var makeString, stringSet,
-			makeNumber, makeFloat,
-			enterPool, claimSiz, claim;
+		var asm, pool, err;
 
 		function load(str) {
 			program = str;
 			position = 0;
 		}
 
-		function link(asm, pool) {
-			makeString = asm.makeString;
-			stringSet = asm.stringSet;
-			makeNumber = asm.fmakeNumber;
-			makeFloat = asm.fmakeFloat;
-			claimSiz = asm.fclaimSiz;
-			claim = asm.fclaim;
-			enterPool = pool.enterPool;
+		function link(asmModule, errModule, poolModule) {
+			asm = asmModule;
+			err = errModule;
+			pool = poolModule;
 		}
+
+		function make() {
+			var tag = arguments[0];
+			var len = arguments.length;
+			var chk = asm.fmake(tag,len-1);
+			for(var i = 1; i < len; ++i)
+				asm.fset(chk,i,arguments[i]);
+			return chk;
+		}
+
+		function readerError(err) {
+			err(arguments[1])
+			throw err
+		}
+
+		function expect(ch,err) {
+			var res = readC()
+			if(res !== ch)
+				readerError(err,res)
+		}
+
+		function read_exp() {
+
+			try {
+				return read()
+			} catch(exception) {
+				console.log(exception);
+				return asm.slipVoid();
+			}
+		}
+
+		function read() {
+
+			switch(peekC()) {
+
+				case '(': 
+					return read_lbr()
+				case '#': 
+					return read_shr()
+				case '\'': 
+					return read_quo()
+				case '\"': 
+					return read_str()
+				case '+':
+				case '-':
+				case '0':
+				case '1':
+				case '2':
+				case '3':
+				case '4':
+				case '5':
+				case '6':
+				case '7':
+				case '8':
+				case '9':
+					return read_num()
+				default:
+					return read_sym()
+			}
+		}
+
+		function read_lbr() {
+
+			skipC();  //skip the '('
+
+			// an empty list
+			if(peekC() === ')') {
+				skipC()
+				return asm.slipNull()
+			}
+
+			// a non-empty list
+			var elements = []
+			do {
+				elements.push(read())
+				if(peekC() === '.') {
+					skipC()
+					var tail = read()
+					expect(')',err.expectedRBR);
+					return buildList(elements,tail)
+				}
+			} while(peekC() !== ')')
+
+			skipC();
+			return buildList(elements,asm.slipNull());
+		}
+
+		function read_quo() {
+
+			skipC();  // skip '
+			var quoted = read();
+			var exp = make(__PAI_TAG__,quoted,asm.slipNull());
+			exp = make(__PAI_TAG__,pool.loadQuo(),exp);
+			return exp;
+		}
+
+		function read_shr() {
+
+			skipC();  // skip #
+
+			switch(readC()) {
+
+				case 't':
+					return asm.slipTrue();
+				case 'f':
+					return asm.slipFalse();
+				case '\\':
+					var code = readC().charCodeAt(0)
+					var char = asm.fmakeChar(code)
+					return char;
+				case '(':
+					return read_vec();
+				default:
+					readerError(err.invalidSyntax)
+			}
+		}
+
+		function read_vec() {
+
+			if(peekC() === ')') {
+				skipC();
+				return make(__PAI_TAG__,
+							pool.loadVec(),
+							asm.slipNull());
+			}
+
+			var elements = []
+			do {
+				elements.push(read())
+			} while(peekC() !== ')')
+
+			var args = buildList(elements,asm.slipNull());
+			var vctApl = make(__PAI_TAG__,pool.loadVec(),args);
+			return vctApl;
+		}
+
+		function read_str() {
+			hold = position;
+			while(program.charAt(++position) !== '\"');
+			return extractString(hold+1,position++);
+		}
+
+		function read_sym() {
+			hold = position;
+			while(!isTerminator(program.charAt(++position)));
+			return pool.enterPool(program.substring(hold,position));
+		}
+
+		function read_num() {
+			hold = position;
+			//step 1: check for sign
+			switch(program.charAt(position)) {
+				case '+':
+				case '-':
+					if(!isNumber(program.charAt(++position))) {
+						--position; //oops, go back
+						return read_sym();
+					}
+			}
+			//step 2: parse number in front of .
+			while(isNumber(program.charAt(++position)));
+			//step 3: parse number after .
+			if(program.charAt(position) === '.') {
+				while(isNumber(program.charAt(++position)));
+				var flt = parseFloat(program.substring(hold, position));
+				return asm.fmakeFloat(flt);
+			}
+			var int = parseInt(program.substring(hold, position));
+			return asm.fmakeNumber(int);
+		}
+
+
+		/*  HELPERS  */
 
 		function isTerminator(c) {
 			switch (c) {
@@ -5683,73 +5661,46 @@ function SLIP(callbacks, size) {
 			}
 		}
 
-		function skip() {
+		function skipC() {
 			skipWhiteSpace();
 			++position;
 		}
 
-		function peek() {
+		function peekC() {
 			skipWhiteSpace();
-			return program.charCodeAt(position);
+			return program.charAt(position);
 		}
 
-		function read() {
+		function readC() {
 			skipWhiteSpace();
-			return program.charCodeAt(position++);
+			return program.charAt(position++);
 		}
 
-		function readSymbol() {
-			hold = position;
-			while(!isTerminator(program.charAt(++position)));
-			return enterPool(program.substring(hold, position));
+		function buildList(elements,tail) {
+			var len = elements.length;
+			var lst = tail;
+			while(len) {
+				var exp = elements[--len];
+				lst = make(__PAI_TAG__,exp,lst)
+			}
+			return lst;
 		}
+
 
 		function extractString(from, to) {
 			var len = to - from;
-			claimSiz(len);
-			var str = makeString(len);
-			for(var i = 0; i < len; ++i)
-				stringSet(str, i, program.charCodeAt(from+i));
+			var str = asm.fmakeText(__STR_TAG__,len);
+			for(var i = 0; i < len; ++i) {
+				var chr = program.charCodeAt(from+i);
+				asm.ftextSetChar(str,i,chr);
+			}
 			return str;
-		}
-
-		function readString() {
-			hold = position;
-			while(program.charAt(++position) != '\"');
-			return extractString(hold+1, position++);
-		}
-
-		function readNumber() {
-			hold = position;
-			//step 1: check for sign
-			switch(program.charAt(position)) {
-				case '+':
-				case '-':
-					if(!isNumber(program.charAt(++position))) {
-						--position; //oops, go back
-						return readSymbol();
-					}
-			}
-			//step 2: parse number in front of .
-			while(isNumber(program.charAt(++position)));
-			//step 3: parse number after .
-			if(program.charAt(position) === '.') {
-				while(isNumber(program.charAt(++position)));
-				claim();
-				return makeFloat(parseFloat(program.substring(hold, position)));
-			}
-			return makeNumber(parseInt(program.substring(hold, position)));
 		}
 
 		return {
 			load: load,
-			skip: skip,
-			peek: peek,
-			read: read,
-			readSymbol: readSymbol,
-			readString: readString,
-			readNumber: readNumber,
-			link: link
+			link: link,
+			read: read_exp
 		}
 	}
 
@@ -5765,9 +5716,9 @@ function SLIP(callbacks, size) {
 
 		function buildSymbol(txt) {
 			var len = txt.length;
-			var sym = asm.makeText(__SYM_TAG__,len);
+			var sym = asm.fmakeText(__SYM_TAG__,len);
 			for(var i = 0; i < len; ++i)
-				asm.textSetChar(sym,i,txt.charCodeAt(i));
+				asm.ftextSetChar(sym,i,txt.charCodeAt(i));
 			return sym;
 		}
 
@@ -5948,10 +5899,10 @@ function SLIP(callbacks, size) {
 			getTag = asm.ftag;
 			numberVal = asm.fnumberVal;
 			floatNumber = asm.ffloatNumber;
-			charCode = asm.charCode;
+			charCode = asm.fcharCode;
 			stringText = asm.stringText;
-			symbolLength = asm.symbolLength;
-			symbolAt = asm.symbolAt;
+			symbolLength = asm.ftextLength;
+			symbolAt = asm.ftextGetChar;
 			pairCar = asm.fpairCar;
 			pairCdr = asm.fpairCdr;
 			isPair = asm.fisPair;
@@ -6305,7 +6256,8 @@ function SLIP(callbacks, size) {
 
 		function onInput(txt) {
 			reader.load(txt);
-			inputReady();
+			var exp = reader.read();
+			inputReady(exp);
 		}
 
 		function promptInput() {
@@ -6319,9 +6271,7 @@ function SLIP(callbacks, size) {
 		}
 
 		function onError() {
-			//TODO: temporary fix...
-			reader.load('#f');
-			inputReady();
+			inputReady(asm.slipVoid());
 		}
 
 		function loadFile(str) {
@@ -6386,12 +6336,6 @@ function SLIP(callbacks, size) {
 
 	var foreign = {
 		heapSize: memSiz,
-		skip: reader.skip,
-		look: reader.peek,
-		read: reader.read,
-		readSymbol: reader.readSymbol,
-		readString: reader.readString,
-		readNumber: reader.readNumber,
 		loadQuo: pool.loadQuo,
 		loadIff: pool.loadIff,
 		loadDef: pool.loadDef,
@@ -6483,24 +6427,22 @@ function SLIP(callbacks, size) {
 		initREPL: io.initREPL,
 		random: Math.random,
 		dctDefine: dictionary.defineVar,
-		dctCheckpoint: dictionary.checkpoint,
-		dctRollback: dictionary.rollback,
 		compile: compiler.compile
 	};
 
 	//asm module
 	var asm = SLIP_ASM(callbacks.stdlib, foreign, buffer);
 	asm.stringText = function(chk) {
-		var len = asm.stringLength(chk);
+		var len = asm.ftextLength(chk);
 		var arr = new Array(len);
 		for(var i = 0; i < len; ++i)
-			arr[i] = asm.stringAt(chk, i);
+			arr[i] = asm.ftextGetChar(chk,i);
 		return String.fromCharCode.apply(null, arr);
 	}
 
 	//linking
 	pool.link(asm);
-	reader.link(asm, pool);
+	reader.link(asm, errors, pool);
 	compiler.link(asm, dictionary, pool, errors, printer);
 	dictionary.link(asm, errors);
 	printer.link(asm);
