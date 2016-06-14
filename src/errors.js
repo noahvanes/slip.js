@@ -65,11 +65,15 @@ function ERRORS() {
 	}
 
 	function invalidExpression(exp) {
-		report('invalid expression:' + printExp(exp));
+		report('invalid expression: ' + printExp(exp));
+	}
+
+	function constantViolation(exp) {
+		report('constant cannot be reassigned: ' + printExp(exp));
 	}
 
 	function invalidOperator(exp) {
-		report('invalid operator:' + printExp(exp));
+		report('invalid operator: ' + printExp(exp));
 	}
 
 	function invalidParamCount() {
@@ -96,6 +100,7 @@ function ERRORS() {
 		invalidLambda: invalidLambda,
 		invalidApplication: invalidApplication,
 		undefinedVariable: undefinedVariable,
+		constantViolation: constantViolation,
 		invalidOperator: invalidOperator,
 		invalidParamCount: invalidParamCount,
 		invalidParameter: invalidParameter,

@@ -38,7 +38,7 @@ function READER() {
 	function read_exp() {
 
 		try {
-			return read()
+			return read.c()
 		} catch(exception) {
 			console.log(exception);
 			return asm.slipVoid();
@@ -50,13 +50,13 @@ function READER() {
 		switch(peekC()) {
 
 			case '(': 
-				return read_lbr()
+				return read_lbr.c()
 			case '#': 
-				return read_shr()
+				return read_shr.c()
 			case '\'': 
-				return read_quo()
+				return read_quo.c()
 			case '\"': 
-				return read_str()
+				return read_str.c()
 			case '+':
 			case '-':
 			case '0':
@@ -69,9 +69,9 @@ function READER() {
 			case '7':
 			case '8':
 			case '9':
-				return read_num()
+				return read_num.c()
 			default:
-				return read_sym()
+				return read_sym.c()
 		}
 	}
 
@@ -86,28 +86,27 @@ function READER() {
 		}
 
 		// a non-empty list
-		var elements = []
+		this.elements = []
 		do {
-			elements.push(read())
+			this.elements.push(read.c());
 			if(peekC() === '.') {
 				skipC()
-				var tail = read()
+				this.tail = read.c()
 				expect(')',err.expectedRBR);
-				return buildList(elements,tail)
+				return buildList.c(this.elements,this.tail)
 			}
 		} while(peekC() !== ')')
 
 		skipC();
-		return buildList(elements,asm.slipNull());
+		return buildList.c(this.elements,asm.slipNull());
 	}
 
 	function read_quo() {
 
 		skipC();  // skip '
-		var quoted = read();
-		var exp = make(__PAI_TAG__,quoted,asm.slipNull());
-		exp = make(__PAI_TAG__,pool.loadQuo(),exp);
-		return exp;
+		this.quoted = read.c();
+		this.exp = make(__PAI_TAG__,this.quoted,asm.slipNull());
+		return make(__PAI_TAG__,pool.loadQuo(),this.exp);
 	}
 
 	function read_shr() {
@@ -122,10 +121,9 @@ function READER() {
 				return asm.slipFalse();
 			case '\\':
 				var code = readC().charCodeAt(0)
-				var char = asm.fmakeChar(code)
-				return char;
+				return asm.fmakeChar(code)
 			case '(':
-				return read_vec();
+				return read_vec.c();
 			default:
 				readerError(err.invalidSyntax)
 		}
@@ -140,13 +138,13 @@ function READER() {
 						asm.slipNull());
 		}
 
-		var elements = []
+		this.elements = [];
 		do {
-			elements.push(read())
+			this.elements.push(read.c())
 		} while(peekC() !== ')')
 
-		var args = buildList(elements,asm.slipNull());
-		var vctApl = make(__PAI_TAG__,pool.loadVec(),args);
+		this.args = buildList.c(this.elements,asm.slipNull());
+		var vctApl = make(__PAI_TAG__,pool.loadVec(),this.args);
 		return vctApl;
 	}
 
@@ -170,7 +168,7 @@ function READER() {
 			case '-':
 				if(!isNumber(program.charAt(++position))) {
 					--position; //oops, go back
-					return read_sym();
+					return read_sym.c();
 				}
 		}
 		//step 2: parse number in front of .
@@ -238,9 +236,11 @@ function READER() {
 	function buildList(elements,tail) {
 		var len = elements.length;
 		var lst = tail;
+		this.clean = [];
 		while(len) {
 			var exp = elements[--len];
 			lst = make(__PAI_TAG__,exp,lst)
+			this.clean.push(lst);
 		}
 		return lst;
 	}

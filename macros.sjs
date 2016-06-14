@@ -33,6 +33,8 @@ defineGlobal __LMB_TAG__ 0x12
 defineGlobal __SGL_TAG__ 0x14
 defineGlobal __QUO_TAG__ 0x16
 defineGlobal __CNT_TAG__ 0x18
+defineGlobal __BND_TAG__ 0x1A
+//available: __XXX_TAG__ 0x1C
 defineGlobal __DFZ_TAG__ 0x1E
 defineGlobal __THK_TAG__ 0x20
 defineGlobal __LMZ_TAG__ 0x22
@@ -50,9 +52,6 @@ defineGlobal __STL_TAG__ 0x38
 defineGlobal __ANL_TAG__ 0x3A
 defineGlobal __TNL_TAG__ 0x3C
 defineGlobal __PRT_TAG__ 0x3E
-//available:
-//			0x1A
-//			0x1C
 
 /* -- RAW CHUNKS -- */
 defineGlobal __FLT_TAG__ 0x01

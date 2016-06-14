@@ -17,8 +17,9 @@ function SYMBOLS() {
         if (!sym) {
             // new symbol
             sym = buildSymbol(str);
-            asm.protect(sym);
-            pool[str] = sym;
+            pool[str] = asm.protect(sym);
+        } else {
+            sym = asm.fcopy(sym);
         }
         return sym;
     }
@@ -89,6 +90,7 @@ function SYMBOLS() {
         loadCce: symbol('call-with-escape-continuation'),
         loadRef: symbol('ref'),
         loadFre: symbol('free'),
+        loadDfi: symbol('define-inline'),
         link: link
     };
 }

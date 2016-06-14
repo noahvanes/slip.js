@@ -1,12 +1,12 @@
 (begin
   
-  (define  (interval-list m n)
+  (define-inline (interval-list m n)
     (if (> m n)
         '()
         (cons m (interval-list (+ 1 m) n))))
   
   (define (sieve l)
-    (define (remove-multiples n l)
+    (define-inline (remove-multiples n l)
       (if (null? l)
           '()
           (if (= (remainder (car l) n) 0)

@@ -1,7 +1,7 @@
 (begin 
   
  (define (quicksort vector <?)
-     (define (swap i j)
+     (define-inline (swap i j)
          (define keep (vector-ref vector i))
          (vector-set! vector i (vector-ref vector j))
          (vector-set! vector j keep))

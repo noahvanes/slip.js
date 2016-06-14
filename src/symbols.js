@@ -17,11 +17,12 @@ function SYMBOLS() {
 	}
 
 	function enterPool(str) {
-		var sym = pool[str]
+		var sym = pool[str];
 		if (!sym) {  // new symbol
 			sym = buildSymbol(str)
-			asm.protect(sym)
-			pool[str] = sym
+			pool[str] = asm.protect(sym)
+		} else {
+			sym = asm.fcopy(sym);
 		}
 		return sym;
 	}
@@ -36,6 +37,7 @@ function SYMBOLS() {
 	define __VEC_STR__ 'vector'
 	define __IFF_STR__ 'if'
 	define __DEF_STR__ 'define'
+	define __DFI_STR__ 'define-inline'
 	define __LMB_STR__ 'lambda'
 	define __SET_STR__ 'set!'
 	define __BEG_STR__ 'begin'
@@ -157,6 +159,7 @@ function SYMBOLS() {
 		loadCce: symbol(__CCE_STR__),
 		loadRef: symbol(__REF_STR__),
 		loadFre: symbol(__FRE_STR__),
+		loadDfi: symbol(__DFI_STR__),
 		link: link
 	}
 }

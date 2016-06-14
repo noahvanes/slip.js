@@ -65,6 +65,8 @@ function PRINTER() {
             return '#<thunk (size: ' + printExp(ag.fthunkSiz(exp)) + '; body: ' + printExp(ag.fthunkExp(exp)) + ')>';
         case 38:
             return '#<thunk* (size: ' + printExp(ag.fttkSiz(exp)) + '; body: ' + printExp(ag.fttkExp(exp)) + ')>';
+        case 26:
+            return '#<binding (ofs: ' + printExp(ag.fbndOfs(exp)) + '; value: ' + printExp(ag.fbndVal(exp)) + '; body: ' + printExp(ag.fbndBdy(exp)) + ')>';
         case 22:
             return '#<quote ' + printExp(ag.fquoExpression(exp)) + '>';
         case 18:

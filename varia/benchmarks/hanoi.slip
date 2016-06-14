@@ -1,7 +1,7 @@
 (begin 
   
   (define (hanoi n)
-    (define (move-them n from to helper)
+    (define-inline (move-them n from to helper)
       (if (> n 1)
           (begin
             (move-them (- n 1) from helper to)
@@ -9,5 +9,3 @@
     (move-them n 0 1 2))
   
   (run-benchmark "HANOI TOWERS" (lambda () (hanoi 25))))
-  
-  

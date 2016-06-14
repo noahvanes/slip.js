@@ -406,6 +406,7 @@ function SLIP(callbacks, size) {
 		var __POOL_SIZ__ = 0;
 		var __EXT_FREE__ = 0;
 		var __EXT_SIZ__ = 0;
+		var __REFS_USED__ = 0;
 
 		//callbacks
 
@@ -426,13 +427,15 @@ function SLIP(callbacks, size) {
 
 		function loadFile(arg) {
 			arg = arg|0;
-			floadFile(ref(arg|0));
+			floadFile(ref(arg)|0);
 		}
 
 		function compile(exp,tailc) {
 			exp = exp|0;
 			tailc = tailc|0;
-			return deref(fcompile(ref(exp)|0,tailc|0)|0)|0;
+			var val = 0;
+			val = deref(fcompile(ref(exp)|0,tailc|0)|0)|0;
+			return val|0;
 		}
 
 		/* -- FUNCTIONS -- */
@@ -841,6 +844,17 @@ function SLIP(callbacks, size) {
 			return ref(chk)|0;
 		}
 
+		function fget(chk,idx) {
+			chk = chk|0;
+			idx = idx|0;
+			return ref(chunkGet(deref(chk)|0,idx<<2)|0)|0;
+		}
+
+		function fsize(chk) {
+			chk = chk|0;
+			return chunkSize(deref(chk)|0)|0;
+		}
+
 		function fset(chk,idx,itm) {
 			chk = chk|0;
 			idx = idx|0;
@@ -861,6 +875,11 @@ function SLIP(callbacks, size) {
 			x = deref(x)|0;
 			y = deref(y)|0;
 			return ((x|0)==(y|0))|0;
+		}
+
+		function fcopy(x) {
+			x = x|0;
+			return ref(deref(x)|0)|0;
 		}
 
 		/*==================*/
@@ -1308,6 +1327,16 @@ function SLIP(callbacks, size) {
 
 		typecheck __TTK_TAG__ => isTtk
 
+		/* ---- LOCAL BINDING ---- */
+
+		struct makeBnd {
+			ofs => bndOfs;
+			val => bndVal;
+			bdy => bndBdy;
+		} as __BND_TAG__
+
+		typecheck __BND_TAG__ => isBnd
+
 		/* ---- LAMBDA (FIXED ARGUMENTS) ---- */
 
 		struct makeLmb {
@@ -1651,7 +1680,7 @@ function SLIP(callbacks, size) {
 			var idx = 0;
 			var val = 0;
 			__EXT_SIZ__ = imul(__EXT_SIZ__,2)|0;
-			claimSiz(__EXT_SIZ__)
+ 			claimSiz(__EXT_SIZ__)
 			makeVector(__EXT_SIZ__) => TMP;
 			for(idx=1;(idx|0)<(__EXT_FREE__|0);idx=(idx+1)|0) {
 				val = vectorRef(EXT,idx)|0;
@@ -1663,6 +1692,9 @@ function SLIP(callbacks, size) {
 
 		function ref(val) {
 			val = val|0;
+			if(val&0x1) {
+				return val|0;
+			}
 			VAL = val;
 			if ((__EXT_FREE__|0) > (__EXT_SIZ__|0)) {
 				growExt();
@@ -1671,24 +1703,35 @@ function SLIP(callbacks, size) {
 			__EXT_FREE__ = vectorRef(EXT,__EXT_FREE__)|0;
 			__EXT_FREE__ = numberVal(__EXT_FREE__)|0;
 			vectorSet(EXT,IDX,VAL);
-			return IDX|0;
+			__REFS_USED__ = (__REFS_USED__+1)|0;
+			return (IDX << 1)|0;
 		}
 
 		function free(idx) {
 			idx = idx|0;
+			if(idx&0x1) {
+				return idx|0;
+			} else {
+				idx = idx>>>1;
+			}
 			VAL = vectorRef(EXT,idx)|0;
 			IDX = makeNumber(__EXT_FREE__)|0;
 			__EXT_FREE__ = idx|0;
 			vectorSet(EXT,idx,IDX);
+			__REFS_USED__ = (__REFS_USED__-1)|0;
 			return unpack(VAL)|0;
 		}
 
 		function clearRefs() {
 			var i = 0;
+			var tmp = 0;
 			__EXT_FREE__ = (__EXT_SIZ__+1)|0;
-			for(i=1;(i|0)<=(__EXT_SIZ__|0);i=(i+1)|0)
-				if(!(isPrt(vectorRef(EXT,i)|0)|0))
-					free(i)|0;
+			__REFS_USED__ = 0;
+			for(i=1;(i|0)<=(__EXT_SIZ__|0);i=(i+1)|0) {
+				__REFS_USED__ = (__REFS_USED__+1)|0;
+				if(!isPrt(vectorRef(EXT,i)|0)|0)
+					free(i<<1)|0;
+			}
 		}
 
 		function unpack(exp) {
@@ -1701,18 +1744,28 @@ function SLIP(callbacks, size) {
 		function deref(idx) {
 			idx = idx|0;
 			var exp = 0;
+			if(idx&0x1) {
+				return idx|0;
+			} else {
+				idx = idx>>>1;
+			}
 			exp = vectorRef(EXT,idx)|0;
 			return unpack(exp)|0;
 		}
 
 		function protect(idx) {
 			idx = idx|0;
+			if(idx&0x1) {
+				return idx|0;
+			} else {
+				idx = idx>>>1;
+			}
 			VAL = vectorRef(EXT,idx)|0;
 			if(!(isPrt(VAL)|0)) {
 				claim();
 				VAL = makePrt(VAL)|0;
-				vectorSet(EXT,idx,VAL);
 			}
+			return ref(VAL)|0;
 		}
 
 // **********************************************************************
@@ -1917,7 +1970,7 @@ function SLIP(callbacks, size) {
 
 		function inputReady(exp) {
 			exp = exp|0;
-			VAL = deref(exp)|0;;
+			VAL = deref(exp)|0;
 			run(KON);
 		}
 
@@ -3270,6 +3323,8 @@ function SLIP(callbacks, size) {
 						goto E_setLocal();
 					case __SGL_TAG__:
 						goto E_setGlobal();
+					case __BND_TAG__:
+						goto E_evalBnd();
 					case __DFV_TAG__:
 						goto E_evalDfv();
 					case __DFF_TAG__:
@@ -3386,6 +3441,28 @@ function SLIP(callbacks, size) {
 				vectorSet(FRM, OFS, VAL);
 				STKUNWIND(2);
 				goto KON|0;
+			}
+
+			E_evalBnd {
+
+				claim();
+				STKALLOC(2);
+				STK[1] = KON;
+				STK[0] = EXP;
+				EXP = bndVal(EXP)|0;
+				KON = E_c_evalBnd;
+				goto E_eval();
+			}
+
+			E_c_evalBnd {
+
+				EXP = STK[0]|0;
+				OFS = numberVal(bndOfs(EXP)|0)|0;
+				vectorSet(FRM,OFS,VAL);
+				EXP = bndBdy(EXP)|0;
+				KON = STK[1]|0;
+				STKUNWIND(2);
+				goto E_eval();
 			}
 
 			E_evalDff {
@@ -4891,6 +4968,7 @@ function SLIP(callbacks, size) {
 			REPL {
 
 				clearRefs();
+				printOutput(makeNumber(__REFS_USED__)|0);
 				KON = c1_repl;
 				promptInput();
 				halt;
@@ -4899,6 +4977,8 @@ function SLIP(callbacks, size) {
 			c1_repl {
 
 				EXP = compile(VAL,0)|0;
+				//printOutput(EXP|0);
+				//goto REPL;
 				KON = c2_repl;
 				goto E_eval;
 			}
@@ -4938,6 +5018,8 @@ function SLIP(callbacks, size) {
 			//generic
 			ftag: ftag,
 			fmake: fmake,
+			fget: fget,
+			fsize: fsize,
 			fset: fset,
 			fsetRaw: fsetRaw,
 			//text 
@@ -5104,6 +5186,11 @@ function SLIP(callbacks, size) {
 			fnlcScp: fnlcScp,
 			fnlcOfs: fnlcOfs,
 			fisNlc: fisNlc,
+			//binding
+			fbndOfs: fbndOfs,
+			fbndVal: fbndVal,
+			fbndBdy: fbndBdy,
+			fisBnd: fisBnd,
 			//sequence tail
 			fstlExp: fstlExp,
 			fisStl: fisStl,
@@ -5113,6 +5200,8 @@ function SLIP(callbacks, size) {
 			slipTrue: slipTrue,
 			slipFalse: slipFalse,
 			protect: protect,
+			fcopy: fcopy,
+			free: free,
 			feq: feq
 		};
 	}
@@ -5226,9 +5315,51 @@ function SLIP(callbacks, size) {
 		loadFile: io.loadFile,
 		initREPL: io.initREPL,
 		random: Math.random,
-		dctDefine: dictionary.defineVar,
+		dctDefine: function(s) { return dictionary.defineVar(s,false,false); },
 		compile: compiler.compile
 	};
+
+	Function.prototype.c = function() {
+
+		var printOut = printer.printExp;
+		var locals = Object.create(null);
+		var protectedRefs = new Set();
+
+		function clearRef(ref) {
+			if(!(protectedRefs.has(ref))) {
+				//console.log('[' + ref + '] ' + printOut(ref));
+				protectedRefs.add(ref);
+				asm.free(ref);
+			}
+		}
+
+		//console.log("ENTER " + this.name);
+		try {
+			var returned = this.apply(locals,arguments);
+			if(returned instanceof Array) {
+				var len = returned.length;
+				for(var i = 0; i < len; ++i) 
+					{ protectedRefs.add(returned[i]); }
+			} else {
+				protectedRefs.add(returned);
+			}
+			return returned;
+		} finally {
+			for(var k in locals) {
+				var local = locals[k];
+				if(local instanceof Array) {
+					var len = local.length;
+					//console.log('this.' + k + ': ')
+					for(var i = 0; i < len; ++i) 
+						{ clearRef(local[i]); }
+				} else {
+					//console.log('this.' + k + ': ');
+					clearRef(local);
+				}
+			}
+			//console.log("LEAVE " + this.name);
+		}
+	}
 
 	//asm module
 	var asm = SLIP_ASM(callbacks.stdlib, foreign, buffer);

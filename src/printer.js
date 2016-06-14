@@ -76,6 +76,11 @@ function PRINTER() {
 				return '#<thunk* (size: '
 							+ printExp(ag.fttkSiz(exp)) + '; body: '
 							+ printExp(ag.fttkExp(exp)) + ')>';
+			case __BND_TAG__:
+				return '#<binding (ofs: '
+							+ printExp(ag.fbndOfs(exp)) + '; value: '
+							+ printExp(ag.fbndVal(exp)) + '; body: '
+							+ printExp(ag.fbndBdy(exp)) + ')>';
 			case __QUO_TAG__:
 				return '#<quote '
 							+ printExp(ag.fquoExpression(exp)) + '>';
