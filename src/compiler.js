@@ -1,7 +1,7 @@
 function COMPILER() {
 	"use strict";
 
-	var INLINING_DEPTH = 4;
+	var INLINING_DEPTH = 1;
 	var INLINE_LOGGING = false;  // for debugging, turn on
 
 	var asm, dct, sym, err;		

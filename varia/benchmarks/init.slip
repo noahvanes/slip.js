@@ -1,6 +1,6 @@
 (begin
 
-  (define BENCH_COUNT 3)
+  (define BENCH_COUNT 5)
   
   (define (average nbrs)
     (define len (vector-length nbrs))

@@ -1,0 +1,74 @@
+(begin
+
+	(define-inline (make-tagged-pair tag a b)
+		(vector tag a b))
+
+	(define-inline (tag tagged)
+		(vector-ref tagged 0))
+
+	(define-inline (first tagged)
+		(vector-ref tagged 1))
+
+	(define-inline (second tagged)
+		(vector-ref tagged 2))
+
+	(define-inline (with-tag tg accessor vct)
+		(if (eq? (tag vct) tg)
+			(accessor vct)
+			(error "invalid type")))
+
+	(define vector-tag 'vector)
+
+	(define-inline (make-vector x y)
+		(make-tagged-pair vector-tag x y))
+
+	(define-inline (x-coordinate vct)
+		(with-tag vector-tag first vct))
+
+	(define-inline (y-coordinate vct)
+		(with-tag vector-tag second vct))
+
+	(define-inline (dot-product v1 v2)
+		(+ (* (x-coordinate v1) (x-coordinate v2))
+		   (* (y-coordinate v1) (y-coordinate v2))))
+
+	(define-inline matrix-tag 'matrix)
+
+	(define-inline (make-matrix v1 v2)
+		(make-tagged-pair matrix-tag v1 v2))
+
+	(define-inline (row1 matrix)
+		(with-tag matrix-tag first matrix))
+
+	(define-inline (row2 matrix)
+		(with-tag matrix-tag second matrix))
+
+	(define-inline (make2Dmatrix a b c d)
+		(make-matrix
+			(make-vector a b)
+			(make-vector c d)))
+
+	(define-inline (transpose matrix)
+		(define r1 (row1 matrix))
+		(define r2 (row2 matrix))
+		(define v1 (make-vector (x-coordinate r1) 
+								(x-coordinate r2)))
+		(define v2 (make-vector (y-coordinate r1)
+						 		(y-coordinate r2)))
+		(make-matrix v1 v2))
+
+	(define-inline (matrix-multiplication m1 m2)
+		(define trans (transpose m2))
+		(define e11 (dot-product (row1 m1) (row1 trans)))
+		(define e12 (dot-product (row1 m1) (row2 trans)))
+		(define e21 (dot-product (row2 m1) (row1 trans)))
+		(define e22 (dot-product (row2 m1) (row2 trans)))
+		(make2Dmatrix e11 e12 e21 e22))
+			
+	(define (loop n)
+		(define m (make2Dmatrix n n n n))
+		(matrix-multiplication m m)
+		(if (> n 0)
+			(loop (- n 1))))
+
+	(run-benchmark "MATRIX-MULTIPLICATION" (lambda () (loop 1000000))))

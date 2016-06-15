@@ -1,0 +1,14 @@
+(begin
+
+	(define-inline (square n)
+		(* n n))
+
+	(define-inline (sum-of-squares a b)
+		(+ (square a) (square b)))
+
+	(define (loop n)
+		(sum-of-squares n n)
+		(if (> n 0)
+			(loop (- n 1))))
+
+	(run-benchmark "SQUARE-LOOP" (lambda () (loop 10000000))))

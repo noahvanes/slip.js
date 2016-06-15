@@ -4549,7 +4549,7 @@ function SLIP(callbacks, size) {
         function _c1_repl() {
             EXP = compile(VAL, 0) | 0;
             //printOutput(EXP|0);
-            //goto REPL;
+            //return 255;
             KON = 259;
             return 105;
         }

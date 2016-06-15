@@ -1,0 +1,10 @@
+(begin
+	(define (fib n)
+		(define-inline (loop a b i)
+			(if (= i n)
+			    b
+			    (loop b (+ a b) (+ i 1))))
+		(loop 0 1 0))
+
+	(run-benchmark "LOOP" (lambda () (fib 100000000))))
+
