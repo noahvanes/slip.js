@@ -594,8 +594,6 @@ function COMPILER() {
 		if (!fun.inline || fun.inlining >= INLINING_DEPTH) 
 			{ throw false; }
 
-		log_inline('inlining ' + asm.stringText(fun.name) + '(' + fun.inlining + ')');
-
 		var frmMinSiz = dct.getMinimumFrameSize();
 		var defOffset = (inl? inl.offset:dct.frameSize());
 
@@ -613,14 +611,12 @@ function COMPILER() {
 			dct.setMinimumFrameSize(inline.offset);
 			
 			fun.inlined = true;
-			log_inline('successfully inlined ' + asm.stringText(fun.name) + '(' + fun.inlining + ')')
 
 			return makeInlineBody.c(this.expressions,this.body,defOffset);
 		
 		} catch(e) {
 
 			fun.inlined = false;
-			log_inline('failed to inline ' + asm.stringText(fun.name) + '(' + fun.inlining + ')');
 			dct.resetMinimumFrameSize(frmMinSiz);
 			dct.unregisterFunction(fun);
 			throw e;
